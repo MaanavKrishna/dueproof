@@ -8,11 +8,18 @@ shape read.py has always consumed:
     {"text", "x0", "y0", "x1", "y1", "line_id", "block_id", "conf"}
 
 with coordinates normalised 0-1 from the page's top-left, as displayed.
+
+PDFium is not thread-safe, not even across different documents: two ingest
+workers rendering at once crash the process inside its glyph cache. Every
+call into it goes through LOCK; callers that touch documents or pages
+directly (len, indexing, close) hold it too.
 """
 from __future__ import annotations
 
 import ctypes
+import functools
 import math
+import threading
 import unicodedata
 
 import numpy as np
@@ -26,6 +33,16 @@ WORD_GAP = 0.6       # a horizontal gap wider than this splits a word (table cel
 LINE_OVERLAP = 0.3   # a glyph overlapping the word vertically by less than this is on a new line
 BLOCK_GAP = 0.85     # space between lines larger than this starts a new block
 
+LOCK = threading.RLock()
+
+def _locked(fn):
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        with LOCK:
+            return fn(*args, **kwargs)
+    return wrapper
+
+@_locked
 def open_pdf(path) -> pdfium.PdfDocument:
     try:
         return pdfium.PdfDocument(str(path))
@@ -34,11 +51,13 @@ def open_pdf(path) -> pdfium.PdfDocument:
             raise ValueError("This PDF is password-protected") from exc
         raise ValueError("This file could not be read as a PDF") from exc
 
+@_locked
 def page_size(page: pdfium.PdfPage) -> tuple[float, float]:
     """Width and height in points, as displayed (after the page's rotation)."""
     w, h = page.get_size()
     return (h, w) if page.get_rotation() in (90, 270) else (w, h)
 
+@_locked
 def render(page: pdfium.PdfPage, dpi: int) -> np.ndarray:
     """The page as a BGR image. An A0 drawing at 300 DPI is a gigabyte of
     pixels, so the area is capped and the DPI lowered to fit."""
@@ -72,6 +91,7 @@ def _display_box(page, size, l, b, r, t) -> tuple[float, float, float, float]:
         ys.append(dy.value / (H * _SCALE))
     return min(xs), min(ys), max(xs), max(ys)
 
+@_locked
 def words(page: pdfium.PdfPage) -> list[dict]:
     """The text layer as words with boxes, line ids and block ids."""
     tp = page.get_textpage()

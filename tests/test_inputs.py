@@ -1,5 +1,6 @@
 """What goes in: the PDFium reader (words, lines, blocks, rotation) and photos."""
 import tempfile
+import threading
 import unittest
 import unicodedata
 from pathlib import Path
@@ -69,6 +70,43 @@ class Words(unittest.TestCase):
     def test_a_page_without_a_text_layer_has_no_words(self):
         doc = pdf.open_pdf(FOLDER / SCAN)
         self.assertEqual(pdf.words(doc[0]), [])
+
+
+class Threads(unittest.TestCase):
+    def test_concurrent_reads(self):
+        """PDFium is not thread-safe. Unlocked, parallel reads fail to load
+        pages or segfault the process in its glyph cache, and the ingest
+        workers read in parallel."""
+        files = [f for f in sorted(FOLDER.glob("*.pdf")) if not f.name.startswith("edge-")]
+        errors = []
+
+        def read():
+            try:
+                for _ in range(5):
+                    for path in files:
+                        doc = pdf.open_pdf(path)
+                        try:
+                            with pdf.LOCK:
+                                n = len(doc)
+                            for i in range(n):
+                                with pdf.LOCK:
+                                    page = doc[i]
+                                pdf.render(page, 150)
+                                pdf.words(page)
+                                with pdf.LOCK:
+                                    page.close()
+                        finally:
+                            with pdf.LOCK:
+                                doc.close()
+            except Exception as exc:
+                errors.append(exc)
+
+        threads = [threading.Thread(target=read) for _ in range(6)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        self.assertEqual(errors, [])
 
 
 class Photos(unittest.TestCase):
