@@ -101,6 +101,25 @@ _MINUTES = [[
           "by the Company Secretary."),
 ]]
 
+_NOTICE = [[
+    ("h1", "OFFICE OF THE ASSISTANT COMMISSIONER OF STATE TAX"),
+    ("ref", "Commercial Taxes Department · Northline Division"),
+    ("p", "Reference No: ZD2910260012345   Date: 20 October 2026"),
+    ("p", "Subject: Notice under Section 61 for intimating discrepancies in the return "
+          "(Form GST ASMT-10)"),
+    ("p", "To: Harbour Valley Components Pvt Ltd, GSTIN 29AAACH0000A1Z5, Tax period April 2025 "
+          "to March 2026."),
+    ("p", "On scrutiny of the returns filed for the above period, discrepancies were noticed in "
+          "the input tax credit claimed against the supplier statements."),
+    ("p", "You are hereby directed to explain the discrepancies and pay the tax of Rs. 4,52,300 "
+          "with interest within 30 days of receipt of this notice."),
+    ("p", "A personal hearing is fixed on 18 November 2026 at 11:00 AM before the undersigned at "
+          "the Division office."),
+    ("p", "Failure to reply will attract proceedings under Section 73(1) of the Act, including a "
+          "penalty of Rs. 2.5 lakh, without further notice."),
+    ("ref", "Sd/- Assistant Commissioner of State Tax"),
+]]
+
 _SIZES = {"h1": 13, "h2": 11, "p": 10.5, "ml": 10.5, "ref": 9, "row": 10.5}
 _FONTS = STATIC / "fonts"
 
@@ -120,7 +139,8 @@ def _pdf(pages: list[list[tuple[str, str]]]) -> bytes:
                 fontfile=str(_FONTS / ("NotoSansMalayalam.ttf" if style == "ml" else "Inter.ttf")))
             assert spare >= 0, "fixture page overflowed"
             y = 786 - spare
-    data = doc.tobytes(deflate=True, no_new_id=True)
+    doc.subset_fonts()                                      # keeps the fixtures small
+    data = doc.tobytes(deflate=True, garbage=4, no_new_id=True)
     doc.close()
     return data
 
@@ -164,10 +184,11 @@ def _photo(src: fitz.Document, skew: float = 1.6) -> bytes:
     return data
 
 def main() -> None:
-    from tests.fixtures import CIRCULAR, FOLDER, INVOICE, LOCKED, MINUTES, POSTER, SCAN
+    from tests.fixtures import CIRCULAR, FOLDER, INVOICE, LOCKED, MINUTES, NOTICE, POSTER, SCAN
     FOLDER.mkdir(exist_ok=True)
     for name, data in ((CIRCULAR, _pdf(_CIRCULAR)), (SCAN, _photo(_printed(_CIRCULAR))),
-                       (INVOICE, _pdf(_INVOICE)), (MINUTES, _pdf(_MINUTES))):
+                       (INVOICE, _pdf(_INVOICE)), (MINUTES, _pdf(_MINUTES)),
+                       (NOTICE, _pdf(_NOTICE))):
         (FOLDER / name).write_bytes(data)
     plain = fitz.open(stream=_pdf(_MINUTES), filetype="pdf")
     (FOLDER / LOCKED).write_bytes(plain.tobytes(encryption=fitz.PDF_ENCRYPT_AES_256,

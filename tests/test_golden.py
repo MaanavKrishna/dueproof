@@ -34,8 +34,8 @@ class GoldenCorpus(unittest.TestCase):
 
     def test_corpus_totals(self):
         findings = [f for d in snapshot().values() for f in d["findings"]]
-        self.assertEqual(len(snapshot()), 4)
-        self.assertEqual(sum(1 for f in findings if f["due_date"]), 12)
+        self.assertEqual(len(snapshot()), 5)
+        self.assertEqual(sum(1 for f in findings if f["due_date"]), 14)
         self.assertEqual({f["lang"] for f in findings}, {"en", "ml"})
 
     def test_no_false_confidence_without_rectangles(self):

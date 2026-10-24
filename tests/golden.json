@@ -471,5 +471,74 @@
     "lines": 3
    }
   ]
+ },
+ "notice-gst-asmt10.pdf": {
+  "title": "Notice under Section 61 for intimating discrepancies in the return (Form GST ASMT-10)",
+  "doc_type": "Vendor invoice",
+  "doc_date": "2026-10-20",
+  "languages": [
+   "en"
+  ],
+  "page_count": 1,
+  "text_source": "native",
+  "findings": [
+   {
+    "kind": "bullet",
+    "quote": "Failure to reply will attract proceedings under Section 73(1) of the Act, including a penalty of Rs. 2.5 lakh, without further notice.",
+    "lang": "en",
+    "due_date": null,
+    "severity": null,
+    "roles": [
+     "Finance",
+     "Legal & Compliance"
+    ],
+    "page": 1,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 2
+   },
+   {
+    "kind": "bullet",
+    "quote": "On scrutiny of the returns filed for the above period, discrepancies were noticed in the input tax credit claimed against the supplier statements.",
+    "lang": "en",
+    "due_date": null,
+    "severity": null,
+    "roles": [
+     "Operations Control Centre"
+    ],
+    "page": 1,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 2
+   },
+   {
+    "kind": "obligation",
+    "quote": "You are hereby directed to explain the discrepancies and pay the tax of Rs. 4,52,300 with interest within 30 days of receipt of this notice.",
+    "lang": "en",
+    "due_date": "2026-11-19",
+    "severity": "medium",
+    "roles": [
+     "Operations Control Centre"
+    ],
+    "page": 1,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 2
+   },
+   {
+    "kind": "obligation",
+    "quote": "A personal hearing is fixed on 18 November 2026 at 11:00 AM before the undersigned at the Division office.",
+    "lang": "en",
+    "due_date": "2026-11-18",
+    "severity": "medium",
+    "roles": [
+     "Operations Control Centre"
+    ],
+    "page": 1,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 2
+   }
+  ]
  }
 }

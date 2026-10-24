@@ -139,8 +139,8 @@ WORKERS = 2
 
 INSERT_FINDING = (
     "INSERT INTO findings (id,doc_id,kind,ord,text_en,text_local,due_date,severity,roles,"
-    "evidence_quote,page_num,rects_json,match_score,orig_lang,translated,term_flags)"
-    " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+    "evidence_quote,page_num,rects_json,match_score,orig_lang,translated,term_flags,"
+    "section,tag,due_basis) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
 
 # processing
 def _process(doc_id: str, src_path: Path, filename: str) -> None:
@@ -169,7 +169,9 @@ def _process(doc_id: str, src_path: Path, filename: str) -> None:
         # any enabled language; the quote that gets proved stays the original.
         db.set_stage(doc_id, "Reading for obligations" if len(doc["languages"]) == 1
                      and doc["languages"][0] == "en" else "Translating and reading", 64)
-        found = analyze(doc["page_texts"], filename, translate=translator())
+        received = db.one("SELECT received_on FROM documents WHERE id=?", (doc_id,))["received_on"]
+        found = analyze(doc["page_texts"], filename, translate=translator(),
+                        received=date.fromisoformat(received) if received else today())
         findings = ([dict(f, kind="bullet") for f in found["summary"]]
                     + [dict(f, kind="obligation") for f in found["obligations"]])
         lap("analyze")
@@ -187,7 +189,8 @@ def _process(doc_id: str, src_path: Path, filename: str) -> None:
                          json.dumps(f.get("roles", []), ensure_ascii=False),
                          f["evidence_quote"], hit["page_num"], json.dumps(hit["rects"]),
                          hit["score"], f["orig_lang"], int(f["translated"]),
-                         json.dumps(f.get("term_flags", []), ensure_ascii=False)))
+                         json.dumps(f.get("term_flags", []), ensure_ascii=False),
+                         f.get("section"), f.get("tag"), f.get("due_basis")))
         db.runmany(INSERT_FINDING, rows)
         # Search covers every page's own text, plus the English of translated
         # findings — so an English query finds a duty written in another language.
@@ -199,12 +202,15 @@ def _process(doc_id: str, src_path: Path, filename: str) -> None:
         db.set_stage(doc_id, "Cross-checking corpus", 94)
         _find_duplicates(doc_id, doc["full_text"])
         lap("duplicates")
+        notice = found["notice"]
         db.run("UPDATE documents SET title=?, doc_type=?, languages=?, page_count=?,"
-               " text_source=?, ocr_confidence=?, doc_date=?, status='done',"
+               " text_source=?, ocr_confidence=?, doc_date=?, reference=?, authority=?,"
+               " amount=?, amount_text=?, sections=?, status='done',"
                " stage='Ready', percent=100 WHERE id=?",
                (found["title"] or filename, found["doc_type"], json.dumps(doc["languages"]),
                 doc["page_count"], doc["text_source"], doc["ocr_confidence"],
-                found["doc_date"], doc_id))
+                found["doc_date"], notice["reference"], notice["authority"], notice["amount"],
+                notice["amount_text"], json.dumps(notice["sections"]), doc_id))
         log.info("processed %s: findings=%d source=%s pages=%d ms=%s", filename, len(rows),
                  doc["text_source"], doc["page_count"], clock)
     except Exception as exc:                # noqa: BLE001 — one bad PDF must not kill the app
@@ -266,7 +272,7 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 def enqueue(filename: str, src: Path, channel: str, sender: str | None,
-            move: bool = False, digest: str | None = None) -> dict:
+            move: bool = False, digest: str | None = None, received_on: str | None = None) -> dict:
     """Admit a file to the corpus, once. The same bytes arriving again — a
     double-click, a connector retrying — return the document already there.
     `digest` is the file's SHA-256 if the caller already has it."""
@@ -286,8 +292,9 @@ def enqueue(filename: str, src: Path, channel: str, sender: str | None,
         dest = UPLOADS / f"{doc_id}{kind}"
         shutil.move(str(src), dest) if move else shutil.copyfile(src, dest)
         db.run("INSERT INTO documents (id,filename,title,source_channel,sender,status,stage,"
-               "percent,content_hash) VALUES (?,?,?,?,?,'processing','Queued',2,?)",
-               (doc_id, filename, filename, channel, sender, digest))
+               "percent,content_hash,received_on) VALUES (?,?,?,?,?,'processing','Queued',2,?,?)",
+               (doc_id, filename, filename, channel, sender, digest,
+                received_on or today().isoformat()))
     _JOBS.put((doc_id, dest, filename))
     return {"doc_id": doc_id, "duplicate": False}
 
@@ -324,10 +331,12 @@ def audit(request: Request, action: str, doc_id: str | None = None, **detail) ->
 # serialisation — everything the UI needs, and notably not full_text
 DOC_COLS = ", ".join("d." + c for c in (
     "id", "filename", "title", "doc_type", "languages", "page_count", "text_source",
-    "ocr_confidence", "source_channel", "sender", "status", "stage", "percent", "doc_date"))
+    "ocr_confidence", "source_channel", "sender", "status", "stage", "percent", "doc_date",
+    "received_on", "reference", "authority", "amount", "amount_text", "sections"))
 
 def _doc(r: dict) -> dict:
-    return dict(r, title=r["title"] or r["filename"], languages=db.jload(r["languages"]))
+    return dict(r, title=r["title"] or r["filename"], languages=db.jload(r["languages"]),
+                sections=db.jload(r.get("sections")))
 
 def _finding(r: dict) -> dict:
     """A finding as people see it: their corrections applied, the original kept."""
@@ -339,6 +348,7 @@ def _finding(r: dict) -> dict:
             "roles": roles, "found_roles": found_roles, "status": r.get("status") or "open",
             "assignee": r.get("assignee"), "note": r.get("note"),
             "edited": bool(r.get("updated_at")), "evidence_quote": r["evidence_quote"],
+            "section": r.get("section"), "tag": r.get("tag"), "due_basis": r.get("due_basis"),
             "page": r["page_num"], "rects": db.jload(r["rects_json"]),
             "match_score": r["match_score"], "orig_lang": r["orig_lang"],
             "translated": bool(r["translated"]), "term_flags": db.jload(r.get("term_flags")),
@@ -403,7 +413,7 @@ def users():
 
 @app.post("/api/upload")
 def upload(request: Request, file: UploadFile = File(...), channel: str = Form(""),
-           sender: str = Form("")):
+           sender: str = Form(""), received_on: str = Form("")):
     # A plain `def`: FastAPI runs it on a worker thread, so the blocking file
     # writes below do not sit on the event loop.
     if not file.filename:
@@ -423,7 +433,8 @@ def upload(request: Request, file: UploadFile = File(...), channel: str = Form("
         if not written:
             raise HTTPException(400, "File is empty")
         got = enqueue(Path(file.filename).name, tmp, channel if channel in CHANNELS else CHANNELS[-1],
-                      sender or None, move=True, digest=digest.hexdigest())
+                      sender or None, move=True, digest=digest.hexdigest(),
+                      received_on=_valid_date(received_on) if received_on else None)
         audit(request, "upload", got["doc_id"], filename=Path(file.filename).name,
               bytes=written, duplicate=got["duplicate"])
         return got
@@ -609,6 +620,39 @@ def edit_finding(request: Request, finding_id: str, body: FindingEdit):
                (*changes.values(), actor, finding_id))
         audit(request, "edit_finding", f["doc_id"], finding=finding_id, fields=sorted(changes))
     return _finding(db.one("SELECT * FROM findings WHERE id=?", (finding_id,)))
+
+def _valid_date(value: str) -> str:
+    try:
+        return date.fromisoformat(value).isoformat()
+    except ValueError:
+        raise HTTPException(422, "dates are YYYY-MM-DD") from None
+
+class DocumentEdit(BaseModel):
+    received_on: str | None = None
+    title: str | None = Field(default=None, max_length=300)
+
+@app.patch("/api/documents/{doc_id}")
+def edit_document(request: Request, doc_id: str, body: DocumentEdit):
+    """Correct when a document arrived (deadlines that run from receipt move
+    with it) or what it is called."""
+    d = db.one("SELECT * FROM documents WHERE id=?", (doc_id,))
+    if not d:
+        raise HTTPException(404, "unknown document")
+    sent = body.model_dump(exclude_unset=True)
+    if sent.get("received_on"):
+        received = _valid_date(body.received_on)
+        if received > today().isoformat():
+            raise HTTPException(422, "a document cannot arrive in the future")
+        db.run("UPDATE documents SET received_on=? WHERE id=?", (received, doc_id))
+        for f in db.q("SELECT id, due_basis FROM findings WHERE doc_id=? AND due_basis LIKE 'receipt:%'",
+                      (doc_id,)):
+            due = date.fromisoformat(received) + timedelta(days=int(f["due_basis"].split(":")[1]))
+            db.run("UPDATE findings SET due_date=? WHERE id=?", (due.isoformat(), f["id"]))
+    if sent.get("title"):
+        db.run("UPDATE documents SET title=? WHERE id=?", (body.title.strip(), doc_id))
+    if sent:
+        audit(request, "edit_document", doc_id, fields=sorted(sent))
+    return _doc(db.one(f"SELECT {DOC_COLS} FROM documents d WHERE d.id=?", (doc_id,)))
 
 @app.get("/api/findings/{finding_id}/history")
 def finding_history(finding_id: str):

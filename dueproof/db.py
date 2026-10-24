@@ -26,6 +26,10 @@ CREATE TABLE IF NOT EXISTS documents (
     percent INTEGER DEFAULT 0, error TEXT, doc_date TEXT,
     full_text TEXT,                      -- kept so duplicate detection survives restarts
     content_hash TEXT,                   -- sha256 of the uploaded bytes
+    received_on TEXT,                    -- the day it arrived; "within N days of receipt" counts from it
+    reference TEXT, authority TEXT,      -- what a notice desk files it under
+    amount REAL, amount_text TEXT,       -- the sum it demands, in rupees, and as written
+    sections TEXT,                       -- json array of provisions cited
     created_at TEXT DEFAULT (datetime('now'))
 );
 
@@ -42,6 +46,9 @@ CREATE TABLE IF NOT EXISTS findings (
     orig_lang TEXT,                      -- the language the finding was written in
     translated INTEGER DEFAULT 0,
     term_flags TEXT,                     -- json array: terminology the translation may have lost
+    section TEXT,                        -- the provision the sentence cites
+    tag TEXT,                            -- 'hearing' for an appointment
+    due_basis TEXT,                      -- 'receipt:30' when the date runs from receipt
     -- The workflow. What the pipeline found is never overwritten: a person's
     -- correction sits beside it, and every change is in finding_edits.
     status TEXT NOT NULL DEFAULT 'open', -- 'open' | 'done' | 'dismissed'

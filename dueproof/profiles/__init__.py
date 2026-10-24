@@ -2,7 +2,7 @@
 
 A profile is a plain Python module in this package. Nothing in it is code — the
 pipeline reads its lists, and its behaviour changes with them. Choose one with
-DUEPROOF_PROFILE (default: "general"); write your own by copying general.py.
+DUEPROOF_PROFILE (default: "notices_in"); write your own by copying general.py.
 
     from dueproof.profiles import ROLES, OBLIGATION_CUES, LANGUAGES
 
@@ -14,7 +14,7 @@ import importlib
 import os
 import re
 
-NAME = os.environ.get("DUEPROOF_PROFILE", "general")
+NAME = os.environ.get("DUEPROOF_PROFILE", "notices_in")
 if not re.fullmatch(r"[a-z][a-z0-9_]*", NAME):
     raise SystemExit(f"DUEPROOF_PROFILE={NAME!r} is not a profile name")
 try:
@@ -41,6 +41,18 @@ _DEFAULTS = {
     "LOCAL_RELATIVE": None,         # regex with one group: "within N days"
     "TERMS": {},                    # local term -> accepted English, for the translation check
     "LATIN_TERMS": [],
+    # Notices: what makes a relative deadline run from the day the document was
+    # *received* rather than issued, what marks a hearing, who issued it, and
+    # how its reference number is introduced. English defaults; extend them.
+    "RECEIPT_MARKERS": [r"of (?:the )?receipt", r"from (?:the date of )?receipt", r"on receipt",
+                        r"of service of", r"from the date of service"],
+    "HEARING_MARKERS": [r"personal hearing", r"hearing (?:is|has been|will be) (?:fixed|scheduled|held)",
+                        r"date of hearing", r"appear (?:in person )?before", r"next date of hearing"],
+    "AUTHORITIES": [],
+    "DOC_TYPE_ROLES": {},           # document type -> the desk every finding in it goes to              # issuing offices to recognise, longest first is not required
+    "REFERENCE_LABELS": [r"reference\s*(?:no\.?|number)", r"ref\.?\s*(?:no\.?)?", r"notice\s*(?:no\.?|number)",
+                         r"order\s*(?:no\.?|number)", r"letter\s*(?:no\.?|number)", r"DIN", r"ARN",
+                         r"case\s*(?:no\.?|number)", r"file\s*(?:no\.?|number)", r"invoice\s*(?:no\.?|number)"],
 }
 _REQUIRED = ("ROLES", "ROLE_KEYWORDS", "DEFAULT_ROLE", "DOC_TYPE_KEYWORDS", "OBLIGATION_CUES")
 
