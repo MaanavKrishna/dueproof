@@ -9,7 +9,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
-from dueproof import auth, cli, db, digest, doctor, evaluate
+from dueproof import accounts, cli, db, digest
+from dueproof.tools import doctor, evaluate
 from tests.fixtures import FOLDER
 from tests.support import client, make_pdf, upload, wait_done
 
@@ -148,7 +149,7 @@ class Digest(unittest.TestCase):
         self.assertEqual((sent["To"], sent["Subject"]), ("a@b.c", "Subject here"))
 
     def test_command(self):
-        auth.add_user("cmd-digest@example.org", "Cmd", self.ob["roles"][0], None)
+        accounts.add_user("cmd-digest@example.org", "Cmd", self.ob["roles"][0], None)
         out = io.StringIO()
         with redirect_stdout(out):
             self.assertEqual(cli.main(["digest", "--days", "400", "--to", "cmd-digest@example.org"]), 0)

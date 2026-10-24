@@ -6,7 +6,7 @@ DUEPROOF_PROFILE (default: "notices_in"); write your own by copying general.py.
 
     from dueproof.profiles import ROLES, OBLIGATION_CUES, LANGUAGES
 
-After editing a profile, run ./test.sh.
+After editing a profile, run scripts/test.sh.
 """
 from __future__ import annotations
 

@@ -31,7 +31,7 @@ profile): `brew install tesseract tesseract-lang` or
 ## Before you open a pull request
 
 ```bash
-./test.sh
+scripts/test.sh
 ```
 
 ```bash

@@ -55,9 +55,9 @@ def golden() -> dict:
 @functools.cache
 def client():
     from fastapi.testclient import TestClient
-    from dueproof import app
+    from dueproof.web import app as webapp
     # Every state-changing call must carry the CSRF header; the app sends it.
-    return TestClient(app.app, headers={"X-Dueproof": "1"})
+    return TestClient(webapp.app, headers={"X-Dueproof": "1"})
 
 
 def wait_done(doc_id: str, timeout: float = 180.0) -> dict:
@@ -74,8 +74,8 @@ def wait_done(doc_id: str, timeout: float = 180.0) -> dict:
 @functools.cache
 def ingest(name: str, channel: str = "Email") -> str:
     """Put one fixture document through the real app pipeline (once per run)."""
-    from dueproof import app
-    doc_id = app.enqueue(name, corpus() / name, channel, None)["doc_id"]
+    from dueproof import ingest as ingestion
+    doc_id = ingestion.enqueue(name, corpus() / name, channel, None)["doc_id"]
     assert wait_done(doc_id)["status"] == "done", name
     return doc_id
 

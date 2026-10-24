@@ -24,21 +24,21 @@ from pathlib import Path
 def _serve(args) -> int:
     import uvicorn
     print(f"Dueproof on http://{args.host}:{args.port}")
-    uvicorn.run("dueproof.app:app", host=args.host, port=args.port, log_level="warning")
+    uvicorn.run("dueproof.web.app:app", host=args.host, port=args.port, log_level="warning")
     return 0
 
 def _ingest(args) -> int:
-    from dueproof import app, db
+    from dueproof import db, ingest
     from dueproof.config import CHANNELS
     files = sorted(p for p in args.folder.iterdir()
-                   if p.suffix.lower() in app.ACCEPTED_SUFFIXES and p.is_file())
+                   if p.suffix.lower() in ingest.ACCEPTED_SUFFIXES and p.is_file())
     if not files:
         print(f"Nothing to ingest in {args.folder}", file=sys.stderr)
         return 1
     channel = args.channel or CHANNELS[-1]
     t0, failed = time.time(), 0
     for path in files:
-        got = app.enqueue(path.name, path, channel, None)
+        got = ingest.enqueue(path.name, path, channel, None)
         if got["duplicate"]:
             print(f"   skip  {path.name[:60]:<60} already in the corpus")
             continue
@@ -53,7 +53,7 @@ def _ingest(args) -> int:
     return 1 if failed else 0
 
 def _backup(args) -> int:
-    from dueproof import backup
+    from dueproof.tools import backup
     return backup.main([args.command, str(args.dir)] + (["--force"] if getattr(args, "force", False) else []))
 
 def _password(args, confirm: bool = True) -> str:
@@ -66,7 +66,7 @@ def _password(args, confirm: bool = True) -> str:
     return pw
 
 def _users(args) -> int:
-    from dueproof import auth, db
+    from dueproof import accounts, db
     from dueproof.profiles import ROLES
     try:
         if args.action == "list":
@@ -80,14 +80,14 @@ def _users(args) -> int:
         if args.action == "add":
             if args.desk and args.desk not in ROLES:
                 raise SystemExit(f"Unknown desk {args.desk!r}. Desks: {', '.join(ROLES)}")
-            auth.add_user(args.email, args.name or "", args.desk or "",
+            accounts.add_user(args.email, args.name or "", args.desk or "",
                           None if args.no_password else _password(args), admin=args.admin)
             print(f"added {args.email}")
         elif args.action == "reset":
-            auth.set_password(args.email, _password(args))
+            accounts.set_password(args.email, _password(args))
             print(f"password changed for {args.email}; their sessions were ended")
         else:
-            auth.set_disabled(args.email, args.action == "disable")
+            accounts.set_disabled(args.email, args.action == "disable")
             print(f"{args.action}d {args.email}")
         return 0
     except ValueError as exc:
@@ -108,22 +108,22 @@ def _digest(args) -> int:
     return 0
 
 def _eval(args) -> int:
-    from dueproof import evaluate
+    from dueproof.tools import evaluate
     return evaluate.main(args)
 
 def _labels(args) -> int:
-    from dueproof import evaluate
+    from dueproof.tools import evaluate
     n = evaluate.export_labels(args.file, reviewed_only=not args.all)
     print(f"wrote {n} document(s) to {args.file}")
     return 0
 
 def _doctor(args) -> int:
-    from dueproof import doctor
+    from dueproof.tools import doctor
     return doctor.main()
 
 def _fetch_model(args) -> int:
-    from dueproof import fetch_model
-    return fetch_model.main()
+    from dueproof.tools import model
+    return model.main()
 
 def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="dueproof", description=__doc__.splitlines()[0],

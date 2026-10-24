@@ -16,7 +16,7 @@ from tests.support import CIRCULAR, corpus, wait_done
 from tests.test_profiles import run
 from tests.test_translate import weights_present
 
-from dueproof import app
+from dueproof import ingest as ingestion
 
 # One duty, one deadline, in five languages and five scripts (Urdu is
 # right-to-left; the Bengali uses its own digits).
@@ -153,8 +153,8 @@ class InTheApp(unittest.TestCase):
                               for n, _ in enumerate(items)]
         src = Path(tempfile.mkdtemp()) / "circular-with-translator.pdf"
         src.write_bytes((corpus() / CIRCULAR).read_bytes() + b"\n% a different file\n")
-        with mock.patch.object(app, "translator", return_value=fake):
-            doc_id = app.enqueue(src.name, src, "Email", None)["doc_id"]
+        with mock.patch.object(ingestion, "translator", return_value=fake):
+            doc_id = ingestion.enqueue(src.name, src, "Email", None)["doc_id"]
             self.assertEqual(wait_done(doc_id)["status"], "done")
         rows = db.q("SELECT * FROM findings WHERE doc_id=? AND orig_lang='ml'", (doc_id,))
         self.assertTrue(rows)

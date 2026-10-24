@@ -12,7 +12,7 @@ from dueproof.pipeline.link import (CANDIDATE_KEYS, SHINGLE, SIG_SIZE, _norm_tex
                            near_duplicate_score, signature)
 from tests.support import REPO, CIRCULAR, SCAN, client, ingest, snapshot
 
-from dueproof import app
+from dueproof import ingest as ingestion
 
 
 def jaccard(a: str, b: str) -> float:
@@ -93,7 +93,7 @@ class Blocking(unittest.TestCase):
                 for _ in range(15):
                     noisy = "".join(rnd.choice(alphabet) if c.strip() and rnd.random() < rate
                                     else c for c in base)
-                    if near_duplicate_score(base, noisy) >= app.DUPLICATE_THRESHOLD:
+                    if near_duplicate_score(base, noisy) >= ingestion.DUPLICATE_THRESHOLD:
                         checked += 1
                         weakest = min(weakest, overlap(base, noisy))
                         self.assertTrue(blocked_match(base, noisy), (name, rate))
@@ -146,18 +146,18 @@ class InTheApp(unittest.TestCase):
             ids.append(doc_id)
             db.run("INSERT INTO documents (id, filename, status) VALUES (?,?,'done')",
                    (doc_id, f"{doc_id}.pdf"))
-            app._find_duplicates(doc_id, " ".join(rnd.choices(words, k=400)))
+            ingestion._find_duplicates(doc_id, " ".join(rnd.choices(words, k=400)))
         try:
             db.run("INSERT INTO documents (id, filename, status) VALUES ('probe','p.pdf','done')")
-            with mock.patch.object(app, "near_duplicate_score",
+            with mock.patch.object(ingestion, "near_duplicate_score",
                                    wraps=near_duplicate_score) as scorer:
-                app._find_duplicates("probe", " ".join(rnd.choices(words, k=400)))
+                ingestion._find_duplicates("probe", " ".join(rnd.choices(words, k=400)))
             self.assertEqual(scorer.call_count, 0)
             self.assertEqual(db.q("SELECT * FROM duplicates WHERE doc_id='probe'"), [])
             # ...and an exact copy of one of them is still found.
             copy = db.one("SELECT full_text FROM documents WHERE id='filler007'")["full_text"]
             db.run("INSERT INTO documents (id, filename, status) VALUES ('copy','c.pdf','done')")
-            app._find_duplicates("copy", copy)
+            ingestion._find_duplicates("copy", copy)
             self.assertEqual([r["other_id"] for r in db.q(
                 "SELECT other_id FROM duplicates WHERE doc_id='copy'")], ["filler007"])
         finally:
@@ -167,7 +167,7 @@ class InTheApp(unittest.TestCase):
 
     def test_a_forgotten_document_leaves_no_keys_behind(self):
         db.run("INSERT INTO documents (id, filename, status) VALUES ('gone','g.pdf','done')")
-        app._find_duplicates("gone", snapshot()[CIRCULAR]["full_text"])
+        ingestion._find_duplicates("gone", snapshot()[CIRCULAR]["full_text"])
         self.assertTrue(db.q("SELECT 1 FROM duplicates WHERE doc_id='gone'"))
         db.forget("gone")
         db.run("DELETE FROM documents WHERE id='gone'")
