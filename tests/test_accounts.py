@@ -48,7 +48,8 @@ class LocalSignIn(unittest.TestCase):
         return self.c.post("/api/login", json={"email": email or self.email, "password": password})
 
     def test_everything_needs_a_session(self):
-        for path in ("/api/documents", "/api/deadlines", "/api/me", "/api/users", "/api/audit",
+        self.assertEqual(self.c.get("/api/me").json(), {"signed_in": False})
+        for path in ("/api/documents", "/api/deadlines", "/api/users", "/api/audit",
                      "/api/search?q=fire", "/api/export/deadlines.csv", "/api/page/x/1.jpg"):
             with self.subTest(path=path):
                 self.assertEqual(self.c.get(path).status_code, 401)
@@ -66,6 +67,7 @@ class LocalSignIn(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.json(), {"email": self.email, "name": "Asha", "desk": "Finance",
                                     "is_admin": False})
+        self.assertTrue(self.c.get("/api/me").json()["signed_in"])
         cookie = r.headers["set-cookie"].lower()
         for flag in ("httponly", "samesite=strict", "path=/"):
             self.assertIn(flag, cookie)
@@ -106,15 +108,15 @@ class LocalSignIn(unittest.TestCase):
     def test_disabled_reset_and_expired(self):
         self.sign_in()
         auth.set_disabled(self.email, True)
-        self.assertEqual(self.c.get("/api/me").status_code, 401)
+        self.assertEqual(self.c.get("/api/documents").status_code, 401)
         self.assertEqual(self.sign_in().status_code, 401)
         auth.set_disabled(self.email, False)
         self.sign_in()
         auth.set_password(self.email, "a brand new password")
-        self.assertEqual(self.c.get("/api/me").status_code, 401)         # signed out everywhere
+        self.assertEqual(self.c.get("/api/documents").status_code, 401)  # signed out everywhere
         self.assertEqual(self.sign_in("a brand new password").status_code, 200)
         db.run("UPDATE sessions SET expires_at='2000-01-01 00:00:00'")
-        self.assertEqual(self.c.get("/api/me").status_code, 401)
+        self.assertEqual(self.c.get("/api/me").json(), {"signed_in": False})
 
     def test_audit_names_the_person(self):
         doc_id = ingest(CIRCULAR)
@@ -148,7 +150,7 @@ class ProxySignIn(unittest.TestCase):
         me = self.c.get("/api/me", headers={"X-Forwarded-User": "meera@example.org"}).json()
         self.assertEqual(me["desk"], "Legal & Compliance")
         auth.set_disabled("meera@example.org", True)
-        self.assertEqual(self.c.get("/api/me", headers={"X-Forwarded-User": "meera@example.org"})
+        self.assertEqual(self.c.get("/api/documents", headers={"X-Forwarded-User": "meera@example.org"})
                          .status_code, 401)
 
     def test_audit_names_the_person(self):
@@ -219,6 +221,15 @@ class UsersCommand(unittest.TestCase):
         self.run_cli("users", "add", "proxy@example.org", "--no-password")
         self.assertIsNone(db.one("SELECT pw_hash FROM users WHERE email='proxy@example.org'")["pw_hash"])
         self.assertIsNone(auth.authenticate("proxy@example.org", ""))
+
+
+class FreshInstall(unittest.TestCase):
+    def test_the_first_command_on_an_empty_data_folder_works(self):
+        """`dueproof users add` is usually the very first thing run."""
+        from tests.test_profiles import run
+        p = run("from dueproof import auth; auth.add_user('first@example.org', 'First', '', "
+                "'a long enough password', admin=True); print('ok')")
+        self.assertEqual(p.stdout.strip(), "ok", p.stderr[-1500:])
 
 
 class TableIntegrity(unittest.TestCase):

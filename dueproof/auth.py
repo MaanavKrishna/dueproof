@@ -24,7 +24,7 @@ CSRF_HEADER = "X-Dueproof"
 UNSAFE = {"POST", "PUT", "PATCH", "DELETE"}
 # Reachable without signing in: the sign-in itself, and what the sign-in page
 # needs to draw itself.
-PUBLIC = {"/api/login", "/api/meta", "/api/version"}
+PUBLIC = {"/api/login", "/api/meta", "/api/version", "/api/me"}
 
 _SCRYPT = {"n": 2 ** 14, "r": 8, "p": 1}
 

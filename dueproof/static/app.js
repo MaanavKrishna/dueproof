@@ -2,22 +2,32 @@
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
-const api = (p, o) => fetch(p, o).then(r => {
-  if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
-  return r.json();
-});
+// Every call carries X-Dueproof: the server refuses changes without it, which
+// is what stops another site from making them on a signed-in user's behalf.
+// `json` sends a JSON body. A 401 means the session ended: back to sign-in.
+async function request(p, o = {}) {
+  const headers = { 'X-Dueproof': '1', ...(o.json ? { 'Content-Type': 'application/json' } : {}) };
+  const r = await fetch(p, { ...o, headers, body: o.json ? JSON.stringify(o.json) : o.body });
+  if (r.status === 401 && !p.startsWith('/api/login')) { showSignIn(); throw new Error('Not signed in'); }
+  if (!r.ok) {
+    let detail = r.statusText;
+    try { detail = (await r.json()).detail || detail; } catch { /* not JSON */ }
+    throw new Error(`${r.status} ${typeof detail === 'string' ? detail : r.statusText}`);
+  }
+  return r;
+}
+const api = (p, o) => request(p, o).then(r => r.json());
 // A list endpoint: the rows, plus the size of the whole list from X-Total-Count.
-const apiPage = p => fetch(p).then(async r => {
-  if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
-  return { rows: await r.json(), total: +r.headers.get('X-Total-Count') };
-});
+const apiPage = p => request(p).then(async r =>
+  ({ rows: await r.json(), total: +r.headers.get('X-Total-Count') }));
 const el = (cls, html) => Object.assign(document.createElement('div'),
   { className: cls, innerHTML: html });
 
 const PAGE = 100;      // queue rows per request
 const state = { docs: [], total: 0, doc: null, lang: 'en', role: '', channel: '', src: null,
-                langNames: {},
-                today: null, polls: new Map() };
+                langNames: {}, roles: [], users: [], me: null, lineStatus: 'open',
+                today: null, polls: new Map(), started: false };
+const STATUSES = { open: 'Open', done: 'Done', dismissed: 'Not a duty' };
 
 // Text in a non-Latin script gets the local-script face. The character ranges
 // of the enabled languages come from the server; null means English only.
@@ -69,9 +79,63 @@ const langTag = (t, f) => t === 'local'
 const roleChips = roles => roles
   .map(r => `<span class="role${r === state.role ? ' is-you' : ''}">${esc(r)}</span>`).join('');
 
+/* ── sign-in ──────────────────────────────────────────────────────────── */
+function showSignIn(meta) {
+  $('#signin').hidden = false;
+  $('#topbar').hidden = $('#shell').hidden = true;
+  if (meta) {
+    $('#signin-org').textContent = meta.org || '';
+    $('#signin-setup').hidden = !meta.needs_setup;
+  }
+  $('#signin-email').focus();
+}
+
+function wireSignIn() {
+  $('#signin-form').onsubmit = async e => {
+    e.preventDefault();
+    $('#signin-error').textContent = '';
+    try {
+      await api('/api/login', { method: 'POST', json: {
+        email: $('#signin-email').value.trim(), password: $('#signin-password').value } });
+      $('#signin-password').value = '';
+      $('#signin').hidden = true;
+      $('#topbar').hidden = $('#shell').hidden = false;
+      start();
+    } catch (err) {
+      $('#signin-error').textContent = err.message.replace(/^\d+ /, '');
+    }
+  };
+  $('#signout').onclick = async () => {
+    try { await api('/api/logout', { method: 'POST' }); } catch { /* already gone */ }
+    location.reload();
+  };
+}
+
 /* ── boot ─────────────────────────────────────────────────────────────── */
 async function boot() {
   const meta = await api('/api/meta');
+  wireSignIn();
+  if (meta.auth !== 'none') {
+    state.me = await api('/api/me');
+    if (!state.me.signed_in) return showSignIn(meta);
+  }
+  state.meta = meta;
+  start();
+}
+
+async function start() {
+  if (state.started) return location.reload();          // a fresh sign-in: start clean
+  state.started = true;
+  const meta = state.meta || (state.meta = await api('/api/meta'));
+  if (!state.me?.signed_in && meta.auth !== 'none') state.me = await api('/api/me');
+  if (state.me?.email) {
+    $('#me').hidden = false;
+    $('#me-name').textContent = state.me.name || state.me.email;
+    $('#signout').hidden = meta.auth !== 'local';
+  }
+  $('#engine').title += ` Dueproof ${meta.version}, profile ${meta.profile}.`;
+  state.roles = meta.roles;
+  try { state.users = await api('/api/users'); } catch { state.users = []; }
   state.today = meta.today;
   document.title = meta.org ? `${meta.product} — ${meta.org}` : meta.product;
   $('#brand-org').textContent = meta.org;
@@ -87,9 +151,11 @@ async function boot() {
   }
   const sel = $('#role-select');
   meta.roles.forEach(r => sel.add(new Option(r, r)));
+  // Start where the person works: their desk, if their account names one.
+  if (state.me?.desk && meta.roles.includes(state.me.desk)) sel.value = state.role = state.me.desk;
   sel.onchange = () => {
     state.role = sel.value;
-    refreshList(); renderCard(); renderLine(); exportLinks();
+    refreshList(); renderCard(); renderLine(); exportLinks(); dueBadge();
   };
   exportLinks();
   $('#search').onsubmit = e => { e.preventDefault(); runSearch($('#search-input').value.trim()); };
@@ -107,6 +173,11 @@ async function boot() {
   });
 
   $$('.view-tab').forEach(b => b.onclick = () => setView(b.dataset.view));
+  $$('#status-filter button').forEach(b => b.onclick = () => {
+    state.lineStatus = b.dataset.status;
+    $$('#status-filter button').forEach(x => x.classList.toggle('is-active', x === b));
+    renderLine();
+  });
   $$('.lang-toggle button').forEach(b => b.onclick = () => {
     state.lang = b.dataset.lang;
     $$('.lang-toggle button').forEach(x => x.classList.toggle('is-active', x === b));
@@ -119,6 +190,7 @@ async function boot() {
   });
 
   clearProof();
+  dueBadge();
   await refreshList();
   if (state.docs.length) openDoc((state.docs.find(d => d.status === 'done') || state.docs[0]).id);
 }
@@ -129,8 +201,21 @@ function setView(v) {
   if (v === 'deadlines') renderLine();
 }
 
+// How many open obligations fall due in the next seven days, on this desk.
+async function dueBadge() {
+  const qs = new URLSearchParams({ days: 7, limit: 1, ...(state.role ? { role: state.role } : {}) });
+  try {
+    const { total } = await apiPage('/api/deadlines?' + qs);
+    $('#due-badge').hidden = !total;
+    $('#due-badge').textContent = total;
+    $('#due-badge').title = `${total} open obligation${total === 1 ? '' : 's'} due within a week, or overdue`;
+  } catch { /* the badge is a convenience */ }
+}
+
 function exportLinks() {
-  const qs = state.role ? '?' + new URLSearchParams({ role: state.role }) : '';
+  const params = { ...(state.role ? { role: state.role } : {}),
+                   ...(state.lineStatus !== 'open' ? { status: state.lineStatus } : {}) };
+  const qs = Object.keys(params).length ? '?' + new URLSearchParams(params) : '';
   $('#export-pdf').href = '/api/export/deadlines.html' + qs;
   $('#export-csv').href = '/api/export/deadlines.csv' + qs;
 }
@@ -174,6 +259,8 @@ function renderList() {
           <span>${d.text_source === 'ocr'
             ? `OCR ${Math.round((d.ocr_confidence || 0) * 100)}%` : 'native text'}</span>
           ${d.deadline_count ? `<span class="due">${d.deadline_count} due</span>` : ''}</div>`}`;
+    const bar = li.querySelector('.bar i');
+    if (bar) bar.style.width = bar.dataset.percent + '%';     // CSSOM: allowed under the CSP
     li.onclick = () => openDoc(d.id);
     li.onkeydown = e => { if (e.key === 'Enter') openDoc(d.id); };
     return li;
@@ -255,6 +342,8 @@ function renderCard() {
     d.obligations.length && `<span class="chip">${d.obligations.length} obligations</span>`,
   ].filter(Boolean).join('');
 
+  renderFacts(d);
+
   const dupe = $('#card-dupe'), x = d.duplicates[0];
   dupe.hidden = !x;
   if (x) {
@@ -274,24 +363,112 @@ function renderCard() {
   }));
 
   $('#oblig-note').textContent = state.role ? `filtered to ${state.role}` : '';
-  $('#obligations').replaceChildren(...d.obligations.map(o => {
-    const { text, tag } = pick(o);
-    // An obligation routed to another role dims rather than disappearing —
-    // knowing it exists is not the same as owning it.
-    const mine = !state.role || o.roles.includes(state.role);
-    const box = el('oblig' + (mine ? '' : ' is-dimmed'), `
-      <div class="oblig-top">
-        <span class="oblig-due${o.due_date ? '' : ' none'}">${o.due_date
-          ? fmtDate(o.due_date) : 'No date stated'}</span>
-        ${o.due_date ? `<span class="oblig-when${daysFrom(o.due_date) < 0 ? ' overdue' : ''}"
-          >${relative(o.due_date)}</span>` : ''}
-        <span class="chip oblig-sev${o.severity === 'high' ? ' warn' : ''}">${esc(o.severity)}</span>
-      </div>
-      <div class="oblig-duty${mlClass(text)}">${esc(text)}${langTag(tag, o)}${termTag(o, tag)}</div>
-      <div class="oblig-foot">${roleChips(o.roles)}</div>`);
-    box.querySelector('.oblig-foot').append(srcPill(o));
-    return box;
-  }));
+  $('#obligations').replaceChildren(...d.obligations.map(obligationBox));
+}
+
+const money = n => '₹' + Number(n).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+
+// What a notice desk files a document under, and when it arrived — the date
+// "within N days of receipt" counts from, so it can be corrected here.
+function renderFacts(d) {
+  const facts = [
+    d.reference && ['Reference', esc(d.reference)],
+    d.authority && ['Issued by', esc(d.authority)],
+    d.amount && ['Amount demanded', `${money(d.amount)}${d.amount_text ? ` <span class="faint">(“${esc(d.amount_text)}”)</span>` : ''}`],
+    d.sections?.length && ['Provisions', d.sections.map(esc).join(', ')],
+    ['Received', `<span id="received-show">${d.received_on ? fmtDate(d.received_on) : '—'}</span>
+      <button class="linklike" id="received-edit">change</button>`],
+  ].filter(Boolean);
+  $('#card-facts').innerHTML = facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
+  $('#received-edit').onclick = () => {
+    const input = Object.assign(document.createElement('input'),
+      { type: 'date', value: d.received_on || '', max: state.today, className: 'inline-date' });
+    $('#received-show').replaceWith(input);
+    $('#received-edit').hidden = true;
+    input.focus();
+    input.onchange = async () => {
+      try {
+        await api(`/api/documents/${d.id}`, { method: 'PATCH', json: { received_on: input.value } });
+        toast('Received date changed — deadlines that run from receipt have moved.');
+        openDoc(d.id);
+      } catch (e) { toast(`Could not change it — ${e.message}`, true); }
+    };
+  };
+}
+
+// One obligation: what it says, when, whose, and the controls to work it.
+function obligationBox(o) {
+  const { text, tag } = pick(o);
+  // An obligation routed to another desk dims rather than disappearing —
+  // knowing it exists is not the same as owning it.
+  const mine = !state.role || o.roles.includes(state.role);
+  const corrected = o.due_date && o.found_due_date && o.due_date !== o.found_due_date;
+  const box = el(`oblig${mine ? '' : ' is-dimmed'} is-${o.status}`, `
+    <div class="oblig-top">
+      <span class="oblig-due${o.due_date ? '' : ' none'}">${o.due_date
+        ? fmtDate(o.due_date) : 'No date stated'}</span>
+      ${o.due_date && o.status === 'open' ? `<span class="oblig-when${daysFrom(o.due_date) < 0 ? ' overdue' : ''}"
+        >${relative(o.due_date)}</span>` : ''}
+      ${o.tag === 'hearing' ? '<span class="chip accent">hearing</span>' : ''}
+      ${o.due_basis?.startsWith('receipt:') ? `<span class="chip" title="Counted from the received date">${
+        o.due_basis.split(':')[1]} days from receipt</span>` : ''}
+      ${corrected ? `<span class="chip" title="The document says ${fmtDate(o.found_due_date)}">corrected</span>` : ''}
+      ${o.section ? `<span class="chip">${esc(o.section)}</span>` : ''}
+      <span class="chip oblig-sev${o.severity === 'high' ? ' warn' : ''}">${esc(o.severity)}</span>
+    </div>
+    <div class="oblig-duty${mlClass(text)}">${esc(text)}${langTag(tag, o)}${termTag(o, tag)}</div>
+    <div class="oblig-foot">${roleChips(o.roles)}</div>
+    <div class="work">
+      <label>State <select data-field="status">${Object.entries(STATUSES).map(([v, l]) =>
+        `<option value="${v}"${v === o.status ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+      <label>Owner <select data-field="assignee"><option value="">Unassigned</option>${
+        [...new Set([...state.users.map(u => u.email), o.assignee].filter(Boolean))].map(e =>
+          `<option value="${esc(e)}"${e === o.assignee ? ' selected' : ''}>${esc(
+            state.users.find(u => u.email === e)?.name || e)}</option>`).join('')}</select></label>
+      <label>Due <input type="date" data-field="due_date" value="${o.due_date || ''}"></label>
+      <label>Desk <select data-field="roles"><option value="">${esc(o.roles.join(', '))}</option>${
+        state.roles.filter(r => !(o.roles.length === 1 && o.roles[0] === r)).map(r =>
+          `<option value="${esc(r)}">${esc(r)}</option>`).join('')}</select></label>
+      <button class="linklike" data-history>History</button>
+    </div>
+    ${o.note ? `<p class="note">${esc(o.note)}</p>` : ''}
+    <button class="linklike add-note">${o.note ? 'Edit note' : 'Add note'}</button>`);
+  box.querySelector('.oblig-foot').append(srcPill(o));
+  $$('[data-field]', box).forEach(input => input.onchange = () => {
+    const v = input.value;
+    const body = input.dataset.field === 'roles' ? { roles: v ? [v] : null }
+      : input.dataset.field === 'due_date' ? { due_date: v || null }
+      : { [input.dataset.field]: v };
+    saveFinding(o, body);
+  });
+  box.querySelector('.add-note').onclick = e => {
+    const form = el('note-form', `<textarea maxlength="2000" rows="3"
+      placeholder="Who is handling it, what was filed, what is pending"></textarea>
+      <button class="linklike">Save note</button>`);
+    const area = form.querySelector('textarea');
+    area.value = o.note || '';
+    form.querySelector('button').onclick = () => saveFinding(o, { note: area.value });
+    e.target.replaceWith(form);
+    area.focus();
+  };
+  box.querySelector('[data-history]').onclick = async e => {
+    const h = await api(`/api/findings/${o.id}/history`);
+    const list = el('history', h.length ? h.map(x => `<div><b>${esc(x.field.replace('_override', ''))}</b>
+      ${esc(x.old ?? '—')} → ${esc(x.new ?? '—')} <span class="faint">${esc(x.actor || '')} · ${
+      esc(x.at.slice(0, 16).replace('T', ' '))}</span></div>`).join('') : '<div class="faint">No changes yet.</div>');
+    e.target.replaceWith(list);
+  };
+  return box;
+}
+
+async function saveFinding(o, body) {
+  try {
+    const updated = await api(`/api/findings/${o.id}`, { method: 'PATCH', json: body });
+    Object.assign(o, updated);
+    renderCard();
+    dueBadge();
+    refreshList();
+  } catch (e) { toast(`Could not save — ${e.message}`, true); }
 }
 
 /* The source pill — the affordance the whole thing turns on. */
@@ -326,7 +503,7 @@ function showProof(f) {
   $('#proof-page').textContent = `Page ${f.page} of ${d.page_count}`;
   // Opening the proof is the act worth a line in the audit trail; a search hit
   // (no finding id) is already recorded as the search itself.
-  if (f.id) fetch(`/api/audit/proof/${encodeURIComponent(f.id)}`, { method: 'POST' }).catch(() => {});
+  if (f.id) request(`/api/audit/proof/${encodeURIComponent(f.id)}`, { method: 'POST' }).catch(() => {});
   const places = `${f.rects.length} ${f.id ? 'line' : 'place'}${f.rects.length === 1 ? '' : 's'}`;
   const cap = el('proof-caption', `
     <div class="proof-quote${mlClass(f.evidence_quote)}">${esc(f.evidence_quote)}</div>
@@ -389,10 +566,12 @@ function pageNav(d, f) {
 /* ── compliance line ──────────────────────────────────────────────────── */
 async function renderLine() {
   let items;
-  try { items = await api('/api/deadlines?' + new URLSearchParams(state.role ? { role: state.role } : {})); }
+  exportLinks();
+  const qs = new URLSearchParams({ status: state.lineStatus, ...(state.role ? { role: state.role } : {}) });
+  try { items = await api('/api/deadlines?' + qs); }
   catch (e) { return toast(`Could not load deadlines — ${e.message}`, true); }
   if (!items.length) {
-    $('#metroline').innerHTML = `<p class="lede">No dated obligations for this filter.</p>`;
+    $('#metroline').innerHTML = `<p class="lede">Nothing ${state.lineStatus === 'open' ? 'open ' : ''}for this filter.</p>`;
     return;
   }
   let prev = null;
@@ -401,11 +580,13 @@ async function renderLine() {
     const gap = prev ? daysFrom(it.due_date) - daysFrom(prev) : null;
     prev = it.due_date;
     const soon = it.days_left >= 0 && it.days_left <= 21;
-    const stop = el('stop' + (it.overdue ? ' is-overdue' : soon ? ' is-soon' : ''), `
+    const stop = el('stop' + (it.overdue ? ' is-overdue' : soon && it.status === 'open' ? ' is-soon' : '') + (it.status !== 'open' ? ' is-closed' : ''), `
       <div><span class="stop-date">${fmtDate(it.due_date)}</span>
         <span class="stop-gap">${gap === null || it.overdue ? relative(it.due_date) : `+${gap} days`}</span></div>
       <div class="stop-duty${mlClass(text)}">${esc(text)}</div>
       <div class="stop-meta">${roleChips(it.roles)}
+        ${it.assignee ? `<span class="stop-doc">owner ${esc(state.users.find(u => u.email === it.assignee)?.name || it.assignee)}</span>` : ''}
+        ${it.status !== 'open' ? `<span class="chip">${esc(STATUSES[it.status])}</span>` : ''}
         <span class="stop-doc">${esc(it.source_channel)} · ${esc(it.doc_type || '')}</span>
         <button class="linklike">Open document</button></div>`);
     // Jumping straight to the proof is the point: a deadline is a claim until
@@ -451,4 +632,4 @@ async function runSearch(q) {
   }));
 }
 
-boot().catch(e => toast(`Dueproof could not start — ${e.message}`, true));
+boot().catch(e => { if (e.message !== 'Not signed in') toast(`Dueproof could not start — ${e.message}`, true); });

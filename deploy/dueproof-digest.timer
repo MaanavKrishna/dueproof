@@ -1,0 +1,10 @@
+# Weekday mornings at 08:30 server time.
+[Unit]
+Description=Dueproof reminder digest, weekday mornings
+
+[Timer]
+OnCalendar=Mon..Fri 08:30
+Persistent=true
+
+[Install]
+WantedBy=timers.target

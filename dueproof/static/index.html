@@ -9,7 +9,26 @@
 </head>
 <body>
 
-<header class="topbar">
+<section class="signin" id="signin" hidden>
+  <form class="signin-card" id="signin-form">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 18h16M7 18V8a5 5 0 0 1 10 0v10M7 12h10" />
+        <circle cx="9" cy="15" r="1.1" /><circle cx="15" cy="15" r="1.1" />
+      </svg>
+      <div><span class="brand-name">Dueproof</span>
+           <span class="brand-sub" id="signin-org"></span></div>
+    </div>
+    <p class="signin-setup" id="signin-setup" hidden>No accounts yet. On the server, run
+      <code>dueproof users add you@example.org --admin</code>, then sign in here.</p>
+    <label class="signin-field">Email<input id="signin-email" type="email" autocomplete="username" required></label>
+    <label class="signin-field">Password<input id="signin-password" type="password" autocomplete="current-password" required></label>
+    <p class="signin-error" id="signin-error" role="alert"></p>
+    <button class="signin-go" type="submit">Sign in</button>
+  </form>
+</section>
+
+<header class="topbar" id="topbar">
   <div class="brand">
     <svg class="mark" viewBox="0 0 24 24" aria-hidden="true">
       <path d="M4 18h16M7 18V8a5 5 0 0 1 10 0v10M7 12h10" />
@@ -20,7 +39,8 @@
   </div>
   <nav class="views" role="tablist" aria-label="Views">
     <button class="view-tab is-active" role="tab" data-view="documents">Documents</button>
-    <button class="view-tab" role="tab" data-view="deadlines">Deadlines</button>
+    <button class="view-tab" role="tab" data-view="deadlines">Deadlines
+      <span class="badge" id="due-badge" hidden></span></button>
   </nav>
   <form class="search" id="search" role="search">
     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
@@ -30,12 +50,14 @@
   <div class="topbar-right">
     <label class="field"><span class="field-label">Viewing as</span>
       <select id="role-select"><option value="">Everyone</option></select></label>
-    <div class="engine" title="OCR, extraction, translation and linking all run on this
+    <div class="engine" id="engine" title="OCR, extraction, translation and linking all run on this
       machine. No document text leaves it.">Runs on-premise</div>
+    <div class="me" id="me" hidden><span id="me-name"></span>
+      <button class="linklike" id="signout">Sign out</button></div>
   </div>
 </header>
 
-<main class="shell">
+<main class="shell" id="shell">
 
   <!-- left: the queue -->
   <aside class="panel queue">
@@ -68,6 +90,7 @@
           <span class="eyebrow" id="card-ref"></span>
           <h1 id="card-title"></h1>
           <div class="chips" id="card-chips"></div>
+          <dl class="facts" id="card-facts"></dl>
           <div class="dupe" id="card-dupe" hidden></div>
         </header>
 
@@ -95,6 +118,12 @@
         <h1>Every deadline the corpus is carrying</h1>
         <p class="lede">One stop per obligation, in the order they fall due.
            Amber means the date has passed.</p>
+        <div class="status-filter" id="status-filter" role="group" aria-label="Which obligations">
+          <button data-status="open" class="is-active">Open</button>
+          <button data-status="done">Done</button>
+          <button data-status="dismissed">Dismissed</button>
+          <button data-status="all">All</button>
+        </div>
         <p class="line-actions"><span class="eyebrow">Take it with you</span>
           <a class="linklike" id="export-pdf" href="/api/export/deadlines.html" target="_blank" rel="noopener">Evidence report (print or save as PDF)</a>
           <a class="linklike" id="export-csv" href="/api/export/deadlines.csv">Spreadsheet (CSV)</a></p>

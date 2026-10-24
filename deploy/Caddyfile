@@ -1,0 +1,8 @@
+# HTTPS in front of Dueproof. Caddy obtains and renews the certificate.
+{$DUEPROOF_DOMAIN} {
+	encode gzip
+	request_body {
+		max_size 85MB
+	}
+	reverse_proxy dueproof:8000
+}

@@ -33,7 +33,7 @@ from dueproof.pipeline.link import (CANDIDATE_KEYS, build_index, confidence_of, 
                            near_duplicate_score, signature)
 from dueproof.pipeline.read import read_image, read_pdf
 from dueproof.pipeline.translate import translate_findings, translator, warm
-from dueproof.profiles import ROLES
+from dueproof.profiles import NAME as PROFILE_NAME, ROLES
 
 # logging — every line carries the request (or document) it belongs to
 rid: contextvars.ContextVar[str] = contextvars.ContextVar("rid", default="-")
@@ -361,6 +361,7 @@ def meta():
     # what to call them, and which characters belong to their scripts.
     return {"product": PRODUCT, "org": ORG_NAME, "roles": ROLES, "channels": CHANNELS,
             "today": today().isoformat(), "version": __version__, "auth": AUTH,
+            "profile": PROFILE_NAME,
             "needs_setup": AUTH == "local" and not db.one("SELECT 1 x FROM users"),
             "locals": [{k: lang[k] for k in ("code", "name", "english", "script")}
                        for lang in LOCALS]}
@@ -402,9 +403,12 @@ def logout(request: Request, response: Response):
 
 @app.get("/api/me")
 def me(request: Request):
-    user = request.state.user
-    return auth.public_user(user) if user else {"email": None, "name": None, "desk": None,
-                                                "is_admin": True}
+    """Who is signed in — asked before anything else, so it answers rather
+    than refusing: signed_in false means show the sign-in screen."""
+    if auth.AUTH == "none":
+        return {"signed_in": True, "email": None, "name": None, "desk": None, "is_admin": True}
+    user, _ = auth.identify(request)
+    return dict(auth.public_user(user), signed_in=True) if user else {"signed_in": False}
 
 @app.get("/api/users")
 def users():

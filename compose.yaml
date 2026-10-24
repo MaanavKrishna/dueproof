@@ -1,0 +1,27 @@
+# docker compose up -d   — Dueproof behind Caddy, which provides HTTPS.
+# Set DUEPROOF_DOMAIN to a name that points at this machine before starting.
+services:
+  dueproof:
+    build: .
+    restart: unless-stopped
+    environment:
+      DUEPROOF_PROFILE: ${DUEPROOF_PROFILE:-notices_in}
+      DUEPROOF_LANGUAGES: ${DUEPROOF_LANGUAGES:-hi}
+      DUEPROOF_ORG: ${DUEPROOF_ORG:-}
+    volumes:
+      - dueproof-data:/data
+    expose: ["8000"]
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      DUEPROOF_DOMAIN: ${DUEPROOF_DOMAIN:-localhost}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+
+volumes:
+  dueproof-data:
+  caddy-data:
