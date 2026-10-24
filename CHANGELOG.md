@@ -32,3 +32,12 @@ First public version.
   verify, restore, doctor, fetch-model.
 - Evaluation harness with an accuracy gate in CI.
 - systemd units, Docker and Compose with Caddy.
+- Documents are processed two at a time; all PDFium calls are serialised,
+  since PDFium is not thread-safe and parallel renders could crash the process.
+
+**Project**
+- Package laid out by job: `pipeline/`, `ingest.py`, `records.py`, `web/`
+  (API and browser app), `tools/` (operator commands). See
+  [Architecture](docs/architecture.md).
+- A project website in `website/` (Next.js, static export) whose documentation
+  pages are rendered from `docs/`.

@@ -50,6 +50,25 @@ scripts/test.sh
 - **Nothing may reach the network at run time.** `tests/test_translate.py`
   enforces this.
 
+## Where things are
+
+The package is `dueproof/`: `pipeline/` reads a document, `ingest.py` runs the
+queue, `web/` is the API and the browser app, `tools/` holds the operator
+commands, and `profiles/` the vocabulary. [Architecture](docs/architecture.md)
+has the full map.
+
+## Working on the website
+
+The project website is a Next.js app in `website/`, separate from the product.
+Its documentation pages are rendered from `docs/`, so a docs change shows up on
+the site with no extra work.
+
+```bash
+cd website && npm install && npm run dev
+```
+
+It builds to static files with `npm run build` (output in `website/out/`).
+
 ## Principles a change should not break
 
 - Every finding carries a verbatim quote and is located on the page, or is

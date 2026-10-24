@@ -32,6 +32,10 @@ It runs on your own machine. No cloud, no API keys, no language model.
 ## Try it in five minutes
 
 ```bash
+git clone https://github.com/MaanavKrishna/dueproof && cd dueproof
+```
+
+```bash
 python3 -m venv .venv && .venv/bin/pip install -e .
 ```
 
@@ -63,11 +67,12 @@ Check the installation any time with `dueproof doctor`.
 | [Deployment](docs/deployment.md) | systemd, Docker, HTTPS, backups |
 | [Evaluation](docs/evaluation.md) | Measuring accuracy on your own documents |
 | [Configuration](docs/configuration.md) | Every setting |
-| [API](docs/api.md) · [Architecture](docs/architecture.md) · [Security](docs/security.md) · [FAQ](docs/faq.md) | |
+| [Architecture](docs/architecture.md) | How it is built, and where each part lives |
+| [API](docs/api.md), [Security](docs/security.md), [FAQ](docs/faq.md) | |
 
 ## Status
 
-Version 0.1 — early. It works end to end and is tested (270+ tests, an
+Version 0.1 — early. It works end to end and is tested (265 tests, an
 accuracy gate in CI), but it has been measured only on a small, fictional
 corpus. Before you rely on it for real deadlines, run it alongside your current
 process and measure it on your own documents with `dueproof eval`.
