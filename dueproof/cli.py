@@ -3,6 +3,10 @@
     dueproof serve                      run the web app
     dueproof ingest FOLDER              load a folder of PDFs and images
     dueproof users add EMAIL | list | reset EMAIL | disable EMAIL | enable EMAIL
+    dueproof digest [--send]            what each person has falling due
+    dueproof eval LABELS --docs DIR     measure extraction against labelled documents
+    dueproof labels export FILE         corrections made in the app, as labels
+    dueproof doctor                     check this installation
     dueproof backup DIR | verify DIR | restore DIR
     dueproof fetch-model                provision the translation weights (needs network)
 
@@ -93,6 +97,30 @@ def _users(args) -> int:
             raise SystemExit(f"{args.email} already exists") from None
         raise
 
+def _digest(args) -> int:
+    from dueproof import digest
+    sent = digest.run(args.days, deliver=args.send, only=args.to,
+                      base_url=os.environ.get("DUEPROOF_URL", ""))
+    if not sent:
+        print("Nothing falling due.")
+    elif args.send:
+        print("\n".join(f"sent to {who}: {n} item(s)" for who, n in sent))
+    return 0
+
+def _eval(args) -> int:
+    from dueproof import evaluate
+    return evaluate.main(args)
+
+def _labels(args) -> int:
+    from dueproof import evaluate
+    n = evaluate.export_labels(args.file, reviewed_only=not args.all)
+    print(f"wrote {n} document(s) to {args.file}")
+    return 0
+
+def _doctor(args) -> int:
+    from dueproof import doctor
+    return doctor.main()
+
 def _fetch_model(args) -> int:
     from dueproof import fetch_model
     return fetch_model.main()
@@ -133,6 +161,31 @@ def parser() -> argparse.ArgumentParser:
         if name == "restore":
             s.add_argument("--force", action="store_true", help="replace an existing database")
         s.set_defaults(func=_backup)
+
+    s = sub.add_parser("digest", help="what each person has falling due, printed or emailed")
+    s.add_argument("--days", type=int, default=7, help="look this many days ahead (default 7)")
+    s.add_argument("--send", action="store_true", help="email each person (needs DUEPROOF_SMTP_HOST)")
+    s.add_argument("--to", help="only this person's digest")
+    s.set_defaults(func=_digest)
+
+    s = sub.add_parser("eval", help="measure extraction against labelled documents")
+    s.add_argument("labels", type=Path)
+    s.add_argument("--docs", type=Path, required=True, help="folder holding the labelled files")
+    s.add_argument("--json", action="store_true")
+    s.add_argument("--min-precision", type=float)
+    s.add_argument("--min-recall", type=float)
+    s.add_argument("--min-deadline", type=float, help="minimum share of due dates exactly right")
+    s.add_argument("--max-false-confident", type=float)
+    s.set_defaults(func=_eval)
+
+    s = sub.add_parser("labels", help="export corrections made in the app as labels")
+    s.add_argument("action", choices=["export"])
+    s.add_argument("file", type=Path)
+    s.add_argument("--all", action="store_true", help="include documents nobody has reviewed")
+    s.set_defaults(func=_labels)
+
+    s = sub.add_parser("doctor", help="check this installation")
+    s.set_defaults(func=_doctor)
 
     s = sub.add_parser("fetch-model", help="download and verify the translation weights")
     s.set_defaults(func=_fetch_model)

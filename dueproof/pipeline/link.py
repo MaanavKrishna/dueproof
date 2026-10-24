@@ -47,25 +47,42 @@ LINE_GAP = 0.02      # a column gutter is far wider than this; a word gap is not
 def _stitch(rects: list[list[float]]) -> list[list[float]]:
     """Rejoin rects that are really one visual line.
 
-    A renderer can emit one justified line as several text runs, and PyMuPDF
-    gives each run its own line id — so grouping by line id alone leaves a gap
-    that can fall inside a word. Merge boxes that share a vertical band and sit
-    within LINE_GAP horizontally; a neighbouring column is much further away.
+    A producer can emit one justified line as several text runs, each with its
+    own line, leaving a gap that can fall inside a word. Merge boxes that sit in
+    the same vertical band and within LINE_GAP horizontally; a neighbouring
+    column is much further away, and the slices of a tilted line (see
+    _segments) are never in quite the same band.
     """
     out: list[list[float]] = []
     for r in sorted(rects, key=lambda r: (r[1], r[0])):
         if out:
             p = out[-1]
             overlap = min(p[3], r[3]) - max(p[1], r[1])
-            if overlap > 0.6 * min(p[3] - p[1], r[3] - r[1]) and r[0] - p[2] < LINE_GAP:
+            if overlap > 0.85 * max(p[3] - p[1], r[3] - r[1]) and r[0] - p[2] < LINE_GAP:
                 out[-1] = [min(p[0], r[0]), min(p[1], r[1]), max(p[2], r[2]), max(p[3], r[3])]
                 continue
         out.append(r)
     return out
 
+def _segments(line: list[dict]) -> list[list[dict]]:
+    """Slice a line wherever its words drift off the band the slice started
+    in. On a straight page that is never, and the line is one box. On a tilted
+    scan one box per line would be a parallelogram's bounding box, reaching up
+    into the line above and down into the one below; slices keep each box on
+    its own words."""
+    out: list[list[dict]] = []
+    for w in sorted(line, key=lambda w: w["x0"]):
+        if out:
+            first = out[-1][0]
+            overlap = min(first["y1"], w["y1"]) - max(first["y0"], w["y0"])
+            if overlap >= 0.5 * min(first["y1"] - first["y0"], w["y1"] - w["y0"]):
+                out[-1].append(w)
+                continue
+        out.append([w])
+    return out
 
 def _rects_for(words: list[dict], indices: list[int]) -> list[list[float]]:
-    """Union the matched words' boxes, grouped by the line each sits on."""
+    """One box per line of matched words (per slice of a tilted line)."""
     by_line: dict[int, list[dict]] = {}
     for i in indices:
         by_line.setdefault(words[i]["line_id"], []).append(words[i])
@@ -74,7 +91,8 @@ def _rects_for(words: list[dict], indices: list[int]) -> list[list[float]]:
           round(max(0.0, min(w["y0"] for w in g) - PAD_Y), 5),
           round(min(1.0, max(w["x1"] for w in g) + PAD_X), 5),
           round(min(1.0, max(w["y1"] for w in g) + PAD_Y), 5)]
-         for _, g in sorted(by_line.items(), key=lambda kv: min(w["y0"] for w in kv[1]))])
+         for _, line in sorted(by_line.items(), key=lambda kv: min(w["y0"] for w in kv[1]))
+         for g in _segments(line)])
 
 def _match_page(quote: str, page: tuple) -> tuple[float, list[list[float]]]:
     hay, spans, words = page
