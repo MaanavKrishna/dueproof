@@ -26,4 +26,4 @@ defaults for the vocabulary-related ones.
 
 80 MB per upload, 300 pages per document, 40 megapixels per rendered page, two
 documents processed at a time, 200 sentences per document translated before
-analysis. They are constants in `dueproof/config.py` and `dueproof/app.py`.
+analysis. They are constants in `dueproof/config.py` and `dueproof/ingest.py`.

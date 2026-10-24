@@ -33,3 +33,20 @@ jobs:
           DUEPROOF_PROFILE=metro_rail_ml DUEPROOF_TRANSLATE=0 DUEPROOF_DATA=$RUNNER_TEMP/eval
           dueproof eval tests/fixtures/labels.jsonl --docs tests/fixtures
           --min-precision 0.95 --min-recall 0.75 --min-deadline 1.0 --max-false-confident 0
+
+  website:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: website
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+      - run: npm ci
+      - name: Build (type-checks every page)
+        run: npm run build
