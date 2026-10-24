@@ -149,21 +149,26 @@ def read_pdf(doc_id: str, pdf_path, progress=None) -> dict:
     """Render every page, harvest words, reconstruct text."""
     doc = pdf.open_pdf(pdf_path)
     try:
-        n = len(doc)
+        with pdf.LOCK:
+            n = len(doc)
         if not 0 < n <= MAX_PAGES:
             raise ValueError(f"This PDF has {n} pages; the limit is {MAX_PAGES}")
         pages = []
         for pno in range(n):
-            page = doc[pno]
+            with pdf.LOCK:                          # PDFium work only; OCR runs unlocked
+                page = doc[pno]
+                image, layer = pdf.render(page, DISPLAY_DPI), pdf.words(page)
             try:
-                pages.append(_page(doc_id, pno + 1, pdf.render(page, DISPLAY_DPI), pdf.words(page),
+                pages.append(_page(doc_id, pno + 1, image, layer,
                                    lambda: pdf.render(page, OCR_DPI)))
             finally:
-                page.close()
+                with pdf.LOCK:
+                    page.close()
             if progress:
                 progress(pno + 1, n)
     finally:
-        doc.close()
+        with pdf.LOCK:
+            doc.close()
     return _result(pages)
 
 # Photographs and scans that arrive as images rather than PDFs: a phone photo
