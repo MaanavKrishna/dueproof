@@ -22,7 +22,7 @@
     "page": 3,
     "score": 100.0,
     "confidence": "exact",
-    "lines": 4
+    "lines": 6
    },
    {
     "kind": "bullet",
@@ -38,7 +38,7 @@
     "page": 1,
     "score": 100.0,
     "confidence": "exact",
-    "lines": 4
+    "lines": 6
    },
    {
     "kind": "bullet",
@@ -54,7 +54,7 @@
     "page": 2,
     "score": 100.0,
     "confidence": "exact",
-    "lines": 2
+    "lines": 4
    },
    {
     "kind": "bullet",
@@ -68,7 +68,7 @@
     "page": 3,
     "score": 100.0,
     "confidence": "exact",
-    "lines": 2
+    "lines": 4
    },
    {
     "kind": "bullet",
@@ -84,7 +84,7 @@
     "page": 1,
     "score": 100.0,
     "confidence": "exact",
-    "lines": 3
+    "lines": 6
    },
    {
     "kind": "bullet",
@@ -98,7 +98,7 @@
     "page": 1,
     "score": 100.0,
     "confidence": "exact",
-    "lines": 2
+    "lines": 3
    },
    {
     "kind": "obligation",
@@ -113,7 +113,7 @@
     "page": 2,
     "score": 100.0,
     "confidence": "exact",
-    "lines": 2
+    "lines": 4
    },
    {
     "kind": "obligation",
@@ -128,7 +128,7 @@
     "page": 1,
     "score": 100.0,
     "confidence": "exact",
-    "lines": 3
+    "lines": 6
    },
    {
     "kind": "obligation",
@@ -142,7 +142,7 @@
     "page": 2,
     "score": 100.0,
     "confidence": "exact",
-    "lines": 2
+    "lines": 3
    },
    {
     "kind": "obligation",
@@ -156,7 +156,7 @@
     "page": 1,
     "score": 100.0,
     "confidence": "exact",
-    "lines": 2
+    "lines": 4
    },
    {
     "kind": "obligation",
@@ -170,7 +170,7 @@
     "page": 3,
     "score": 100.0,
     "confidence": "exact",
-    "lines": 2
+    "lines": 3
    }
   ]
  },
