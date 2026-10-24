@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     "languages and keeps a deadline register, with every entry outlined on the page it came from.",
 };
 
-export const viewport: Viewport = { themeColor: "#0d3a2e" };
+export const viewport: Viewport = { themeColor: "#121a3b" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
