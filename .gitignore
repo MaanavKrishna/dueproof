@@ -1,0 +1,11 @@
+data/
+models/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+.playwright-mcp/
+dueproof/profiles/zz_*.py
+*.egg-info/
+build/
+dist/

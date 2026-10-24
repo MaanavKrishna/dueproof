@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dueproof"
+dynamic = ["version"]
+description = "Every due date in your documents, with proof from the page. Self-hosted, 22 Indian languages, no cloud."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+requires-python = ">=3.12"
+authors = [{ name = "The Dueproof Authors" }]
+keywords = ["document-ai", "compliance", "deadlines", "ocr", "indic", "self-hosted"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: FastAPI",
+    "Intended Audience :: Legal Industry",
+    "Natural Language :: Hindi",
+    "Natural Language :: Bengali",
+    "Natural Language :: Tamil",
+    "Natural Language :: Telugu",
+    "Natural Language :: Urdu",
+    "Programming Language :: Python :: 3",
+    "Topic :: Office/Business",
+]
+dependencies = [
+    "fastapi==0.141.1",
+    "indictranstoolkit==1.1.1",
+    "numpy==2.5.1",
+    "opencv-python-headless==5.0.0.93",
+    "pypdfium2>=5,<6",
+    "pytesseract==0.3.13",
+    "python-multipart==0.0.32",
+    "RapidFuzz==3.14.5",
+    "sentencepiece==0.2.2",
+    "torch==2.13.0",
+    # <5: IndicTransToolkit needs transformers.tokenization_utils.PreTrainedTokenizerBase
+    "transformers==4.57.6",
+    "uvicorn==0.52.1",
+]
+
+[project.optional-dependencies]
+dev = ["httpx==0.28.1", "pyflakes"]
+
+[project.scripts]
+dueproof = "dueproof.cli:main"
+
+[project.urls]
+Homepage = "https://dueproof.github.io"
+Documentation = "https://github.com/dueproof/dueproof/tree/main/docs"
+Source = "https://github.com/dueproof/dueproof"
+
+[tool.setuptools.dynamic]
+version = { attr = "dueproof.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["dueproof*"]
+
+[tool.setuptools.package-data]
+dueproof = ["static/*", "static/fonts/*"]

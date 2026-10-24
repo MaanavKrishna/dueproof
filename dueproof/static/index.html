@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dueproof</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338beab' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M4 18h16M7 18V8a5 5 0 0 1 10 0v10M7 12h10'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <svg class="mark" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 18h16M7 18V8a5 5 0 0 1 10 0v10M7 12h10" />
+      <circle cx="9" cy="15" r="1.1" /><circle cx="15" cy="15" r="1.1" />
+    </svg>
+    <div><span class="brand-name">Dueproof</span>
+         <span class="brand-sub" id="brand-org"></span></div>
+  </div>
+  <nav class="views" role="tablist" aria-label="Views">
+    <button class="view-tab is-active" role="tab" data-view="documents">Documents</button>
+    <button class="view-tab" role="tab" data-view="deadlines">Deadlines</button>
+  </nav>
+  <form class="search" id="search" role="search">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
+    <input id="search-input" type="search" placeholder="Search every page" autocomplete="off"
+           aria-label="Search every page of every document">
+  </form>
+  <div class="topbar-right">
+    <label class="field"><span class="field-label">Viewing as</span>
+      <select id="role-select"><option value="">Everyone</option></select></label>
+    <div class="engine" title="OCR, extraction, translation and linking all run on this
+      machine. No document text leaves it.">Runs on-premise</div>
+  </div>
+</header>
+
+<main class="shell">
+
+  <!-- left: the queue -->
+  <aside class="panel queue">
+    <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Add a document">
+      <svg viewBox="0 0 24 24" aria-hidden="true" class="dz-icon">
+        <path d="M12 16V4m0 0L8 8m4-4 4 4M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"/>
+      </svg>
+      <span class="dz-title">Drop a document</span>
+      <span class="dz-hint" id="dz-hint">PDF or photo</span>
+      <input type="file" id="file-input" accept="application/pdf,image/jpeg,image/png,image/tiff" hidden>
+    </div>
+    <div class="channels" id="channel-filter" aria-label="Filter by source"></div>
+    <div class="queue-head"><span class="eyebrow">Queue</span>
+      <span class="eyebrow" id="queue-count"></span></div>
+    <ul class="doclist" id="doclist"></ul>
+    <button class="linklike more" id="queue-more" hidden>Show more</button>
+  </aside>
+
+  <!-- centre: what the document means -->
+  <section class="panel main">
+    <div id="view-documents">
+      <div class="empty" id="doc-empty">
+        <span class="eyebrow">No document open</span>
+        <p>Pick a document from the queue, or drop a new one in. Processing runs
+           live — read, extract, translate, then source linking.</p>
+      </div>
+
+      <article class="card" id="card" hidden>
+        <header class="card-head">
+          <span class="eyebrow" id="card-ref"></span>
+          <h1 id="card-title"></h1>
+          <div class="chips" id="card-chips"></div>
+          <div class="dupe" id="card-dupe" hidden></div>
+        </header>
+
+        <section class="block">
+          <div class="block-head"><h2>What this says</h2>
+            <div class="lang-toggle" id="lang-toggle" role="group" aria-label="Summary language" hidden>
+              <button data-lang="en" class="is-active">English</button>
+              <button data-lang="local" id="lang-local"></button>
+            </div>
+          </div>
+          <ul class="bullets" id="bullets"></ul>
+        </section>
+
+        <section class="block">
+          <div class="block-head"><h2>What must happen</h2>
+            <span class="eyebrow" id="oblig-note"></span></div>
+          <div class="obligations" id="obligations"></div>
+        </section>
+      </article>
+    </div>
+
+    <div id="view-deadlines" hidden>
+      <header class="line-head">
+        <span class="eyebrow">Deadlines</span>
+        <h1>Every deadline the corpus is carrying</h1>
+        <p class="lede">One stop per obligation, in the order they fall due.
+           Amber means the date has passed.</p>
+        <p class="line-actions"><span class="eyebrow">Take it with you</span>
+          <a class="linklike" id="export-pdf" href="/api/export/deadlines.html" target="_blank" rel="noopener">Evidence report (print or save as PDF)</a>
+          <a class="linklike" id="export-csv" href="/api/export/deadlines.csv">Spreadsheet (CSV)</a></p>
+      </header>
+      <div class="metroline" id="metroline"></div>
+    </div>
+
+    <div id="view-search" hidden>
+      <header class="line-head">
+        <span class="eyebrow">Search</span>
+        <h1 id="search-title"></h1>
+        <p class="lede">Every match opens on its page with the words outlined.</p>
+      </header>
+      <div class="hits" id="hits"></div>
+    </div>
+  </section>
+
+  <!-- right: the proof -->
+  <aside class="panel proof">
+    <div class="proof-head"><span class="eyebrow">Source</span>
+      <span class="pagemark" id="proof-page"></span></div>
+    <div class="proof-body" id="proof-body"></div>
+  </aside>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

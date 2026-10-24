@@ -1,0 +1,475 @@
+{
+ "Scan-circular-photo.pdf": {
+  "title": "Fire safety audit of all elevated stations and compliance reporting 1. Background The annual fire safety…",
+  "doc_type": "Safety directive",
+  "doc_date": "2026-08-06",
+  "languages": [
+   "ml",
+   "en"
+  ],
+  "page_count": 3,
+  "text_source": "ocr",
+  "findings": [
+   {
+    "kind": "bullet",
+    "quote": "Reporting to the regulator മുഴുവന്‍ എലിവേറ്റഡ്‌ സ്റ്റേഷനുകളിലെയും സമഗ്ര അഗ്നിസുരക്ഷാ ഓഡിറ്റ്‌ റിപ്പോര്‍ട്ട്‌ 2026 സെപ്റ്റംബര്‍ 5-ന്‌ മുമ്പ്‌ ചീഫ്‌ സേഫ്റ്റി ഓഫീസര്‍ മുഖേന കമ്മീഷണര്‍ ഓഫ്‌ മെട്രോ റെയില്‍ സേഫ്റ്റിക്ക്‌ സമര്‍പ്പിക്കണം.",
+    "lang": "ml",
+    "due_date": null,
+    "severity": null,
+    "roles": [
+     "Safety Officer"
+    ],
+    "page": 3,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 4
+   },
+   {
+    "kind": "bullet",
+    "quote": "NORTHLINE METRO RAIL CORPORATION Safety Department - NMR/SAF/2026/041 - Dated: 6 August 2026 Subject: Fire safety audit of all elevated stations and compliance reporting 1.",
+    "lang": "en",
+    "due_date": null,
+    "severity": null,
+    "roles": [
+     "Safety Officer",
+     "Station Controller",
+     "Civil & Infrastructure"
+    ],
+    "page": 1,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 4
+   },
+   {
+    "kind": "bullet",
+    "quote": "Station staff were retrained on extinguisher handling in July, and attendance records are held by Human Resources for inspection.",
+    "lang": "en",
+    "due_date": null,
+    "severity": null,
+    "roles": [
+     "Safety Officer",
+     "Station Controller",
+     "Human Resources"
+    ],
+    "page": 2,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 2
+   },
+   {
+    "kind": "bullet",
+    "quote": "Non-compliance with this statutory reporting requirement attracts a penalty under the Metro Railways Act, and the audit findings will be reviewed by the Board.",
+    "lang": "en",
+    "due_date": null,
+    "severity": null,
+    "roles": [
+     "Legal & Compliance"
+    ],
+    "page": 3,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 2
+   },
+   {
+    "kind": "bullet",
+    "quote": "Background The annual fire safety audit of the elevated corridor found expired portable extinguishers at eleven stations and two partially functional smoke detection loops.",
+    "lang": "en",
+    "due_date": null,
+    "severity": null,
+    "roles": [
+     "Safety Officer",
+     "Station Controller",
+     "Civil & Infrastructure"
+    ],
+    "page": 1,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 3
+   },
+   {
+    "kind": "bullet",
+    "quote": "എല്ലാ എലിവേറ്റഡ്‌ സ്റ്റേഷനുകളിലെയും അഗ്നിസുരക്ഷാ ഓഡിറ്റില്‍ കണ്ടെത്തിയ പോരായ്മകള്‍ പരിഹരിക്കുന്നതിനുള്ള നിര്‍ദ്ദേശങ്ങളാണ്‌ ഈ സര്‍ക്കുലറില്‍ ഉള്ളത്‌.",
+    "lang": "ml",
+    "due_date": null,
+    "severity": null,
+    "roles": [
+     "Safety Officer"
+    ],
+    "page": 1,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 2
+   },
+   {
+    "kind": "obligation",
+    "quote": "The Operations Control Centre must complete the pending drills and report to the Chief Safety Officer not later than 31 August 2026.",
+    "lang": "en",
+    "due_date": "2026-08-31",
+    "severity": "medium",
+    "roles": [
+     "Safety Officer",
+     "Operations Control Centre"
+    ],
+    "page": 2,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 2
+   },
+   {
+    "kind": "obligation",
+    "quote": "Fire extinguishing equipment Every Station Controller shall replace all expired portable extinguishers and certify the replacement to the Safety Department on or before 21 August 2026.",
+    "lang": "en",
+    "due_date": "2026-08-21",
+    "severity": "medium",
+    "roles": [
+     "Safety Officer",
+     "Station Controller"
+    ],
+    "page": 1,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 3
+   },
+   {
+    "kind": "obligation",
+    "quote": "നടപ്പുപാദത്തിലെ ഒഴിപ്പിക്കല്‍ പരിശീലനം 2026 ഓഗസ്റ്റ്‌ 31-ന്‌ മുമ്പ്‌ പൂര്‍ത്തിയാക്കി ഓപ്പറേഷന്‍സ്‌ കണ്‍ട്രോള്‍ സെന്ററിന്‌ റിപ്പോര്‍ട്ട്‌ ചെയ്യണം.",
+    "lang": "ml",
+    "due_date": "2026-08-31",
+    "severity": "medium",
+    "roles": [
+     "Human Resources"
+    ],
+    "page": 2,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 2
+   },
+   {
+    "kind": "obligation",
+    "quote": "എല്ലാ എലിവേറ്റഡ്‌ സ്റ്റേഷനുകളിലെയും പോര്‍ട്ടബിള്‍ അഗ്നിശമന ഉപകരണങ്ങള്‍ 2026 ഓഗസ്റ്റ്‌ 21-ന്‌ മുമ്പ്‌ പരിശോധിച്ച്‌ സാക്ഷ്യപത്രം സഹിതം സുരക്ഷാ വിഭാഗത്തിന്‌ നല്‍കണം.",
+    "lang": "ml",
+    "due_date": "2026-08-21",
+    "severity": "medium",
+    "roles": [
+     "Safety Officer"
+    ],
+    "page": 1,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 2
+   },
+   {
+    "kind": "obligation",
+    "quote": "റിപ്പോര്‍ട്ട്‌ തയ്യാറാക്കുന്നതിന്‌ മുന്നോടിയായി ഓരോ വിഭാഗവും അവരവരുടെ ഭാഗം 2026 ഓഗസ്റ്റ്‌ 28.നകം സുരക്ഷാ വിഭാഗത്തിന്‌ കൈമാറേണ്ടതാണ്‌.",
+    "lang": "ml",
+    "due_date": "2026-08-28",
+    "severity": "medium",
+    "roles": [
+     "Safety Officer"
+    ],
+    "page": 3,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 2
+   }
+  ]
+ },
+ "circular-NMR-SAF-2026-041.pdf": {
+  "title": "Fire safety audit of all elevated stations and compliance reporting",
+  "doc_type": "Safety directive",
+  "doc_date": "2026-08-06",
+  "languages": [
+   "ml",
+   "en"
+  ],
+  "page_count": 3,
+  "text_source": "native",
+  "findings": [
+   {
+    "kind": "bullet",
+    "quote": "റിപ്പോർട്ട് തയ്യാറാക്കുന്നതിന് മുന്നോടിയായി ഓരോ വിഭാഗവും അവരവരുടെ ഭാഗം 2026 ഓഗസ്റ്റ് 28-നകം സുരക്ഷാ വിഭാഗത്തിന് കൈമാറേണ്ടതാണ്.",
+    "lang": "ml",
+    "due_date": null,
+    "severity": null,
+    "roles": [
+     "Safety Officer"
+    ],
+    "page": 3,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 2
+   },
+   {
+    "kind": "bullet",
+    "quote": "The annual fire safety audit of the elevated corridor found expired portable extinguishers at eleven stations and two partially functional smoke detection loops.",
+    "lang": "en",
+    "due_date": null,
+    "severity": null,
+    "roles": [
+     "Safety Officer",
+     "Station Controller",
+     "Civil & Infrastructure"
+    ],
+    "page": 1,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 2
+   },
+   {
+    "kind": "bullet",
+    "quote": "Station staff were retrained on extinguisher handling in July, and attendance records are held by Human Resources for inspection.",
+    "lang": "en",
+    "due_date": null,
+    "severity": null,
+    "roles": [
+     "Safety Officer",
+     "Station Controller",
+     "Human Resources"
+    ],
+    "page": 2,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 2
+   },
+   {
+    "kind": "bullet",
+    "quote": "Non-compliance with this statutory reporting requirement attracts a penalty under the Metro Railways Act, and the audit findings will be reviewed by the Board.",
+    "lang": "en",
+    "due_date": null,
+    "severity": null,
+    "roles": [
+     "Legal & Compliance"
+    ],
+    "page": 3,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 2
+   },
+   {
+    "kind": "bullet",
+    "quote": "എല്ലാ എലിവേറ്റഡ് സ്റ്റേഷനുകളിലെയും അഗ്നിസുരക്ഷാ ഓഡിറ്റിൽ കണ്ടെത്തിയ പോരായ്മകൾ പരിഹരിക്കുന്നതിനുള്ള നിർദ്ദേശങ്ങളാണ് ഈ സർക്കുലറിൽ ഉള്ളത്.",
+    "lang": "ml",
+    "due_date": null,
+    "severity": null,
+    "roles": [
+     "Safety Officer"
+    ],
+    "page": 1,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 2
+   },
+   {
+    "kind": "bullet",
+    "quote": "The Signalling and Telecom department is responsible for restoring both faulty smoke detection loops.",
+    "lang": "en",
+    "due_date": null,
+    "severity": null,
+    "roles": [
+     "Signalling & Telecom"
+    ],
+    "page": 2,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 2
+   },
+   {
+    "kind": "obligation",
+    "quote": "The Operations Control Centre must complete the pending drills and report to the Chief Safety Officer not later than 31 August 2026.",
+    "lang": "en",
+    "due_date": "2026-08-31",
+    "severity": "medium",
+    "roles": [
+     "Safety Officer",
+     "Operations Control Centre"
+    ],
+    "page": 2,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 2
+   },
+   {
+    "kind": "obligation",
+    "quote": "നടപ്പുപാദത്തിലെ ഒഴിപ്പിക്കൽ പരിശീലനം 2026 ഓഗസ്റ്റ് 31-ന് മുമ്പ് പൂർത്തിയാക്കി ഓപ്പറേഷൻസ് കൺട്രോൾ സെന്ററിന് റിപ്പോർട്ട് ചെയ്യണം.",
+    "lang": "ml",
+    "due_date": "2026-08-31",
+    "severity": "medium",
+    "roles": [
+     "Human Resources"
+    ],
+    "page": 2,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 2
+   },
+   {
+    "kind": "obligation",
+    "quote": "Every Station Controller shall replace all expired portable extinguishers and certify the replacement to the Safety Department on or before 21 August 2026.",
+    "lang": "en",
+    "due_date": "2026-08-21",
+    "severity": "medium",
+    "roles": [
+     "Safety Officer",
+     "Station Controller"
+    ],
+    "page": 1,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 2
+   },
+   {
+    "kind": "obligation",
+    "quote": "മുഴുവൻ എലിവേറ്റഡ് സ്റ്റേഷനുകളിലെയും സമഗ്ര അഗ്നിസുരക്ഷാ ഓഡിറ്റ് റിപ്പോർട്ട് 2026 സെപ്റ്റംബർ 5-ന് മുമ്പ് ചീഫ് സേഫ്റ്റി ഓഫീസർ മുഖേന കമ്മീഷണർ ഓഫ് മെട്രോറെയിൽ സേഫ്റ്റിക്ക് സമർപ്പിക്കണം.",
+    "lang": "ml",
+    "due_date": "2026-09-05",
+    "severity": "medium",
+    "roles": [
+     "Safety Officer"
+    ],
+    "page": 3,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 3
+   },
+   {
+    "kind": "obligation",
+    "quote": "എല്ലാ എലിവേറ്റഡ് സ്റ്റേഷനുകളിലെയും പോർട്ടബിൾ അഗ്നിശമന ഉപകരണങ്ങൾ 2026 ഓഗസ്റ്റ് 21-ന് മുമ്പ് പരിശോധിച്ച് സാക്ഷ്യപത്രം സഹിതം സുരക്ഷാ വിഭാഗത്തിന് നൽകണം.",
+    "lang": "ml",
+    "due_date": "2026-08-21",
+    "severity": "medium",
+    "roles": [
+     "Safety Officer"
+    ],
+    "page": 1,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 3
+   }
+  ]
+ },
+ "invoice-HVC-2026-1183.pdf": {
+  "title": "TAX INVOICE · Invoice No: HVC/INV/2026/1183 · Dated: 16 August 2026",
+  "doc_type": "Vendor invoice",
+  "doc_date": "2026-08-16",
+  "languages": [
+   "en"
+  ],
+  "page_count": 1,
+  "text_source": "native",
+  "findings": [
+   {
+    "kind": "bullet",
+    "quote": "Payment is due within 30 days of the invoice date.",
+    "lang": "en",
+    "due_date": null,
+    "severity": null,
+    "roles": [
+     "Finance"
+    ],
+    "page": 1,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 1
+   },
+   {
+    "kind": "bullet",
+    "quote": "Two line items were delivered short against the purchase order quantity, and the vendor will supply the balance with the next consignment at no additional cost.",
+    "lang": "en",
+    "due_date": null,
+    "severity": null,
+    "roles": [
+     "Procurement",
+     "Finance"
+    ],
+    "page": 1,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 2
+   },
+   {
+    "kind": "obligation",
+    "quote": "Finance must clear this invoice on or before 15 September 2026 to retain the negotiated early-settlement discount of 1.5%.",
+    "lang": "en",
+    "due_date": "2026-09-15",
+    "severity": "medium",
+    "roles": [
+     "Finance"
+    ],
+    "page": 1,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 2
+   }
+  ]
+ },
+ "minutes-board-87.pdf": {
+  "title": "Minutes of the 87th meeting of the Board of Directors, held on 30 July 2026 at the Corporate Office.",
+  "doc_type": "Board minutes",
+  "doc_date": "2026-07-30",
+  "languages": [
+   "en"
+  ],
+  "page_count": 1,
+  "text_source": "native",
+  "findings": [
+   {
+    "kind": "bullet",
+    "quote": "Minutes of the 87th meeting of the Board of Directors, held on 30 July 2026 at the Corporate Office.",
+    "lang": "en",
+    "due_date": null,
+    "severity": null,
+    "roles": [
+     "Operations Control Centre"
+    ],
+    "page": 1,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 2
+   },
+   {
+    "kind": "bullet",
+    "quote": "The revised budget of 412 crore for rolling stock procurement was approved, subject to the tender being re-issued with the amended technical specification.",
+    "lang": "en",
+    "due_date": null,
+    "severity": null,
+    "roles": [
+     "Rolling Stock Engineer",
+     "Procurement",
+     "Finance"
+    ],
+    "page": 1,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 2
+   },
+   {
+    "kind": "bullet",
+    "quote": "The next meeting of the Board will be convened in October at a date to be notified by the Company Secretary.",
+    "lang": "en",
+    "due_date": null,
+    "severity": null,
+    "roles": [
+     "Operations Control Centre"
+    ],
+    "page": 1,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 2
+   },
+   {
+    "kind": "obligation",
+    "quote": "The Board noted that civil works on the Phase II viaduct are 62% complete against a planned 70%, and resolved that the Director (Projects) shall submit a recovery schedule to the Board by 30 September 2026.",
+    "lang": "en",
+    "due_date": "2026-09-30",
+    "severity": "medium",
+    "roles": [
+     "Civil & Infrastructure"
+    ],
+    "page": 1,
+    "score": 100.0,
+    "confidence": "exact",
+    "lines": 3
+   }
+  ]
+ }
+}
