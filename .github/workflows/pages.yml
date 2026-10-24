@@ -1,7 +1,10 @@
 name: website
-# Publishes website/ to GitHub Pages. Run it by hand once Pages is enabled
-# for the repository (Settings, Pages, Source: GitHub Actions).
+# Publishes website/ to https://maanavkrishna.github.io/dueproof/ whenever
+# the site or the documentation it renders changes.
 on:
+  push:
+    branches: [main]
+    paths: ["website/**", "docs/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:

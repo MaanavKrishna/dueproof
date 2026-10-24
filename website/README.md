@@ -21,12 +21,13 @@ GitHub Pages project site, build with `PAGES_BASE_PATH=/dueproof`.
 
 ## Design
 
-Indian offices log incoming letters in a cloth-bound inward register, and
-stamp each letter RECEIVED. The site borrows that: bottle-green cloth
-(`--cloth`), white ruled paper, gilt (`--gilt`) for proof, which is also the
-colour the app outlines evidence in, and stamp red (`--stamp`) for due dates.
-Tokens are at the top of `app/globals.css`. Type is Archivo, using its width
-axis for headings; Noto fonts render the 22 scripts.
+Indian offices log incoming letters in an inward register, stamp each one
+RECEIVED in violet stamp-pad ink, and mark what matters with a highlighter.
+The site borrows that: a fountain-pen ink-navy frame (`--cloth`), white ruled
+paper with a red margin, highlighter yellow (`--gilt`) for proof and the main
+action, violet (`--stamp`) for stamps, and coral red (`--due`) for dates that
+are due. Tokens are at the top of `app/globals.css`. Type is Archivo, using its
+width axis for headings; Noto fonts render the 22 scripts.
 
 The home page's sample register is `lib/register.ts`. The GST notice in it is
 `tests/fixtures/notice-gst-asmt10.pdf` word for word, and every field shown for

@@ -1,31 +1,32 @@
 /* Dueproof: the inward register.
 
    Indian offices log every letter they receive in a cloth-bound register:
-   bottle-green covers with gilt lettering, ruled white pages with a red
-   margin, and a red RECEIVED stamp on each letter as it comes in. Dueproof
+   cloth covers, ruled white pages with a red margin, a violet RECEIVED
+   stamp on each letter as it comes in. Dueproof
    keeps that book for you, and every line points back at its page.
 
-   Cloth green carries the frame, white paper carries the content, gilt is
-   for proof (the colour the app outlines evidence in), and red is for the
-   stamp, the margin and dates that are due. */
+   Ink-navy carries the frame, white paper the content, highlighter yellow
+   marks proof, violet is the stamp pad, and coral red is for the margin
+   rule and dates that are due. */
 
 :root {
-  --cloth: #0d3a2e;            /* register binding */
-  --cloth-2: #124a3b;
-  --cloth-3: #1b5c4a;
-  --cloth-ink: #e9f1ec;        /* text on cloth */
-  --cloth-dim: #a9c4b8;
-  --gilt: #e8ad2e;             /* gilt lettering, and proof */
-  --gilt-deep: #c98d12;
-  --gilt-wash: rgba(232, 173, 46, 0.16);
+  --cloth: #121a3b;            /* fountain-pen ink: the frame */
+  --cloth-2: #1a2352;
+  --cloth-3: #3d3fb8;          /* ink accent on white */
+  --cloth-ink: #eef0ff;        /* text on the frame */
+  --cloth-dim: #aeb4dc;
+  --gilt: #ffd84d;             /* highlighter: proof, and the main action */
+  --gilt-deep: #d9ae00;
+  --gilt-wash: rgba(255, 216, 77, 0.32);
   --paper: #ffffff;
-  --paper-2: #f3f6f4;
-  --ink: #13211b;
-  --ink-2: #3c4d45;
-  --ink-3: #66766e;
-  --rule: #cfe0d9;
-  --rule-2: #e4eee9;
-  --stamp: #c7362b;            /* the RECEIVED stamp, the margin, due dates */
+  --paper-2: #f4f4fb;
+  --ink: #141a33;
+  --ink-2: #434a6b;
+  --ink-3: #6b7194;
+  --rule: #dcdff0;
+  --rule-2: #ebedf7;
+  --stamp: #6b4cf6;            /* violet stamp-pad ink */
+  --due: #e5484d;              /* the margin rule, dates that are due */
 
   --sans: var(--font-archivo), system-ui, sans-serif;
   --scripts: var(--font-deva), var(--font-beng), var(--font-taml), var(--font-telu),
@@ -36,7 +37,7 @@
   --wrap: 1200px;
   --gutter: clamp(16px, 4vw, 40px);
   --radius: 8px;
-  --lift: 0 2px 0 rgba(0, 0, 0, 0.04), 0 30px 60px -28px rgba(5, 25, 18, 0.55), 0 60px 120px -60px rgba(5, 25, 18, 0.5);
+  --lift: 0 2px 0 rgba(0, 0, 0, 0.04), 0 30px 60px -28px rgba(12, 16, 48, 0.55), 0 60px 120px -60px rgba(12, 16, 48, 0.5);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -63,10 +64,10 @@ p { margin: 0 0 1em; }
 .cloth {
   background-color: var(--cloth);
   background-image:
-    radial-gradient(120% 80% at 80% -10%, rgba(232, 173, 46, 0.12), transparent 55%),
-    radial-gradient(90% 70% at 0% 110%, rgba(27, 92, 74, 0.9), transparent 60%),
-    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.018) 0 2px, transparent 2px 5px),
-    repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.05) 0 2px, transparent 2px 5px);
+    radial-gradient(70% 90% at 88% -10%, rgba(107, 76, 246, 0.42), transparent 60%),
+    radial-gradient(60% 80% at -5% 105%, rgba(61, 63, 184, 0.55), transparent 60%),
+    radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1.2px);
+  background-size: auto, auto, 22px 22px;
   color: var(--cloth-ink);
 }
 .cloth h1, .cloth h2, .cloth h3 { color: #fff; }
@@ -94,18 +95,18 @@ code, kbd { font: 0.88em/1 var(--mono); background: var(--rule-2); padding: 0.18
        font-variation-settings: "wdth" 88; text-decoration: none; cursor: pointer;
        transition: transform 0.15s, background-color 0.15s, box-shadow 0.15s, color 0.15s; }
 .btn:active { transform: translateY(1px); }
-.btn-gilt { background: var(--gilt); color: var(--ink); box-shadow: 0 10px 24px -12px rgba(232, 173, 46, 0.8); }
-.btn-gilt:hover { background: #f2bd45; box-shadow: 0 14px 30px -12px rgba(232, 173, 46, 0.9); }
+.btn-gilt { background: var(--gilt); color: var(--ink); box-shadow: 0 10px 28px -12px rgba(255, 216, 77, 0.7); }
+.btn-gilt:hover { background: #ffe27a; box-shadow: 0 14px 34px -12px rgba(255, 216, 77, 0.85); }
 .btn-ink { background: var(--cloth); color: #fff; }
 .btn-ink:hover { background: var(--cloth-3); }
 .btn-line { border-color: currentColor; color: var(--ink); background: transparent; }
-.btn-line:hover { background: rgba(13, 58, 46, 0.06); }
+.btn-line:hover { background: rgba(18, 26, 59, 0.05); }
 .cloth .btn-line { color: #fff; border-color: rgba(255, 255, 255, 0.45); }
 .cloth .btn-line:hover { background: rgba(255, 255, 255, 0.08); border-color: #fff; }
 .actions { display: flex; flex-wrap: wrap; gap: 12px; }
 
 /* ── Header ────────────────────────────────────────────────────────────── */
-.site-head { position: sticky; top: 0; z-index: 30; background: rgba(13, 58, 46, 0.92);
+.site-head { position: sticky; top: 0; z-index: 30; background: rgba(18, 26, 59, 0.9);
              backdrop-filter: saturate(1.4) blur(10px); color: var(--cloth-ink);
              border-bottom: 1px solid rgba(255, 255, 255, 0.06); transition: box-shadow 0.2s; }
 .site-head.is-scrolled { box-shadow: 0 10px 30px -20px rgba(0, 0, 0, 0.6); }
@@ -174,17 +175,17 @@ main { display: block; }
               padding: 18px 22px 16px 66px; background: var(--paper); border-bottom: 2px solid var(--cloth); }
 .book-title strong { font-size: 1.1rem; font-variation-settings: "wdth" 78; }
 .book::before { content: ""; position: absolute; top: 0; bottom: 0; left: 51px; width: 5px;
-                border-inline: 1px solid var(--stamp); opacity: 0.7; pointer-events: none; z-index: 2; }
+                border-inline: 1px solid var(--due); opacity: 0.7; pointer-events: none; z-index: 2; }
 .ledger { width: 100%; border-collapse: collapse; font-size: 0.92rem; line-height: 1.35; }
 .ledger th { text-align: left; font-weight: 650; font-size: 0.8rem; color: var(--ink-3);
-             font-variation-settings: "wdth" 84; padding: 10px 12px; border-bottom: 1px solid var(--rule); background: #fafcfb; }
+             font-variation-settings: "wdth" 84; padding: 10px 12px; border-bottom: 1px solid var(--rule); background: #fafaff; }
 .ledger td { padding: 13px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
 .ledger th:first-child, .ledger td:first-child { width: 60px; padding-left: 16px; padding-right: 0; color: var(--ink-3); }
 .ledger tbody tr { cursor: pointer; transition: background-color 0.18s; }
-.ledger tbody tr:hover { background: #f4f8f6; }
-.ledger tbody tr[aria-selected="true"] { background: var(--gilt-wash); box-shadow: inset 4px 0 0 var(--gilt); }
+.ledger tbody tr:hover { background: #f6f6fd; }
+.ledger tbody tr[aria-selected="true"] { background: var(--gilt-wash); box-shadow: inset 4px 0 0 var(--gilt-deep); }
 .col-received { white-space: nowrap; }
-.ledger .due { font-weight: 700; color: var(--stamp); white-space: nowrap; }
+.ledger .due { font-weight: 700; color: var(--due); white-space: nowrap; }
 .ledger .sub { color: var(--ink-3); font-size: 0.82rem; display: block; margin-top: 3px; }
 .ledger .empty td { height: 48px; cursor: default; }
 .ledger tr.empty:hover { background: none; }
@@ -200,21 +201,21 @@ main { display: block; }
 
 /* The page the chosen row came from. */
 .sheet { position: relative; padding: 22px clamp(18px, 2.4vw, 30px) 26px; display: flex; flex-direction: column; gap: 18px;
-         min-width: 0; background: linear-gradient(#f7faf8, #eef4f1); }
+         min-width: 0; background: linear-gradient(#f8f8fe, #eeeffa); }
 .sheet-label { display: flex; justify-content: space-between; gap: 12px; font-size: 0.8rem; color: var(--ink-3); }
-.page { position: relative; background: #fff; padding: 22px 22px 92px; font-size: 0.86rem; line-height: 1.62; color: #26332d;
-        border-radius: 3px; box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 12px 28px -16px rgba(5, 25, 18, 0.35); }
+.page { position: relative; background: #fff; padding: 22px 22px 92px; font-size: 0.86rem; line-height: 1.62; color: #2a3050;
+        border-radius: 3px; box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 12px 28px -16px rgba(12, 16, 48, 0.35); }
 .page-head { text-align: center; padding-bottom: 12px; margin-bottom: 14px; border-bottom: 1px solid var(--rule-2); }
 .page-head p { margin: 0; }
 .page-head p:first-child { font-weight: 700; font-size: 0.82rem; }
 .page-head p:last-child { color: var(--ink-3); font-size: 0.78rem; white-space: pre-wrap; margin-top: 4px; }
 .page p { margin: 0 0 0.7em; }
 mark.proof { color: inherit; box-decoration-break: clone; -webkit-box-decoration-break: clone; padding: 1px 2px;
-             border-radius: 2px; background: var(--gilt-wash); box-shadow: 0 0 0 2px var(--gilt); }
+             border-radius: 2px; background: var(--gilt-wash); box-shadow: 0 0 0 2px var(--gilt-deep); }
 .register.is-proving .proof { animation: prove 0.7s 0.35s ease-out both; }
 @keyframes prove {
-  from { box-shadow: 0 0 0 10px rgba(232, 173, 46, 0); background: transparent; }
-  to { box-shadow: 0 0 0 2px var(--gilt); background: var(--gilt-wash); }
+  from { box-shadow: 0 0 0 10px rgba(255, 216, 77, 0); background: transparent; }
+  to { box-shadow: 0 0 0 2px var(--gilt-deep); background: var(--gilt-wash); }
 }
 
 /* The inward stamp, pressed on as the entry is made. */
@@ -234,7 +235,7 @@ mark.proof { color: inherit; box-decoration-break: clone; -webkit-box-decoration
 .finding { display: grid; grid-template-columns: auto 1fr; gap: 7px 16px; margin: 0; font-size: 0.9rem; }
 .finding dt { color: var(--ink-3); }
 .finding dd { margin: 0; }
-.finding .due { color: var(--stamp); font-weight: 700; }
+.finding .due { color: var(--due); font-weight: 700; }
 
 @media (max-width: 860px) {
   .register { grid-template-columns: 1fr; }
@@ -278,11 +279,11 @@ mark.proof { color: inherit; box-decoration-break: clone; -webkit-box-decoration
 /* ── Steps (a real sequence) ───────────────────────────────────────────── */
 .steps { counter-reset: step; list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; position: relative; }
 .steps::before { content: ""; position: absolute; top: 27px; left: 28px; right: 10%; height: 2px;
-                 background: repeating-linear-gradient(90deg, rgba(232,173,46,.6) 0 8px, transparent 8px 14px); }
+                 background: repeating-linear-gradient(90deg, rgba(255,216,77,.55) 0 8px, transparent 8px 14px); }
 .steps li { position: relative; padding: 0 24px 0 0; counter-increment: step; }
 .steps li::before { content: counter(step); display: grid; place-items: center; width: 56px; height: 56px; margin-bottom: 22px;
                     border-radius: 50%; background: var(--gilt); color: var(--ink); font-size: 1.5rem; font-weight: 800;
-                    font-variation-settings: "wdth" 75; box-shadow: 0 0 0 8px var(--cloth); }
+                    font-variation-settings: "wdth" 75; box-shadow: 0 0 0 8px var(--cloth-2); }
 .steps h3 { margin-bottom: 8px; font-size: 1.35rem; }
 .steps p { margin: 0; font-size: 0.98rem; color: var(--cloth-dim); }
 @media (max-width: 960px) { .steps { grid-template-columns: 1fr 1fr; gap: 44px 0; } .steps::before { display: none; } }
@@ -308,7 +309,7 @@ mark.proof { color: inherit; box-decoration-break: clone; -webkit-box-decoration
 .clock-out { display: grid; grid-template-columns: auto 1fr; gap: 12px 20px; margin: 24px 0 0; align-items: baseline; padding-top: 20px; border-top: 1px solid var(--rule); }
 .clock-out dt { color: var(--ink-3); font-size: 0.95rem; }
 .clock-out dd { margin: 0; font-size: 1.2rem; font-weight: 650; }
-.clock-out .due { color: var(--stamp); font-size: 2rem; font-weight: 800; font-variation-settings: "wdth" 74; line-height: 1; }
+.clock-out .due { color: var(--due); font-size: 2rem; font-weight: 800; font-variation-settings: "wdth" 74; line-height: 1; }
 .clock-out .changed { animation: settle 0.45s ease-out; }
 @keyframes settle { from { transform: translateY(-6px); opacity: 0; } to { transform: none; opacity: 1; } }
 
@@ -316,7 +317,7 @@ mark.proof { color: inherit; box-decoration-break: clone; -webkit-box-decoration
 .langs { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
 .lang { padding: 16px 16px 14px; border-radius: var(--radius); background: var(--paper); border: 1px solid var(--rule);
         transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s; }
-.lang:hover { transform: translateY(-2px); border-color: var(--gilt); box-shadow: 0 12px 24px -16px rgba(5,25,18,.4); }
+.lang:hover { transform: translateY(-2px); border-color: var(--gilt); box-shadow: 0 12px 24px -16px rgba(12,16,48,.4); }
 .lang .endonym { display: block; font-family: var(--scripts), var(--sans); font-size: 1.55rem; line-height: 1.5; color: var(--cloth); font-weight: 600; }
 .lang .english { display: block; font-size: 0.9rem; color: var(--ink-2); }
 .lang .reads { display: inline-block; margin-top: 8px; padding: 1px 8px; border-radius: 999px; background: var(--rule-2); font-size: 0.74rem; color: var(--ink-3); }
@@ -325,16 +326,16 @@ mark.proof { color: inherit; box-decoration-break: clone; -webkit-box-decoration
 .never { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 22px; }
 .never li { padding: 20px 22px; border-radius: var(--radius); background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); }
 .never strong { display: block; color: #fff; margin-bottom: 4px; font-size: 1.08rem; }
-.never strong::before { content: "×"; display: inline-block; width: 1.2em; color: var(--stamp); font-weight: 800; }
+.never strong::before { content: "×"; display: inline-block; width: 1.2em; color: var(--gilt); font-weight: 800; }
 .never .muted { color: var(--cloth-dim); }
 @media (max-width: 760px) { .never { grid-template-columns: 1fr; } }
 
-.terminal { background: #0a1f19; color: #d9e8e0; border-radius: 12px; padding: 20px 22px; font: 0.88rem/1.8 var(--mono);
+.terminal { background: #0d1330; color: #e3e6fa; border-radius: 12px; padding: 20px 22px; font: 0.88rem/1.8 var(--mono);
             overflow-x: auto; margin: 0; box-shadow: var(--lift); border: 1px solid rgba(255,255,255,.06); }
-.terminal .c { color: #7f9a8e; }
+.terminal .c { color: #8a90b8; }
 .terminal::before { content: ""; display: block; width: 52px; height: 12px; margin-bottom: 14px;
                     background: radial-gradient(circle at 6px 6px, #e5735f 5px, transparent 5.5px),
-                                radial-gradient(circle at 26px 6px, var(--gilt) 5px, transparent 5.5px),
+                                radial-gradient(circle at 26px 6px, #ffd84d 5px, transparent 5.5px),
                                 radial-gradient(circle at 46px 6px, #59b38c 5px, transparent 5.5px); }
 
 .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
@@ -367,7 +368,7 @@ mark.proof { color: inherit; box-decoration-break: clone; -webkit-box-decoration
 /* Tables in content */
 .table { width: 100%; border-collapse: collapse; font-size: 0.95rem; background: var(--paper); }
 .table th, .table td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--rule); vertical-align: top; }
-.table thead th { font-weight: 650; color: var(--ink-2); font-size: 0.85rem; background: #f8fbf9; }
+.table thead th { font-weight: 650; color: var(--ink-2); font-size: 0.85rem; background: #f8f8fe; }
 .table tbody th { font-weight: 600; }
 .table tbody tr:last-child > * { border-bottom: 0; }
 .table-scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 12px; background: var(--paper); }
@@ -387,12 +388,12 @@ mark.proof { color: inherit; box-decoration-break: clone; -webkit-box-decoration
 .prose h1 { font-size: clamp(2.2rem, 4.5vw, 3.2rem); margin-bottom: 26px; }
 .prose h2 { font-size: 1.7rem; margin: 2em 0 0.6em; scroll-margin-top: 88px; }
 .prose h3 { margin: 1.6em 0 0.5em; scroll-margin-top: 88px; }
-.prose p, .prose li { color: #2a3a33; }
-.prose a { color: var(--cloth-3); text-decoration-color: var(--gilt); text-decoration-thickness: 2px; }
+.prose p, .prose li { color: #2c3252; }
+.prose a { color: var(--cloth-3); text-decoration-color: var(--stamp); text-decoration-thickness: 2px; }
 .prose ul, .prose ol { padding-left: 1.3em; margin: 0 0 1em; }
 .prose li { margin-bottom: 0.35em; }
 .prose :not(pre) > code, .prose a { overflow-wrap: anywhere; }
-.prose pre { background: #0a1f19; color: #d9e8e0; padding: 16px 18px; border-radius: 10px; overflow-x: auto; font-size: 0.86rem; line-height: 1.65; }
+.prose pre { background: #0d1330; color: #e3e6fa; padding: 16px 18px; border-radius: 10px; overflow-x: auto; font-size: 0.86rem; line-height: 1.65; }
 .prose pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
 .prose table { width: 100%; border-collapse: collapse; font-size: 0.93rem; margin: 0 0 1.4em; display: block; overflow-x: auto; }
 .prose th, .prose td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
