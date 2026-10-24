@@ -145,11 +145,24 @@ class _Handle:
     def __del__(self) -> None:
         self.c.close()
 
+_schema_ready = threading.Lock()
+_schema_done = False
+
 def conn() -> sqlite3.Connection:
-    """One connection per thread — the workers and the API run on different ones."""
+    """One connection per thread — the workers and the API run on different
+    ones. The first connection in a process makes sure the schema exists, so
+    every entry point (server, CLI, tests) works on a fresh data folder."""
+    global _schema_done
     h = getattr(_local, "handle", None)
     if h is None:
         h = _local.handle = _Handle()
+        if not _schema_done:
+            with _schema_ready:
+                if not _schema_done:
+                    h.c.executescript(SCHEMA)
+                    h.c.executescript(INDEXES)
+                    h.c.commit()
+                    _schema_done = True
     return h.c
 
 def close() -> None:

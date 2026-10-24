@@ -1,16 +1,34 @@
 # Changelog
 
-## 0.1.0 — unreleased
+## 0.1.0 — 2026-10-24
 
 First public version.
 
-- Read PDFs by text layer or OCR; deskew scans and map boxes back to the page.
-- Rule-based title, type, summary, obligations, deadlines and desk routing,
-  driven by a profile.
-- Every finding located on the page as per-line rectangles, with an honest
-  confidence band.
-- 22 Indian languages beside English, via local translation before analysis.
-- Duplicate detection across channels with MinHash candidate selection.
-- Full-text search with provable hits; CSV and evidence-PDF export.
-- Idempotent ingest by content hash, restart recovery, resource caps, audit
-  trail, backup and verified restore.
+**Reading**
+- PDFs through PDFium; phone photos (JPEG, PNG, multi-page TIFF) through
+  Tesseract with deskew and map-back; page rotation honoured.
+- English and 22 Indian languages: non-English sentences are translated locally
+  before analysis, so a language needs no hand-written vocabulary.
+
+**Understanding notices**
+- Obligations, deadlines, hearings, desks, severity; reference, issuing office,
+  amount demanded, provisions cited.
+- Deadlines "from receipt" count from the received date, which can be corrected.
+- Profiles: `notices_in` (default), `general`, `hospital`, `municipality`,
+  `metro_rail_ml`.
+
+**Proving it**
+- Every finding outlined on its page, per line (per segment on tilted scans);
+  no box when a passage cannot be located.
+- Printable evidence report; CSV export; full-text search with outlined hits.
+
+**Working it**
+- Sign-in (local accounts or an SSO proxy), CSRF protection, security headers.
+- Status, owner, corrected dates and desks, notes, append-only history.
+- Reminder digests by email.
+
+**Running it**
+- `dueproof` command: serve, ingest, users, digest, eval, labels, backup,
+  verify, restore, doctor, fetch-model.
+- Evaluation harness with an accuracy gate in CI.
+- systemd units, Docker and Compose with Caddy.

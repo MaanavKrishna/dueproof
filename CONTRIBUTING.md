@@ -3,10 +3,10 @@
 Thank you for looking. The most useful contributions, roughly in order:
 
 1. **A profile for your kind of organisation** — a hospital, a court registry, a
-   bank branch, a university. A profile is plain lists in `profiles/`; no
+   bank branch, a university. A profile is plain lists in `dueproof/profiles/`; no
    pipeline code changes. Copy `general.py`.
 2. **Depth for a language** — month names, how duties and deadlines are worded,
-   a repair module in `pipeline/scripts/` if text extraction damages the
+   a repair module in `dueproof/pipeline/scripts/` if text extraction damages the
    script. `metro_rail_ml.py` and `pipeline/scripts/malayalam.py` are the models.
    Please only contribute vocabulary for a language you read.
 3. **A document that Dueproof gets wrong** — as a test, not as a file. Never
@@ -21,7 +21,7 @@ python3 -m venv .venv
 ```
 
 ```bash
-.venv/bin/pip install -r requirements.txt -r requirements-dev.txt
+.venv/bin/pip install -e ".[dev]"
 ```
 
 You also need Tesseract with the Malayalam pack (the suite exercises a bilingual
@@ -35,13 +35,15 @@ profile): `brew install tesseract tesseract-lang` or
 ```
 
 ```bash
-.venv/bin/python -m pyflakes *.py pipeline profiles scripts tests
+.venv/bin/python -m pyflakes dueproof tests
 ```
 
 - **The golden file is a contract.** `tests/golden.json` pins every finding on
   the fixture corpus. If your change moves one, run
   `python -m tests.make_golden`, read the diff, and say in the pull request why
   each change is an improvement.
+- **The accuracy floors hold.** CI runs `dueproof eval` on the fixture corpus;
+  the false-confident rate must stay at zero.
 - **A fix comes with the test that would have caught it.**
 - **No new dependencies** without discussion. The deployment story is a folder
   and a Python process; every dependency is something an operator must audit.

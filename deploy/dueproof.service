@@ -1,0 +1,24 @@
+# systemd unit for a Dueproof installed with pip into /opt/dueproof/.venv.
+#   sudo useradd --system --home /var/lib/dueproof dueproof
+#   sudo cp dueproof.service /etc/systemd/system/ && sudo systemctl enable --now dueproof
+[Unit]
+Description=Dueproof
+After=network.target
+
+[Service]
+User=dueproof
+WorkingDirectory=/var/lib/dueproof
+Environment=DUEPROOF_DATA=/var/lib/dueproof
+Environment=DUEPROOF_PROFILE=notices_in
+Environment=DUEPROOF_LANGUAGES=hi
+# Put a TLS-terminating proxy (Caddy, nginx) in front and keep this on localhost.
+ExecStart=/opt/dueproof/.venv/bin/dueproof serve --host 127.0.0.1 --port 8000
+Restart=on-failure
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/dueproof
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

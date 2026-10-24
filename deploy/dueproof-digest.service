@@ -1,0 +1,11 @@
+# Sends each person their reminder digest. Triggered by dueproof-digest.timer.
+[Unit]
+Description=Dueproof reminder digest
+
+[Service]
+Type=oneshot
+User=dueproof
+WorkingDirectory=/var/lib/dueproof
+Environment=DUEPROOF_DATA=/var/lib/dueproof
+EnvironmentFile=-/etc/dueproof/smtp.env
+ExecStart=/opt/dueproof/.venv/bin/dueproof digest --send

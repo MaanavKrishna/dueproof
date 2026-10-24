@@ -252,6 +252,51 @@ button { background: none; border: 0; cursor: pointer; }
          z-index: 80; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
 .toast.err { border-color: var(--red); color: var(--red); }
 
+/* ── sign-in ────────────────────────────────────────────────────────── */
+.signin { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+.signin-card { width: min(380px, 100%); display: flex; flex-direction: column; gap: 14px;
+               background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 28px; }
+.signin-card .brand { margin-bottom: 8px; }
+.signin-field { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: var(--ink-dim); }
+.signin-field input, .work select, .work input, .note-form textarea, .inline-date {
+  background: var(--void); border: 1px solid var(--line); border-radius: var(--r-sm);
+  color: var(--ink); padding: 7px 9px; font-size: 13.5px; }
+.signin-field input:focus, .work select:focus, .work input:focus, .note-form textarea:focus {
+  outline: none; border-color: var(--teal-dim); }
+.signin-go { background: var(--teal); color: #06231f; font-weight: 600; border-radius: var(--r-md); padding: 10px; }
+.signin-error { color: var(--red); font-size: 13px; min-height: 1em; }
+.signin-setup { font-size: 13px; color: var(--ink-dim); background: var(--raised); padding: 10px 12px;
+                border-radius: var(--r-md); border-left: 2px solid var(--amber); }
+.signin-setup code { font-family: var(--mono); font-size: 11.5px; color: var(--ink); }
+.me { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--ink-dim); }
+.badge { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px; border-radius: 9px;
+         background: var(--amber); color: #2b1d00; font-size: 11px; font-weight: 650; text-align: center; }
+
+/* ── notice facts and the workflow ──────────────────────────────────── */
+.facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px 22px;
+         margin: 18px 0 0; }
+.facts dt { font-family: var(--mono); font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase;
+            color: var(--ink-faint); }
+.facts dd { margin: 2px 0 0; font-size: 13.5px; }
+.faint { color: var(--ink-faint); }
+.work { display: flex; flex-wrap: wrap; align-items: end; gap: 10px 14px; margin-top: 12px;
+        padding-top: 11px; border-top: 1px solid var(--line-soft); }
+.work label { display: flex; flex-direction: column; gap: 4px; font-family: var(--mono); font-size: 9.5px;
+              letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); }
+.work select, .work input { font-family: var(--ui); letter-spacing: 0; text-transform: none; padding: 4px 7px;
+                            font-size: 12.5px; max-width: 210px; }
+.oblig.is-done, .oblig.is-dismissed { opacity: .55; }
+.oblig.is-dismissed .oblig-duty { text-decoration: line-through; text-decoration-color: var(--ink-faint); }
+.note { margin-top: 10px; font-size: 13px; color: var(--ink-dim); border-left: 2px solid var(--line); padding-left: 10px; }
+.add-note { margin-top: 8px; }
+.note-form { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.history { margin-top: 10px; font-size: 12.5px; color: var(--ink-dim); display: flex; flex-direction: column; gap: 4px; }
+.status-filter { display: flex; gap: 1px; background: var(--void); padding: 2px; border-radius: 6px;
+                 width: max-content; margin-top: 14px; }
+.status-filter button { padding: 4px 11px; font-size: 12px; border-radius: 4px; color: var(--ink-faint); }
+.status-filter button.is-active { background: var(--raised-hi); color: var(--ink); }
+.stop.is-closed { opacity: .55; }
+
 @media (max-width: 1400px) { .shell { grid-template-columns: 258px minmax(0,1fr) 400px; } }
 @media (max-width: 1120px) {
   .shell { grid-template-columns: 1fr; height: auto; }
