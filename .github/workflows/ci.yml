@@ -21,13 +21,13 @@ jobs:
           pip install torch==2.13.0 --index-url https://download.pytorch.org/whl/cpu
           pip install -e ".[dev]"
       - name: Lint
-        run: python -m pyflakes dueproof/*.py dueproof/pipeline/*.py dueproof/pipeline/scripts dueproof/profiles tests
+        run: python -m pyflakes dueproof/*.py dueproof/pipeline/*.py dueproof/pipeline/scripts dueproof/profiles dueproof/web dueproof/tools tests
       - name: Check the installation
         run: DUEPROOF_AUTH=none DUEPROOF_DATA=$RUNNER_TEMP/data dueproof doctor
       - name: Tests
         # The translation weights are licence-gated and not available in CI;
         # tests that need the real model skip themselves.
-        run: DUEPROOF_PYTHON=python ./test.sh
+        run: DUEPROOF_PYTHON=python scripts/test.sh
       - name: Extraction quality floors
         run: >
           DUEPROOF_PROFILE=metro_rail_ml DUEPROOF_TRANSLATE=0 DUEPROOF_DATA=$RUNNER_TEMP/eval

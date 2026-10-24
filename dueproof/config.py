@@ -20,7 +20,7 @@ DATA = Path(os.environ.get("DUEPROOF_DATA") or Path.cwd() / "data").resolve()
 UPLOADS, PAGES = DATA / "uploads", DATA / "pages"
 INBOX = DATA / "inbox"          # watched folder; POST /api/inbox/scan pulls from it
 DB_PATH = DATA / "dueproof.db"
-STATIC = ROOT / "static"
+STATIC = ROOT / "web" / "static"
 for _d in (UPLOADS, PAGES, INBOX):
     _d.mkdir(parents=True, exist_ok=True)
 

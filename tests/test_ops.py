@@ -9,17 +9,17 @@ from unittest import mock
 from dueproof import config
 from dueproof import db
 from dueproof.pipeline.analyze import parse_date
-from dueproof import backup
+from dueproof.tools import backup
 from tests.support import CIRCULAR, client, ingest, make_pdf, upload, wait_done
 
-from dueproof import app
+from dueproof import ingest as ingestion
 
 
 class Backup(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.hero = ingest(CIRCULAR)
-        app._JOBS.join()
+        ingestion._JOBS.join()
         cls.tmp = tempfile.mkdtemp(prefix="dueproof-backup-")
         cls.snap = backup.backup(Path(cls.tmp) / "out")
 
@@ -98,8 +98,8 @@ class ReviewFixes(unittest.TestCase):
         self.assertEqual(parse_date("ref 31/02/2026 then 5 March 2026 then 2026-01-01"), "2026-03-05")
 
     def test_an_oversized_body_is_refused_before_it_is_read(self):
-        with mock.patch.object(app, "MAX_UPLOAD_BYTES", 1024), \
-                mock.patch.object(app, "enqueue", side_effect=AssertionError("body was processed")):
+        with mock.patch.object(config, "MAX_UPLOAD_BYTES", 1024), \
+                mock.patch.object(ingestion, "enqueue", side_effect=AssertionError("body was processed")):
             r = upload(b"%PDF-1.7" + b"\0" * (3 << 20))
         self.assertEqual(r.status_code, 413)
         self.assertIn("limit", r.json()["detail"])
@@ -107,7 +107,7 @@ class ReviewFixes(unittest.TestCase):
 
     def test_upload_hashes_once_while_streaming(self):
         data = make_pdf("stream-hash")
-        with mock.patch.object(app, "_sha256", side_effect=AssertionError("file was re-read")):
+        with mock.patch.object(ingestion, "_sha256", side_effect=AssertionError("file was re-read")):
             got = upload(data).json()
         wait_done(got["doc_id"])
         import hashlib
@@ -115,11 +115,11 @@ class ReviewFixes(unittest.TestCase):
                                 (got["doc_id"],))["h"], hashlib.sha256(data).hexdigest())
 
     def test_a_worker_outlives_a_failure_it_could_not_report(self):
-        with mock.patch.object(app, "_process", side_effect=RuntimeError("database is locked")):
-            app._JOBS.put(("ghost", Path("ghost.pdf"), "ghost.pdf"))
-            app._JOBS.put(("ghost2", Path("ghost.pdf"), "ghost.pdf"))
-            app._JOBS.put(("ghost3", Path("ghost.pdf"), "ghost.pdf"))
-            app._JOBS.join()
+        with mock.patch.object(ingestion, "_process", side_effect=RuntimeError("database is locked")):
+            ingestion._JOBS.put(("ghost", Path("ghost.pdf"), "ghost.pdf"))
+            ingestion._JOBS.put(("ghost2", Path("ghost.pdf"), "ghost.pdf"))
+            ingestion._JOBS.put(("ghost3", Path("ghost.pdf"), "ghost.pdf"))
+            ingestion._JOBS.join()
         got = upload(make_pdf("after-the-storm")).json()
         self.assertEqual(wait_done(got["doc_id"], timeout=30)["status"], "done")
 

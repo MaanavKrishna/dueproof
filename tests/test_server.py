@@ -16,7 +16,8 @@ from dueproof import db
 from dueproof import profiles
 from tests.support import PKG, CIRCULAR, INVOICE, client, ingest, make_pdf, upload, wait_done
 
-from dueproof import app
+from dueproof import ingest as ingestion
+from dueproof.web import app as webapp
 
 
 class Clock(unittest.TestCase):
@@ -40,22 +41,22 @@ class Clock(unittest.TestCase):
             time.tzset()
 
     def test_no_naive_today_left_in_the_app(self):
-        for name in ("app.py", "db.py", "pipeline/analyze.py"):
+        for name in ("records.py", "ingest.py", "web/routes/findings.py", "web/routes/system.py", "db.py", "pipeline/analyze.py"):
             self.assertNotIn("date.today()", (PKG / name).read_text(), name)
 
     def test_deadline_turns_overdue_at_midnight_ist(self):
         ingest(CIRCULAR)
         due = lambda: {i["due_date"]: (i["days_left"], i["overdue"])
                        for i in client().get("/api/deadlines").json()}
-        with mock.patch.object(app, "today", return_value=date(2026, 8, 21)):
+        with mock.patch.object(config, "today", return_value=date(2026, 8, 21)):
             self.assertEqual(due()["2026-08-21"], (0, False))
             self.assertEqual(client().get("/api/meta").json()["today"], "2026-08-21")
-        with mock.patch.object(app, "today", return_value=date(2026, 8, 22)):
+        with mock.patch.object(config, "today", return_value=date(2026, 8, 22)):
             self.assertEqual(due()["2026-08-21"], (-1, True))
             self.assertEqual(due()["2026-08-31"], (9, False))
 
     def test_days_window(self):
-        with mock.patch.object(app, "today", return_value=date(2026, 8, 1)):
+        with mock.patch.object(config, "today", return_value=date(2026, 8, 1)):
             near = client().get("/api/deadlines", params={"days": 20}).json()
             self.assertTrue(all(i["due_date"] <= "2026-08-21" for i in near))
 
@@ -71,7 +72,7 @@ class Ingest(unittest.TestCase):
         self.assertEqual((renamed["doc_id"], renamed["duplicate"]), (first["doc_id"], True))
         self.assertEqual(wait_done(first["doc_id"])["status"], "done")
         self.assertEqual(db.one("SELECT COUNT(*) n FROM documents WHERE content_hash=?",
-                                (app._sha256(config.UPLOADS / f"{first['doc_id']}.pdf"),))["n"], 1)
+                                (ingestion._sha256(config.UPLOADS / f"{first['doc_id']}.pdf"),))["n"], 1)
 
     def test_one_changed_byte_is_a_new_document(self):
         a, b = upload(make_pdf("variant-a")).json(), upload(make_pdf("variant-b")).json()
@@ -134,7 +135,7 @@ class UploadValidation(unittest.TestCase):
         self.assertEqual(list(config.UPLOADS.glob("tmp-*")), [])
 
     def test_oversize_is_refused(self):
-        with mock.patch.object(app, "MAX_UPLOAD_BYTES", 1024):
+        with mock.patch.object(config, "MAX_UPLOAD_BYTES", 1024):
             self.assertEqual(upload(make_pdf("big") + b"\0" * 4096).status_code, 413)
         self.assertEqual(list(config.UPLOADS.glob("tmp-*")), [])
 
@@ -272,7 +273,7 @@ class Recovery(unittest.TestCase):
 
     def test_a_document_caught_mid_process_is_finished_after_restart(self):
         doc_id = self.stuck(with_file=True)
-        self.assertGreaterEqual(app.recover(), 1)
+        self.assertGreaterEqual(ingestion.recover(), 1)
         self.assertEqual(wait_done(doc_id)["status"], "done")
         quotes = [r["evidence_quote"] for r in db.q(
             "SELECT evidence_quote FROM findings WHERE doc_id=?", (doc_id,))]
@@ -281,20 +282,20 @@ class Recovery(unittest.TestCase):
 
     def test_a_lost_upload_fails_loudly_instead_of_hanging(self):
         doc_id = self.stuck(with_file=False)
-        app.recover()
+        ingestion.recover()
         row = wait_done(doc_id, timeout=5)
         self.assertEqual(row["status"], "error")
         self.assertIn("lost", row["error"])
         self.assertEqual(db.one("SELECT COUNT(*) n FROM findings WHERE doc_id=?", (doc_id,))["n"], 0)
 
     def test_nothing_to_recover(self):
-        app._JOBS.join()
-        self.assertEqual(app.recover(), 0)
+        ingestion._JOBS.join()
+        self.assertEqual(ingestion.recover(), 0)
 
     def test_lifespan_runs_recovery_at_startup(self):
         from fastapi.testclient import TestClient
         doc_id = self.stuck(with_file=True)
-        with TestClient(app.app):
+        with TestClient(webapp.app):
             self.assertEqual(wait_done(doc_id)["status"], "done")
 
 
@@ -303,7 +304,7 @@ class Workers(unittest.TestCase):
         for d in [upload(make_pdf(f"pool-{i}")).json() for i in range(5)]:
             wait_done(d["doc_id"])
         workers = [t for t in threading.enumerate() if t.name.startswith("dueproof-worker")]
-        self.assertEqual(len(workers), app.WORKERS)
+        self.assertEqual(len(workers), ingestion.WORKERS)
 
 
 class Observability(unittest.TestCase):
@@ -321,7 +322,7 @@ class Observability(unittest.TestCase):
         self.assertRegex(r.headers["X-Request-ID"], r"^[0-9a-f]{12}$")
 
     def test_health(self):
-        app._JOBS.join()
+        ingestion._JOBS.join()
         h = client().get("/health").json()
         self.assertEqual((h["status"], h["workers"], h["queue_depth"]), ("ok", 2, 0))
         self.assertEqual(h["translation"], "disabled")          # the suite runs with MT off
@@ -329,7 +330,7 @@ class Observability(unittest.TestCase):
         self.assertGreaterEqual(h["documents"].get("done", 0), 1)
 
     def test_no_print_statements_left(self):
-        for name in ("app.py", "db.py", "pipeline/read.py", "pipeline/analyze.py",
+        for name in ("web/app.py", "ingest.py", "records.py", "accounts.py", "db.py", "pipeline/read.py", "pipeline/analyze.py",
                      "pipeline/link.py", "pipeline/translate.py"):
             self.assertNotRegex((PKG / name).read_text(), r"(?m)^\s*print\(", name)
 

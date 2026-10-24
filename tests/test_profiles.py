@@ -14,7 +14,8 @@ ROOT = Path(__file__).resolve().parent.parent
 
 GENERAL_RUN = """
     import json, time
-    from dueproof import app, config, db
+    from dueproof import config, db
+    from dueproof.web.app import app
     from fastapi.testclient import TestClient
     from dueproof.pipeline import translate
     from dueproof.pipeline.analyze import detect_lang, parse_date
@@ -27,7 +28,7 @@ GENERAL_RUN = """
         "control review to the Legal team on or before 14 March 2027.\\n\\n"
         "Finance must clear the vendor invoice within 30 days, and the payment "
         "schedule will be reported to the board at the next quarterly meeting."])
-    c = TestClient(app.app, headers={"X-Dueproof": "1"})
+    c = TestClient(app, headers={"X-Dueproof": "1"})
     got = c.post("/api/upload", files={"file": ("policy.pdf", data,
                                                 "application/pdf")}).json()
     while not c.get(f"/api/status/{got['doc_id']}").json()["done"]:

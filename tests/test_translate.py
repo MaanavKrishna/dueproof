@@ -57,7 +57,7 @@ class Sovereignty(unittest.TestCase):
 
     def test_only_the_fetch_script_can_go_online(self):
         for rel, src in own_sources():
-            if str(rel) == "dueproof/fetch_model.py":
+            if str(rel) == "dueproof/tools/model.py":
                 self.assertIn('allow_patterns=sorted(MT_FILES)', src)   # data files only
                 continue
             with self.subTest(file=str(rel)):

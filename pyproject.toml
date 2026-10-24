@@ -58,4 +58,4 @@ version = { attr = "dueproof.__version__" }
 include = ["dueproof*"]
 
 [tool.setuptools.package-data]
-dueproof = ["static/*", "static/fonts/*"]
+dueproof = ["web/static/*", "web/static/fonts/*"]

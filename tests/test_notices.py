@@ -90,8 +90,9 @@ class Deadlines(unittest.TestCase):
 NOTICES_RUN = """
     import json, time
     from fastapi.testclient import TestClient
-    from dueproof import app, config
-    c = TestClient(app.app, headers={"X-Dueproof": "1"})
+    from dueproof import config
+    from dueproof.web.app import app
+    c = TestClient(app, headers={"X-Dueproof": "1"})
     data = open(%r, "rb").read()
     got = c.post("/api/upload", files={"file": ("notice.pdf", data, "application/pdf")},
                  data={"received_on": "2026-10-24", "channel": "GST portal"}).json()
