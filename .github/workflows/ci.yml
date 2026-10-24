@@ -1,0 +1,25 @@
+name: tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Tesseract with the Malayalam pack
+        run: sudo apt-get update && sudo apt-get install -y tesseract-ocr tesseract-ocr-mal
+      - name: Dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: Lint
+        run: python -m pyflakes *.py pipeline/*.py pipeline/scripts profiles scripts tests
+      - name: Tests
+        # The translation weights are licence-gated and not available in CI;
+        # tests that need the real model skip themselves.
+        run: DUEPROOF_PYTHON=python ./test.sh
