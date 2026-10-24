@@ -13,7 +13,8 @@ from datetime import date, timedelta
 
 from dueproof.config import LOCAL_SCRIPTS, LOCALS, MT_MAX_SENTENCES
 from dueproof.profiles import (DEADLINE_MARKERS, DEFAULT_DOC_TYPE, DEFAULT_ROLE, DOC_TYPE_KEYWORDS, INFO_TERMS,
-                      LOCAL_MONTHS, LOCAL_RELATIVE, MODAL_MARKERS, OBLIGATION_CUES,
+                      AUTHORITIES, DOC_TYPE_ROLES, HEARING_MARKERS, LOCAL_MONTHS, LOCAL_RELATIVE, MODAL_MARKERS,
+                      OBLIGATION_CUES, RECEIPT_MARKERS, REFERENCE_LABELS,
                       ROLE_KEYWORDS, SEVERITY_HIGH, SUBJECT_WORDS, TITLE_STOPS)
 
 # Every enabled non-Latin script, as a character-class body; "" when English only.
@@ -78,8 +79,108 @@ def parse_date(text: str, base: date | None = None) -> str | None:
             return (base + timedelta(days=int(m[1]))).isoformat()
     return None
 
-def deadline_in(s: str, base: date | None) -> str | None:
-    return parse_date(s, base) if DEADLINE_RX.search(s) else None
+DATED_RX = re.compile(r"\b(?:dated|date of issue|issued on|date)\s*[:\-]?\s*", re.I)
+RECEIPT_RX = re.compile("(" + "|".join(RECEIPT_MARKERS) + ")", re.I) if RECEIPT_MARKERS \
+    else re.compile(r"(?!)")
+HEARING_RX = re.compile("(" + "|".join(HEARING_MARKERS) + ")", re.I) if HEARING_MARKERS \
+    else re.compile(r"(?!)")
+
+def relative_days(s: str) -> int | None:
+    """"within 30 days" -> 30 (weeks and months converted), else None."""
+    if m := REL_EN.search(s):
+        return int(m[1]) * {"day": 1, "week": 7, "month": 30}[m[2].lower()]
+    if REL_LOCAL and (m := REL_LOCAL.search(s)):
+        return int(m[1])
+    return None
+
+def due_basis(s: str) -> str | None:
+    """"receipt:30" when the deadline runs from the day the notice was received
+    — the one date the notice itself cannot know — so it can be recomputed if
+    the received date is corrected. None for any other kind of date."""
+    if RECEIPT_RX.search(s) and (days := relative_days(s)) is not None and not _absolute(s):
+        return f"receipt:{days}"
+    return None
+
+def _absolute(s: str) -> bool:
+    return any(rx.search(s) for rx, _ in DATE_PATTERNS)
+
+def deadline_in(s: str, base: date | None, received: date | None = None) -> str | None:
+    """The deadline a sentence sets, if it sets one. A hearing date counts
+    even without a deadline marker — "a personal hearing is fixed on …" is
+    an appointment nobody may miss. Relative deadlines run from receipt when
+    the sentence says so, otherwise from the document's own date."""
+    if HEARING_RX.search(s) and _absolute(s):
+        return parse_date(s)
+    if not DEADLINE_RX.search(s):
+        return None
+    if received and due_basis(s):
+        return parse_date(s, received)
+    return parse_date(s, base or received)
+
+# notice details
+SECTION_RX = re.compile(r"\b(section|sec\.|u/s\.?|rule|regulation|article)\s*"
+                        r"(\d+[A-Z]{0,3}(?:\s*\(\s*[0-9A-Za-z]{1,4}\s*\))*)", re.I)
+AMOUNT_RX = re.compile(r"(?:₹|\bRs\.?|\bINR)\s*([0-9][0-9,]*(?:\.[0-9]+)?)\s*(lakhs?|crores?|lacs?)?", re.I)
+AMOUNT_CUES = re.compile(r"(demand|payable|due|outstanding|liabilit|penalt|tax|interest|recover|"
+                         r"short paid|not paid|arrears|total)", re.I)
+REFERENCE_RX = re.compile(r"\b(?:" + "|".join(REFERENCE_LABELS) + r")\s*[:.\-#]?\s*"
+                          r"([A-Z0-9][A-Z0-9/\-.]{4,}[A-Z0-9])", re.I) if REFERENCE_LABELS else None
+_CANONICAL = {a.lower(): a for a in AUTHORITIES}
+AUTHORITY_RX = re.compile("(" + "|".join(re.escape(a) for a in sorted(AUTHORITIES, key=len,
+                                                                       reverse=True)) + ")", re.I) \
+    if AUTHORITIES else None
+
+OFFICE_RX = re.compile(r"^(?:office of the\s+|in the\s+)?((?:[\w&,.()'-]+\s+){0,8}?"
+                       r"(?:commissioner|officer|registrar|tribunal|court|authority|ministry|"
+                       r"directorate|department|bank|board|corporation|council)\b[^\n]{0,60})$", re.I)
+
+def section_of(s: str) -> str | None:
+    """The statutory provision a sentence cites: "Section 143(2)", "Rule 86A"."""
+    if m := SECTION_RX.search(s):
+        kind = {"sec.": "Section", "u/s": "Section", "u/s.": "Section"}.get(m[1].lower(),
+                                                                          m[1].capitalize())
+        return f"{kind} {re.sub(r'\s+', '', m[2])}"
+    return None
+
+def _rupees(number: str, scale: str | None) -> float:
+    value = float(number.replace(",", ""))
+    if scale:
+        value *= 1e7 if scale.lower().startswith("cr") else 1e5
+    return value
+
+def notice_details(page_texts: list[str]) -> dict:
+    """What a notice desk files a notice under: its reference number, who issued
+    it, the provisions it cites, and the amount it demands."""
+    full = "\n".join(page_texts)
+    head = "\n".join(page_texts[:1])[:3000]
+    ref = REFERENCE_RX.search(head) if REFERENCE_RX else None
+    authority = None
+    if AUTHORITY_RX and (m := AUTHORITY_RX.search(full)):
+        authority = _CANONICAL[m[1].lower()]          # the profile's own spelling
+    else:
+        # Failing a known name: an "Office of the …" heading, or a top line that
+        # names an office, near the head of page one.
+        for line in [" ".join(x.split()) for x in head.split("\n")[:8]]:
+            if m := OFFICE_RX.search(line):
+                authority = m[1].strip(" ,.-")
+                authority = authority.title() if authority.isupper() else authority
+                break
+    amounts = []
+    for line in full.split("\n"):
+        for m in AMOUNT_RX.finditer(line):
+            try:
+                amounts.append((bool(AMOUNT_CUES.search(line)), _rupees(m[1], m[2]), m[0].strip()))
+            except ValueError:
+                continue
+    # The amount demanded: the largest one in a sentence that talks about
+    # paying, otherwise none — an invoice line item is not a demand.
+    cued = [a for a in amounts if a[0]]
+    amount = max(cued, key=lambda a: a[1]) if cued else None
+    sections = list(dict.fromkeys(s for line in full.split("\n")
+                                  for s in [section_of(line)] if s))
+    return {"reference": ref[1] if ref else None, "authority": authority,
+            "amount": amount[1] if amount else None, "amount_text": amount[2] if amount else None,
+            "sections": sections[:8]}
 
 # scoring
 INFO_RX = re.compile("(" + "|".join([r"\d", "%", r"[$€£₹]"] + [re.escape(t) for t in INFO_TERMS])
@@ -91,7 +192,12 @@ SENTENCE_END = re.compile(r"[.।۔]\s*$")        # prose stops; ref bars and ta
 TABLE_ROW = re.compile(r"^\d{1,2}[\s.)]")
 MIN_BULLETS, MAX_BULLETS = 1, 6   # a one-line invoice gets one bullet, not padding
 
-_SENTENCE_BREAK = re.compile(rf"(?<![A-Z]\.)(?<=[.;।۔])\s+(?=[A-Z0-9{_SCRIPT}])")
+# Abbreviations that end in a full stop but not a sentence: "Rs. 4,52,300",
+# "No. 117", "Sec. 61". Fixed-width lookbehinds, one per spelling.
+_ABBREV = "".join(rf"(?<!\b{re.escape(a)})" for a in (
+    "Rs.", "No.", "no.", "Nos.", "Sec.", "sec.", "Dr.", "Mr.", "Ms.", "Mrs.", "Ltd.", "Pvt.",
+    "Co.", "St.", "vs.", "Vs.", "viz.", "Art.", "Reg.", "Govt.", "Dept."))
+_SENTENCE_BREAK = re.compile(rf"(?<![A-Z]\.){_ABBREV}(?<=[.;।۔])\s+(?=[A-Z0-9{_SCRIPT}])")
 
 def _sentences(page_texts: list[str]) -> list[tuple[int, str]]:
     out = []
@@ -115,12 +221,13 @@ def _cue_score(s: str) -> int:
 # `t` below is "original + translation", so a duty is recognised whether the
 # profile knows how that language words one or only English does. Shape tests
 # (length, punctuation) stay on the original, `s`.
-def _score_obligation(t: str, base: date | None) -> int:
+def _score_obligation(t: str, base: date | None, received: date | None = None) -> int:
     """A sentence is an obligation because it *directs* someone: a bare date is
-    not enough, since issue dates carry dates too."""
-    if not (cue := _cue_score(t)):
+    not enough, since issue dates carry dates too. A dated hearing is one."""
+    cue = _cue_score(t) + (4 if HEARING_RX.search(t) and _absolute(t) else 0)
+    if not cue:
         return 0
-    return (cue + (4 if deadline_in(t, base) else 0)
+    return (cue + (4 if deadline_in(t, base, received) else 0)
             + (1 if re.search(r"\b(clause|para|section)\s+\d", t.lower()) else 0)
             + (1 if any(r in t for r in MODAL_MARKERS) else 0))
 
@@ -229,18 +336,26 @@ def _glosses(cands: list[tuple[int, str]], translate) -> dict[str, str]:
     out = translate([(detect_lang(s), s) for s in todo]) if todo else []
     return {s: en for s, en in zip(todo, out) if en}
 
-def analyze(page_texts: list[str], filename: str, translate=None) -> dict:
+def analyze(page_texts: list[str], filename: str, translate=None,
+            received: date | None = None) -> dict:
     """`translate`, if given, maps [(language code, sentence)] to English (None
-    where it could not). The evidence quote is always the original sentence."""
+    where it could not). The evidence quote is always the original sentence.
+    `received` is the day the document arrived: deadlines that run "from
+    receipt" count from it."""
     full = "\n".join(page_texts)
-    doc_date = parse_date(full[:1500])
+    # The document's own date: the one labelled as such, else the first one —
+    # a notice's first date may be the hearing it fixes, not its issue date.
+    head = full[:1500]
+    labelled = DATED_RX.search(head)
+    doc_date = (labelled and parse_date(head[labelled.end():labelled.end() + 40])) or parse_date(head)
     base = date.fromisoformat(doc_date) if doc_date else None
     cands = _sentences(page_texts)
     gloss = _glosses(cands, translate)
     seen_by = {s: f"{s} {gloss[s]}" if s in gloss else s for _, s in cands}     # s -> "t"
 
     obligations, seen = [], set()
-    for score, pno, s in sorted(((_score_obligation(seen_by[s], base), pno, s) for pno, s in cands),
+    for score, pno, s in sorted(((_score_obligation(seen_by[s], base, received), pno, s)
+                                 for pno, s in cands),
                                 key=lambda t: (-t[0], t[1])):
         if score < 3 or len(obligations) >= 5:
             break
@@ -249,8 +364,10 @@ def analyze(page_texts: list[str], filename: str, translate=None) -> dict:
         seen.add(s[:60].lower())
         t = seen_by[s]
         obligations.append(_finding(
-            s, pno, gloss.get(s), due_date=deadline_in(t, base), roles=route_roles(t),
-            severity="high" if any(k in t.lower() for k in SEVERITY_HIGH) else "medium"))
+            s, pno, gloss.get(s), due_date=deadline_in(t, base, received), roles=route_roles(t),
+            severity="high" if any(k in t.lower() for k in SEVERITY_HIGH) else "medium",
+            section=section_of(t), due_basis=due_basis(t),
+            tag="hearing" if HEARING_RX.search(t) else None))
 
     # How many bullets a document deserves is the document's business, so take
     # whole sentences while they last. Ref bars, letterheads and reflowed table
@@ -277,6 +394,10 @@ def analyze(page_texts: list[str], filename: str, translate=None) -> dict:
         if len(summary) >= MIN_BULLETS:
             break
 
-    return {"title": _guess_title(page_texts, filename),
-            "doc_type": guess_doc_type(full, page_texts[0][:900] if page_texts else "", filename),
-            "doc_date": doc_date, "summary": summary, "obligations": obligations}
+    doc_type = guess_doc_type(full, page_texts[0][:900] if page_texts else "", filename)
+    if desk := DOC_TYPE_ROLES.get(doc_type):
+        for f in summary + obligations:
+            f["roles"] = ([desk] + [r for r in f["roles"] if r != desk and r != DEFAULT_ROLE])[:3]
+    return {"title": _guess_title(page_texts, filename), "doc_type": doc_type,
+            "doc_date": doc_date, "summary": summary, "obligations": obligations,
+            "notice": notice_details(page_texts)}

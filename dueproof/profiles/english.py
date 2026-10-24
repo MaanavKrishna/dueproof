@@ -6,7 +6,10 @@ OBLIGATION_CUES = [
     "shall", "must", "is required", "are required", "required to", "responsible for",
     "submit", "furnish", "ensure", "complete", "comply", "report to", "certify",
     "carry out", "undertake", "deploy", "rectify", "close out", "action taken",
-    "not later than", "on or before", "by the", "deadline", "compliance report"]
+    "not later than", "on or before", "by the", "deadline", "compliance report",
+    # how notices and orders word a duty
+    "directed to", "hereby required", "you are required", "called upon", "show cause",
+    "pay the", "reply to", "explain", "appear before"]
 
 SEVERITY_HIGH = ["immediate", "immediately", "mandatory", "statutory", "penalt",
                  "safety-critical", "suspend", "shall not", "non-compliance", "urgent"]

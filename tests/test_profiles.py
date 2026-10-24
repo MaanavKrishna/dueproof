@@ -108,9 +108,9 @@ class Overrides(unittest.TestCase):
                 DUEPROOF_PROFILE="general", DUEPROOF_TZ="Europe/Berlin", DUEPROOF_ORG="Acme GmbH")
         self.assertEqual(p.stdout.strip(), "Europe/Berlin | Acme GmbH")
 
-    def test_default_profile_is_general(self):
-        p = run("from dueproof import profiles, config; print(profiles.NAME, config.LOCALS, config.OCR_LANGS)")
-        self.assertEqual(p.stdout.strip(), "general [] eng")
+    def test_default_profile_is_notices(self):
+        p = run("from dueproof import profiles, config; print(profiles.NAME, [l['code'] for l in config.LOCALS])")
+        self.assertEqual(p.stdout.strip(), "notices_in ['hi']")
 
 
 class Loader(unittest.TestCase):
