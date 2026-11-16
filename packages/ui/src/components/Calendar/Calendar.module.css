@@ -58,7 +58,8 @@
 }
 
 .sundayHead {
-  color: var(--dp-fg-quaternary);
+  color: var(--dp-fg-tertiary);
+  font-weight: var(--dp-font-weight-regular);
 }
 
 .weekdayDate {
@@ -137,7 +138,7 @@
 }
 
 .outside .dayNumber {
-  color: var(--dp-fg-quaternary);
+  color: var(--dp-fg-tertiary);
 }
 
 .today .dayNumber {

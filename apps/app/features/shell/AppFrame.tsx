@@ -38,6 +38,7 @@ import {
   type SidebarNavSection,
   useAppShell,
   useToast,
+  VisuallyHidden,
 } from "@dueproof/ui";
 import NextLink from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -60,7 +61,6 @@ export function renderLink({ href, className, children, onClick, ...aria }: Link
   return (
     <NextLink href={href} className={className} {...(onClick ? { onClick } : {})} {...aria}>
       {children}
-      <DesktopAlerts />
     </NextLink>
   );
 }
@@ -100,16 +100,16 @@ function UserMenu({ viewer, prefs }: { viewer: FrameViewer; prefs: Preferences }
   return (
     <Menu>
       <MenuTrigger>
-        <button
-          type="button"
-          className={styles.userButton}
-          aria-label={`${viewer.name}, account menu`}
-        >
-          <Avatar name={viewer.name || viewer.email} size="sm" />
+        {/* Named by its visible text (WCAG 2.5.3), so voice control can say what it sees. */}
+        <button type="button" className={styles.userButton}>
+          <span aria-hidden="true">
+            <Avatar name={viewer.name || viewer.email} size="sm" />
+          </span>
           <span className={styles.userText}>
             <span className={styles.userName}>{viewer.name || viewer.email}</span>
             <span className={styles.userOrg}>{viewer.orgName}</span>
           </span>
+          <VisuallyHidden>, account menu</VisuallyHidden>
         </button>
       </MenuTrigger>
       <MenuContent side="top" align="start">
@@ -309,6 +309,7 @@ export function AppFrame({
         }}
       />
       {children}
+      <DesktopAlerts />
       <CommandPalette
         commands={commands}
         open={paletteOpen}
