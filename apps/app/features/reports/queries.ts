@@ -28,6 +28,7 @@ import {
 } from "@dueproof/db";
 import type { AuthContext } from "@/lib/authorize";
 import { loadOrgCalendar } from "@/lib/calendar";
+import { inScope } from "@/lib/can";
 import { type DeadlineRow, queryDeadlines } from "@/lib/deadline-rows";
 import { badRequest, notFound } from "@/lib/errors";
 import { type ExposureView, loadExposure } from "@/lib/exposure";
@@ -147,7 +148,7 @@ export async function loadEvidenceReport(
         .from(cases)
         .where(and(eq(cases.orgId, ctx.orgId), eq(cases.id, scope.caseId)))
         .limit(1);
-      if (!c) throw notFound("That case");
+      if (!c || !inScope(ctx, c.clientId)) throw notFound("That case");
       where.push(eq(documents.caseId, c.id));
       label = c.title;
     }
@@ -157,7 +158,7 @@ export async function loadEvidenceReport(
         .from(clients)
         .where(and(eq(clients.orgId, ctx.orgId), eq(clients.id, scope.clientId)))
         .limit(1);
-      if (!c) throw notFound("That client");
+      if (!c || !inScope(ctx, c.id)) throw notFound("That client");
       where.push(eq(documents.clientId, c.id));
       label = label ? `${label} · ${c.name}` : c.name;
     }
@@ -181,7 +182,8 @@ export async function loadEvidenceReport(
       )
       .where(and(...where))
       .orderBy(asc(documents.receivedOn), asc(documents.createdAt))
-      .limit(200);
+      .limit(200)
+      .then((rows) => rows.filter((x) => inScope(ctx, x.d.clientId)));
     const ids = docs.map((x) => x.d.id);
     if (!ids.length)
       return {
@@ -327,7 +329,7 @@ export async function loadClientStatement(
       .from(clients)
       .where(and(eq(clients.orgId, ctx.orgId), eq(clients.id, clientId)))
       .limit(1);
-    if (!c) throw notFound("That client");
+    if (!c || !inScope(ctx, c.id)) throw notFound("That client");
     const cs = await tx
       .select()
       .from(cases)
@@ -390,7 +392,7 @@ export async function loadWorkload(ctx: AuthContext, weeksAhead = 8): Promise<Wo
   const first = mondayOf(t);
   const weeks = Array.from({ length: weeksAhead }, (_, i) => plusDays(first, i * 7));
   const rows = await withOrg(ctx.container.database, ctx.orgId, (tx) =>
-    queryDeadlines(tx, ctx.orgId, t, { statuses: ["open"] }),
+    queryDeadlines(tx, ctx.orgId, t, { statuses: ["open"], scope: ctx.clientIds }),
   );
   const byPerson = new Map<string | null, WorkloadReport["rows"][number]>();
   const row = (id: string | null) => {
@@ -449,7 +451,10 @@ export async function loadExposureReport(
   const org = await reportOrg(ctx);
   const t = await today(ctx);
   const view = await withOrg(ctx.container.database, ctx.orgId, async (tx) => {
-    const v = await loadExposure(tx, ctx.orgId, t, clientId ? { clientIds: [clientId] } : {});
+    const v = await loadExposure(tx, ctx.orgId, t, {
+      ...(clientId ? { clientIds: [clientId] } : {}),
+      scope: ctx.clientIds,
+    });
     const names = await tx
       .select({ id: clients.id, name: clients.name })
       .from(clients)
@@ -499,7 +504,7 @@ export async function loadHearingPack(ctx: AuthContext, caseId: string): Promise
       .leftJoin(clients, and(eq(clients.orgId, cases.orgId), eq(clients.id, cases.clientId)))
       .where(and(eq(cases.orgId, ctx.orgId), eq(cases.id, caseId)))
       .limit(1);
-    if (!c) throw notFound("That case");
+    if (!c || !inScope(ctx, c.k.clientId)) throw notFound("That case");
     const docs = await tx
       .select()
       .from(documents)
@@ -542,12 +547,16 @@ export async function loadReportPickers(ctx: AuthContext) {
       .select({ id: clients.id, name: clients.name })
       .from(clients)
       .where(and(eq(clients.orgId, ctx.orgId), isNull(clients.archivedAt)))
-      .orderBy(asc(clients.name)),
+      .orderBy(asc(clients.name))
+      .then((rows) => rows.filter((c) => inScope(ctx, c.id))),
     cases: await tx
-      .select({ id: cases.id, name: cases.title })
+      .select({ id: cases.id, name: cases.title, clientId: cases.clientId })
       .from(cases)
       .where(eq(cases.orgId, ctx.orgId))
       .orderBy(desc(cases.openedAt))
-      .limit(500),
+      .limit(500)
+      .then((rows) =>
+        rows.filter((c) => inScope(ctx, c.clientId)).map(({ clientId: _c, ...c }) => c),
+      ),
   }));
 }

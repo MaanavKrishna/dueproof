@@ -66,6 +66,11 @@ export interface DeadlineRow {
 
 export interface DeadlineQuery {
   clientIds?: string[];
+  /**
+   * Client-level access (AuthContext.clientIds): only these clients, plus
+   * items with no client. Undefined: every client.
+   */
+  scope?: readonly string[] | undefined;
   /** User ids; "none" for unassigned. */
   ownerIds?: string[];
   sources?: DeadlineSource[];
@@ -104,6 +109,13 @@ export async function queryDeadlines(
 ): Promise<DeadlineRow[]> {
   const where: Condition[] = [eq(deadlines.orgId, orgId)];
   if (q.clientIds?.length) where.push(inArray(deadlines.clientId, q.clientIds));
+  if (q.scope) {
+    where.push(
+      q.scope.length
+        ? or(isNull(deadlines.clientId), inArray(deadlines.clientId, [...q.scope]))
+        : isNull(deadlines.clientId),
+    );
+  }
   if (q.sources?.length) where.push(inArray(deadlines.source, q.sources));
   if (q.statuses?.length) where.push(inArray(deadlines.status, q.statuses));
   if (q.caseId) where.push(eq(deadlines.caseId, q.caseId));

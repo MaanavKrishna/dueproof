@@ -20,7 +20,7 @@ import {
 } from "@dueproof/db";
 import type { AuthContext } from "@/lib/authorize";
 import { loadOrgCalendar } from "@/lib/calendar";
-import { may } from "@/lib/can";
+import { inScope, may } from "@/lib/can";
 import { type DeadlineRow, queryDeadlines } from "@/lib/deadline-rows";
 import { notFound } from "@/lib/errors";
 import { type ExposureView, loadExposure } from "@/lib/exposure";
@@ -59,7 +59,8 @@ export async function listClients(ctx: AuthContext): Promise<{
       .select()
       .from(clients)
       .where(and(eq(clients.orgId, ctx.orgId), isNull(clients.archivedAt)))
-      .orderBy(asc(clients.name));
+      .orderBy(asc(clients.name))
+      .then((rows) => rows.filter((c) => inScope(ctx, c.id)));
     const counts = await tx
       .select({
         clientId: deadlines.clientId,
@@ -71,7 +72,8 @@ export async function listClients(ctx: AuthContext): Promise<{
       .groupBy(deadlines.clientId);
     const byClient = new Map(counts.map((c) => [c.clientId, c]));
     let exposure: ExposureView | null = null;
-    if (canSeeExposure) exposure = await loadExposure(tx, ctx.orgId, today);
+    if (canSeeExposure)
+      exposure = await loadExposure(tx, ctx.orgId, today, { scope: ctx.clientIds });
     return {
       rows: list.map((c) => {
         const t = exposure?.exposure.clients[c.id];
@@ -135,7 +137,7 @@ export async function getClientPage(ctx: AuthContext, clientId: string): Promise
       .from(clients)
       .where(and(eq(clients.orgId, ctx.orgId), eq(clients.id, clientId)))
       .limit(1);
-    if (!client) throw notFound("That client");
+    if (!client || !inScope(ctx, client.id)) throw notFound("That client");
     const regs = await tx
       .select()
       .from(registrations)
@@ -196,7 +198,8 @@ export async function findDuplicates(
     const list = await tx
       .select({ id: clients.id, name: clients.name, pan: clients.pan, gstins: clients.gstins })
       .from(clients)
-      .where(and(eq(clients.orgId, ctx.orgId), isNull(clients.archivedAt)));
+      .where(and(eq(clients.orgId, ctx.orgId), isNull(clients.archivedAt)))
+      .then((rows) => rows.filter((c) => inScope(ctx, c.id)));
     const groups = new Map<string, { id: string; name: string }[]>();
     for (const c of list) {
       const keys = new Set<string>();

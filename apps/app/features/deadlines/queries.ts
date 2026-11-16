@@ -23,6 +23,7 @@ const auditLog = schema.audit;
 
 import type { AuthContext } from "@/lib/authorize";
 import { loadOrgCalendar } from "@/lib/calendar";
+import { inScope } from "@/lib/can";
 import { type DeadlineQuery, type DeadlineRow, queryDeadlines } from "@/lib/deadline-rows";
 import { todayIn } from "@/lib/pipeline/status";
 
@@ -53,6 +54,7 @@ export async function loadDeadlinesPage(
   return withOrg(ctx.container.database, ctx.orgId, async (tx) => {
     const rows = await queryDeadlines(tx, ctx.orgId, today, {
       from: addMonths(today, -6).date,
+      scope: ctx.clientIds,
       ...query,
     });
     const hol = await tx
@@ -64,12 +66,14 @@ export async function loadDeadlinesPage(
       .select({ id: clients.id, name: clients.name })
       .from(clients)
       .where(and(eq(clients.orgId, ctx.orgId), isNull(clients.archivedAt)))
-      .orderBy(asc(clients.name));
+      .orderBy(asc(clients.name))
+      .then((rows) => rows.filter((c) => inScope(ctx, c.id)));
     const cs = await tx
       .select({ id: cases.id, name: cases.title, clientId: cases.clientId })
       .from(cases)
       .where(and(eq(cases.orgId, ctx.orgId), isNull(cases.closedAt)))
-      .orderBy(asc(cases.title));
+      .orderBy(asc(cases.title))
+      .then((rows) => rows.filter((c) => inScope(ctx, c.clientId)));
     return {
       today,
       timezone: cal.timezone,

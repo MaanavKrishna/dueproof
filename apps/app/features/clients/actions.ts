@@ -533,6 +533,8 @@ export async function mergeClients(keepId: string, mergeId: string): Promise<Act
     const ctx = await authorize("client.edit", { resource: { clientId: keepId } });
     if (!keepId || !mergeId || keepId === mergeId)
       throw badRequest("Choose two different clients.");
+    // Both clients must be within this person's client-level access.
+    if (ctx.clientIds && !ctx.clientIds.includes(mergeId)) throw notFound("That client");
     await withOrg(ctx.container.database, ctx.orgId, async (tx, scope) => {
       const both = await tx
         .select()

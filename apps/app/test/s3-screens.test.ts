@@ -61,6 +61,8 @@ import { parseEnv } from "../lib/env";
 import type { MailMessage } from "../lib/mail";
 import { sendPushToUser, setPushTransport } from "../lib/push";
 import { type Container, createEngine, setContainer } from "../lib/server/container";
+import { listMembers } from "../lib/server/directory";
+import { setClientAccessFor } from "../lib/team";
 import { completeUpload, initUpload } from "../lib/upload";
 import { processDocument } from "../workflows/process-document";
 
@@ -554,5 +556,35 @@ describe("web push and the daily job", () => {
     );
     expect(res.status).toBe(200);
     expect(await res.json()).toMatchObject({ orgs: 2 });
+  });
+});
+
+describe("client-level access", () => {
+  it("limits clients, deadlines, reports and the feed to the member's clients", async () => {
+    const members = await listMembers(database, owner.orgId);
+    const ravi = members.find((m) => m.userId === memberId);
+    const kaveri = (await listClients(owner)).rows.find((r) => r.name === "Kaveri Agro");
+    if (!ravi || !kaveri) throw new Error("fixtures missing");
+    await setClientAccessFor(owner, ravi.memberId, [kaveri.id]);
+    const ctx = await authorize("case.view", { headers: new Headers({ cookie: memberCookie }) });
+    expect(ctx.clientIds).toEqual([kaveri.id]);
+
+    expect((await listClients(ctx)).rows.map((r) => r.name)).toEqual(["Kaveri Agro"]);
+    await expect(getClientPage(ctx, clientId)).rejects.toMatchObject({ status: 404 });
+    const page = await loadDeadlinesPage(ctx);
+    expect(page.rows.length).toBeGreaterThan(0);
+    expect(page.rows.every((r) => r.clientId === null || r.clientId === kaveri.id)).toBe(true);
+    expect(page.clients.map((c) => c.name)).toEqual(["Kaveri Agro"]);
+    await expect(loadClientStatement(ctx, clientId)).rejects.toMatchObject({ status: 404 });
+    await expect(loadEvidenceReport(ctx, { clientId })).rejects.toMatchObject({ status: 404 });
+
+    as(memberCookie);
+    const { url } = ok(await createCalendarFeed("org"));
+    const token = url.split("/").pop() as string;
+    const ics = await (
+      await feedRoute(new Request(url), { params: Promise.resolve({ token }) })
+    ).text();
+    expect(ics).toContain("BEGIN:VCALENDAR");
+    expect(ics).not.toContain("SUMMARY:Overdue reply"); // Harbour's item
   });
 });

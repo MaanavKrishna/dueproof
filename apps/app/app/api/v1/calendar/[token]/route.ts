@@ -11,7 +11,9 @@ import { renderFeed } from "@/features/deadlines/feed";
 import { verifyFeedToken } from "@/features/deadlines/ical";
 import { lastFeedRevocation } from "@/features/deadlines/queries";
 import { errorResponse, forbidden, HttpError, notFound } from "@/lib/errors";
+import { clientIdsFor } from "@/lib/org-metadata";
 import { getContainer } from "@/lib/server/container";
+import { getOrg } from "@/lib/server/directory";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +29,9 @@ export async function GET(
     if (!claim) throw notFound("That calendar feed");
     const membership = await getMembership(container.database, claim.userId, claim.orgId);
     if (!membership) throw notFound("That calendar feed");
+    const admin = membership.role === "owner" || membership.role === "admin";
+    const meta = admin ? undefined : (await getOrg(container.database, claim.orgId))?.metadata;
+    const scope = meta ? clientIdsFor(meta, claim.userId) : undefined;
     try {
       checkPolicy({ userId: claim.userId, role: membership.role }, "case.view");
     } catch (e) {
@@ -37,7 +42,7 @@ export async function GET(
     if (claim.issuedAt <= revokedAt)
       throw new HttpError(410, "This calendar feed was turned off.", "gone");
     const body = await withOrg(container.database, claim.orgId, (tx) =>
-      renderFeed(tx, claim, container.env.APP_URL),
+      renderFeed(tx, claim, container.env.APP_URL, scope),
     );
     return new Response(body, {
       headers: {

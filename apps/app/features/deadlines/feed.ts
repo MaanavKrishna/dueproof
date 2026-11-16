@@ -16,7 +16,13 @@ const SOURCE_WORD = {
   manual: "Added by hand",
 } as const;
 
-export async function renderFeed(tx: OrgTx, claim: FeedToken, appUrl: string): Promise<string> {
+export async function renderFeed(
+  tx: OrgTx,
+  claim: FeedToken,
+  appUrl: string,
+  /** Client-level access of the person the feed belongs to; undefined for every client. */
+  scope?: readonly string[],
+): Promise<string> {
   const [settings] = await tx
     .select({ timezone: orgSettings.timezone })
     .from(orgSettings)
@@ -26,6 +32,7 @@ export async function renderFeed(tx: OrgTx, claim: FeedToken, appUrl: string): P
   const rows = await queryDeadlines(tx, claim.orgId, today, {
     statuses: ["open"],
     from: addMonths(today, -2).date,
+    scope,
     ...(claim.scope === "me" ? { ownerIds: [claim.userId] } : {}),
   });
   const events: FeedEvent[] = [];

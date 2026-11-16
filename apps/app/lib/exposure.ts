@@ -114,11 +114,14 @@ export async function loadExposure(
   tx: OrgTx,
   orgId: string,
   asOf: string,
-  filter: { clientIds?: string[]; caseIds?: string[] } = {},
+  filter: { clientIds?: string[]; caseIds?: string[]; scope?: readonly string[] | undefined } = {},
 ): Promise<ExposureView> {
   const where = [eq(demands.orgId, orgId)];
   if (filter.clientIds?.length) where.push(inArray(demands.clientId, filter.clientIds));
   if (filter.caseIds?.length) where.push(inArray(demands.caseId, filter.caseIds));
+  // Client-level access: a restricted person sees exposure only for their clients.
+  if (filter.scope)
+    where.push(inArray(demands.clientId, filter.scope.length ? [...filter.scope] : [""]));
   const rows = await tx
     .select({
       d: demands,
