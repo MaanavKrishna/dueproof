@@ -20,13 +20,17 @@ import {
   type Subject,
 } from "@dueproof/core";
 import { forbidden, HttpError, unauthorised } from "./errors";
+import { clientIdsFor } from "./org-metadata";
 import { type Container, getContainer } from "./server/container";
+import { getOrg } from "./server/directory";
 
 export interface AuthContext {
   userId: string;
   orgId: string;
   role: Role;
   mayApproveReplies: boolean;
+  /** Client-level access (Settings → Team): only these clients. Absent: every client. */
+  clientIds?: readonly string[];
   requestId: string;
   container: Container;
 }
@@ -56,11 +60,24 @@ export async function authorize(
   const membership = await getMembership(container.database, session.user.id, orgId);
   if (!membership) throw forbidden("You aren't a member of this organisation.");
 
-  const subject = {
+  // Owners and admins always see every client, so only look up the others.
+  const clientIds =
+    membership.role === "owner" || membership.role === "admin"
+      ? undefined
+      : clientIdsFor(
+          (await getOrg(container.database, orgId))?.metadata ?? {
+            profiles: [],
+            onboarding: {},
+            clientAccess: {},
+          },
+          session.user.id,
+        );
+  const subject: Subject = {
     userId: session.user.id,
     role: membership.role,
     mayApproveReplies: membership.mayApproveReplies,
-  } satisfies Subject;
+    ...(clientIds ? { clientIds } : {}),
+  };
   try {
     checkPolicy(subject, action, options.resource);
   } catch (e) {
@@ -69,7 +86,10 @@ export async function authorize(
   }
 
   return {
-    ...subject,
+    userId: session.user.id,
+    role: membership.role,
+    mayApproveReplies: membership.mayApproveReplies,
+    ...(clientIds ? { clientIds } : {}),
     orgId,
     requestId: headers.get("x-request-id") ?? randomUUID(),
     container,

@@ -102,6 +102,11 @@ const Env = z
     RATE_LIMITS: z.string().optional(),
     /** Version reported by /api/health and /api/metrics (set by the image build). */
     DUEPROOF_VERSION: z.string().default("0.1.0-dev"),
+    /**
+     * Self-hosted: the backup container's `last.json`, mounted read-only into
+     * the app, so Settings → System can show the last backup. Unset: "unknown".
+     */
+    BACKUP_STATUS_FILE: z.string().optional(),
 
     /** Bare pages under /dev that exercise sign-in and upload. On by default outside production. */
     DUEPROOF_DEV_PAGES: bool.optional(),
