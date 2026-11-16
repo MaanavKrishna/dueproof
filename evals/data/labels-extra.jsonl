@@ -1,0 +1,3 @@
+# Labels the eval needs beyond services/engine/tests/fixtures/labels.jsonl, written
+# from the documents' content. Amounts are in paise.
+{"file": "notice-gst-asmt10.pdf", "amounts": [{"quote": "pay the tax of Rs. 4,52,300", "minor": 45230000}]}
