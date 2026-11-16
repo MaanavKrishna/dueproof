@@ -130,13 +130,25 @@ export const MIGRATIONS: EmbeddedMigration[] = [
     bps: true,
     sql: ['ALTER TABLE "findings" ADD COLUMN "conflict" jsonb;'],
   },
+  {
+    tag: "0004_contract_saved_views_search",
+    folderMillis: 1794843621579,
+    hash: "58c69301f8d6d17503b8c79343f1bb0f9c472f63252001629a65caa11b77236b",
+    bps: true,
+    sql: [
+      'CREATE TABLE "saved_views" (\n\t"id" text PRIMARY KEY NOT NULL,\n\t"org_id" text NOT NULL,\n\t"user_id" text NOT NULL,\n\t"screen" text NOT NULL,\n\t"name" text NOT NULL,\n\t"filters" jsonb NOT NULL,\n\t"shared" boolean DEFAULT false NOT NULL,\n\t"created_at" timestamp with time zone DEFAULT now() NOT NULL\n);\n',
+      '\nCREATE INDEX "saved_views_org_screen" ON "saved_views" USING btree ("org_id","screen");',
+      '\nCREATE INDEX "findings_text_fts" ON "findings" USING gin (to_tsvector(\'simple\', "text" || \' \' || "quote"));',
+      '\nCREATE INDEX "pages_text_fts" ON "pages" USING gin (to_tsvector(\'simple\', "text"));',
+    ],
+  },
 ];
 
 export const RLS_SQL: string[] = [
   "-- Row-level security, the app role, and append-only triggers (03 §9, 05 §2, §5).\n--\n-- Applied by `migrate()` after the Drizzle migrations, on every start. Every\n-- statement is idempotent. Keep the table list in step with TENANT_TABLES in\n-- src/schema.ts (a test checks they match).\n--\n-- How isolation works:\n-- * Tenant queries run only through `withOrg()`, which opens a transaction and\n--   sets two transaction-local settings in one statement:\n--     set_config('app.org_id', <org>, true)\n--     set_config('role', 'dueproof_app', true)\n-- * `dueproof_app` is a NOLOGIN role without BYPASSRLS. Superusers and table\n--   owners bypass RLS, so switching to this role is what makes the policies\n--   bite even when the connection logs in as the owner (PGlite, a dev\n--   Postgres, the Neon owner role).\n-- * FORCE ROW LEVEL SECURITY covers a connection that logs in as the owner\n--   without switching role.\n-- * With `app.org_id` unset, `current_setting(..., true)` is NULL and no rows\n--   match: the default is deny.\n\nDO $$\nBEGIN\n  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'dueproof_app') THEN\n    CREATE ROLE dueproof_app NOLOGIN NOBYPASSRLS;\n  END IF;\nEND\n$$;\n",
   "\n\n-- The connecting user must be able to SET ROLE dueproof_app.\nDO $$\nBEGIN\n  IF NOT pg_has_role(current_user, 'dueproof_app', 'MEMBER') THEN\n    EXECUTE format('GRANT dueproof_app TO %I', current_user);\n  END IF;\nEND\n$$;\n",
   "\n\nGRANT USAGE ON SCHEMA public TO dueproof_app;\n",
-  "\n\nDO $$\nDECLARE\n  t text;\n  tenant_tables text[] := ARRAY[\n    'org_settings', 'holidays', 'clients', 'registrations', 'contacts', 'cases',\n    'documents', 'pages', 'document_events', 'findings', 'evidence', 'finding_edits',\n    'deadlines', 'demands', 'comments', 'notifications', 'push_subscriptions',\n    'ai_settings', 'ai_runs', 'audit'\n  ];\nBEGIN\n  FOREACH t IN ARRAY tenant_tables LOOP\n    EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);\n    EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', t);\n    EXECUTE format('DROP POLICY IF EXISTS org_isolation ON %I', t);\n    EXECUTE format(\n      'CREATE POLICY org_isolation ON %I AS PERMISSIVE FOR ALL '\n      'USING (org_id = current_setting(''app.org_id'', true)) '\n      'WITH CHECK (org_id = current_setting(''app.org_id'', true))',\n      t\n    );\n    EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON %I TO dueproof_app', t);\n  END LOOP;\nEND\n$$;\n",
+  "\n\nDO $$\nDECLARE\n  t text;\n  tenant_tables text[] := ARRAY[\n    'org_settings', 'holidays', 'clients', 'registrations', 'contacts', 'cases',\n    'documents', 'pages', 'document_events', 'findings', 'evidence', 'finding_edits',\n    'deadlines', 'demands', 'comments', 'notifications', 'saved_views', 'push_subscriptions',\n    'ai_settings', 'ai_runs', 'audit'\n  ];\nBEGIN\n  FOREACH t IN ARRAY tenant_tables LOOP\n    EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);\n    EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', t);\n    EXECUTE format('DROP POLICY IF EXISTS org_isolation ON %I', t);\n    EXECUTE format(\n      'CREATE POLICY org_isolation ON %I AS PERMISSIVE FOR ALL '\n      'USING (org_id = current_setting(''app.org_id'', true)) '\n      'WITH CHECK (org_id = current_setting(''app.org_id'', true))',\n      t\n    );\n    EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON %I TO dueproof_app', t);\n  END LOOP;\nEND\n$$;\n",
   "\n\n-- bigserial ids (document_events, finding_edits, audit).\nGRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO dueproof_app;\n",
   "\n\n-- Append-only tables: edits and the audit trail are never changed or removed.\nREVOKE UPDATE, DELETE, TRUNCATE ON finding_edits, audit FROM dueproof_app;\n",
   "\n\nCREATE OR REPLACE FUNCTION dueproof_append_only() RETURNS trigger\nLANGUAGE plpgsql AS $$\nBEGIN\n  RAISE EXCEPTION 'table % is append-only: % is not allowed', TG_TABLE_NAME, TG_OP\n    USING ERRCODE = 'insufficient_privilege';\nEND\n$$;\n",

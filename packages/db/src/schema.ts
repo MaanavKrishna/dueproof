@@ -237,7 +237,11 @@ export const pages = pgTable(
     engine: text("engine"),
     confidence: real("confidence"),
   },
-  (t) => [primaryKey({ columns: [t.orgId, t.documentId, t.page] })],
+  (t) => [
+    primaryKey({ columns: [t.orgId, t.documentId, t.page] }),
+    // Search (01 §4): full text over page text. 'simple' keeps every language's words as written.
+    index("pages_text_fts").using("gin", sql`to_tsvector('simple', ${t.text})`),
+  ],
 );
 
 export const documentEvents = pgTable(
@@ -287,7 +291,15 @@ export const findings = pgTable(
     conflict: jsonb("conflict").$type<Record<string, unknown>>(),
     createdAt: createdAt(),
   },
-  (t) => [index("findings_org_doc").on(t.orgId, t.documentId), index("findings_org_case").on(t.orgId, t.caseId)],
+  (t) => [
+    index("findings_org_doc").on(t.orgId, t.documentId),
+    index("findings_org_case").on(t.orgId, t.caseId),
+    // Search (01 §4): full text over what a finding says and the quote it rests on.
+    index("findings_text_fts").using(
+      "gin",
+      sql`to_tsvector('simple', ${t.text} || ' ' || ${t.quote})`,
+    ),
+  ],
 );
 
 export const evidence = pgTable(
@@ -410,6 +422,24 @@ export const notifications = pgTable(
   (t) => [index("notifications_org_user").on(t.orgId, t.userId, t.readAt)],
 );
 
+/** Saved filter sets for list screens (Notices, Deadlines): personal, or shared with the organisation. */
+export const savedViews = pgTable(
+  "saved_views",
+  {
+    id: id(),
+    orgId: orgId(),
+    userId: text("user_id").notNull(),
+    /** Which list: "notices", "deadlines", … */
+    screen: text("screen").notNull(),
+    name: text("name").notNull(),
+    /** FilterBar value: { stage: ["drafting"], owner: ["me"] }, plus an optional search under "q". */
+    filters: jsonb("filters").$type<Record<string, string[]>>().notNull(),
+    shared: boolean("shared").notNull().default(false),
+    createdAt: createdAt(),
+  },
+  (t) => [index("saved_views_org_screen").on(t.orgId, t.screen)],
+);
+
 export const pushSubscriptions = pgTable("push_subscriptions", {
   id: id(),
   orgId: orgId(),
@@ -503,6 +533,7 @@ export const TENANT_TABLES = [
   "demands",
   "comments",
   "notifications",
+  "saved_views",
   "push_subscriptions",
   "ai_settings",
   "ai_runs",
