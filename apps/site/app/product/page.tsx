@@ -9,11 +9,11 @@ export const metadata: Metadata = { title: "Product" };
 const PIPELINE = [
   [
     "In",
-    "Upload or drag a folder, forward to an email-in address, or photograph a letter on a phone. WhatsApp intake is planned, once Meta approves it.",
+    "Upload files or drag a folder, or photograph a letter on a phone. Email-in and WhatsApp are on their way.",
   ],
   [
     "Read",
-    "Text and the position of every word come off the page, through an OCR ladder for scans. Indian-language text is translated offline.",
+    "Text and the position of every word come off the page, through an OCR ladder for scans. On your own server, Indian-language text is translated offline.",
   ],
   [
     "Find",
@@ -40,7 +40,7 @@ const SCREENS = [
   ],
   [
     "Inbox",
-    "Uploads in progress and the review queue: findings below the bar, AI suggestions to confirm, unmatched clients, likely duplicates. J and K to move, Enter to confirm.",
+    "Uploads in progress, the review queue (quotes not found, low confidence, AI suggestions, disagreements) and read notices waiting to be filed in a case. J and K to move, Enter to confirm.",
   ],
   [
     "Notices",
@@ -59,16 +59,16 @@ const SCREENS = [
     "Registrations (GSTIN, PAN, CIN, TAN), the client's statutory calendar and exposure.",
   ],
   [
-    "Ask",
-    "Questions across the register, answered with citations. An answer without a citation is refused. Only when AI is on.",
+    "Search",
+    "The text of every page and finding, in any language, plus case references and client names. A result opens the case.",
   ],
   [
     "Reports",
-    "An evidence report that crops each passage from its page, client statements, workload and CSV.",
+    "An evidence report that crops each passage from its page, client statements, workload, exposure and a hearing pack, with CSV.",
   ],
 ] as const;
 
-const LADDER = ["PDFium", "PaddleOCR", "Tesseract", "Vision model"];
+const LADDER = ["PDFium", "PaddleOCR", "Tesseract"];
 
 export default function Product() {
   return (
@@ -130,8 +130,8 @@ export default function Product() {
             </h2>
             <p className="muted">
               Each page climbs only as far as it needs. Every rung must give the position of each
-              word, because the outline is drawn from those positions. Which tools sit on the ladder
-              is settled by a bake-off on real notices. <span className="verify">verify</span>
+              word, because the outline is drawn from those positions. Accuracy per tool and script
+              is still being measured on real notices. <span className="verify">verify</span>
             </p>
           </div>
           <div className="stack">
@@ -148,9 +148,9 @@ export default function Product() {
               ])}
             </ol>
             <p className="muted small">
-              Text-layer PDFs are read directly. Scans and photos go to OCR. A vision model helps
-              only on the hardest pages, and only with AI on; the linker must still find the words,
-              or the finding is unverified.
+              Text-layer PDFs are read directly. Scans and photos go to OCR. A page still below the
+              confidence bar goes to review. On hosted, the beta stops after PaddleOCR; Tesseract
+              runs on a self-hosted server. A vision-model rung, with AI on, is planned.
             </p>
           </div>
         </div>
@@ -186,8 +186,8 @@ export default function Product() {
               A calmer day
             </h2>
             <p className="muted small">
-              A morning digest for each person, escalation rules when something slips, and a
-              one-click hearing pack. Planned for v0.1 as "should have", after the core.
+              A morning digest by email for each person, escalation when something slips, and a
+              hearing pack for each case. On hosted, the digest waits until email is set up.
             </p>
           </div>
           <div className="card-flat">

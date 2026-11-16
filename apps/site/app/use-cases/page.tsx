@@ -12,9 +12,9 @@ const TEAMS = [
     how: [
       [
         "Juniors",
-        "Bulk upload, clients matched automatically, and a keyboard review queue to confirm or correct each finding fast.",
+        "Bulk upload of files and folders, and a keyboard review queue to confirm or correct each finding fast. You pick the client when you file a notice in a case.",
       ],
-      ["Managers", "Workload by person, overdue first, bulk reassignment, and a weekly review."],
+      ["Managers", "A workload report by person, overdue first, and bulk reassignment."],
       [
         "Partners",
         "One screen for what's about to blow up, ₹ exposure per client, replies awaiting approval, and a hearing pack.",
@@ -60,15 +60,15 @@ const TEAMS = [
     how: [
       [
         "A clean deployment",
-        "Docker Compose with Postgres, single sign-on, users, backups, health and updates in the interface.",
+        "Docker Compose with Postgres and Caddy. People, health, backups and the audit check in Settings; single sign-on with Business.",
       ],
       [
         "Nothing hidden",
         "A Network page lists every outbound destination switched on. No telemetry to switch off.",
       ],
       [
-        "Support you control",
-        "A support bundle you make, read and email yourself. Nothing is sent automatically.",
+        "Backups you can check",
+        "Nightly backups, a backup before each upgrade, and the last good backup shown in Settings.",
       ],
     ],
   },

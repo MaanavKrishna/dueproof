@@ -9,11 +9,11 @@ export const metadata: Metadata = { title: "Security and privacy" };
 const COLLECT = [
   [
     "Self-hosted server, desktop app, phones on your server",
-    "Nothing. No telemetry, no analytics, no crash reports to us, no licence phone-home. The update check is off by default; turned on, it fetches a public signed manifest and sends nothing.",
+    "Nothing. No telemetry, no analytics, no crash reports to us, no licence phone-home. The server makes no update checks. The desktop app checks for updates only if you turn it on.",
   ],
   [
     "Hosted",
-    "No product analytics, no session recording, no third-party trackers. We keep what running the service needs: security and error logs without document text, billing metering and AI usage counts, all listed in the privacy policy.",
+    "No product analytics, no session recording, no third-party trackers. We keep what running the service needs: security and error logs without document text, and AI usage counts.",
   ],
   ["This website", "No cookies and no analytics. Static pages, nothing more."],
 ] as const;
@@ -41,17 +41,17 @@ const RESIDENCY = [
     "Your own server",
   ],
   [
-    "Email and WhatsApp messages",
-    "Through Resend, and Meta where WhatsApp is on",
-    "Your SMTP server; your Meta account, off by default",
+    "Email (invitations, resets, the digest)",
+    "Through Resend, once email is set up on hosted",
+    "Your SMTP server or Resend account, if you set one up",
   ],
-  ["Error reports (no document text)", "Sentry", "Not sent"],
+  ["Logs (no document text, keys or tokens)", "Vercel", "Your own server"],
 ] as const;
 
 const CONTROLS = [
   [
     "Sign-in",
-    "Argon2id password hashes, passkeys, TOTP and recovery codes; MFA required for admins on hosted. Sign in with Google or Microsoft in both editions, SAML with Business or Enterprise.",
+    "Argon2id password hashes, passkeys, and two-step verification with an authenticator app and backup codes. SAML single sign-on with Business.",
   ],
   [
     "Access",
@@ -67,7 +67,7 @@ const CONTROLS = [
   ],
   [
     "Files",
-    "Accepted by their contents, not their names, with caps on size, pages and pixels. Processed in a sandbox.",
+    "Accepted by their contents, not their names, with caps on size, pages and pixels. Opened only by the engine, which has no database access and no storage keys.",
   ],
   [
     "Web",
@@ -83,7 +83,7 @@ const CONTROLS = [
   ],
   [
     "Releases",
-    "Signed desktop builds and updates; auto-update only when you turn it on. The licence key is checked offline.",
+    "Desktop builds are not code-signed yet; signed builds come before the beta ends. The app checks for updates only if you turn that on, and every update is signed. The licence key is checked offline.",
   ],
 ] as const;
 
@@ -115,8 +115,8 @@ export default function Security() {
           </ul>
           <p className="muted small" style={{ marginTop: "var(--dp-space-24)" }}>
             Self-hosted makes no outbound call unless an admin turns it on (an AI provider, email,
-            single sign-on, WhatsApp, Web Push, the update check). The Network section of Settings →
-            System lists every destination that is switched on.
+            single sign-on, Web Push). The Network section of Settings → System lists every
+            destination that is switched on.
           </p>
         </div>
       </section>
@@ -193,15 +193,16 @@ export default function Security() {
             <li>
               <span>DPDP Act 2023</span>
               <span className="muted">
-                Processor obligations at launch: a data processing agreement, a list of
-                sub-processors, a breach process, and export and deletion on request.
+                Planned before hosted plans go on sale: a data processing agreement, a list of
+                sub-processors, a breach process, and export and deletion on request. They are not
+                published yet.
               </span>
             </li>
             <li>
               <span>Security testing</span>
               <span className="muted">
-                A VAPT by a CERT-In-empanelled auditor before hosted general availability. SOC 2
-                Type I and ISO 27001 come after v0.1.
+                No independent test yet. A VAPT by a CERT-In-empanelled auditor comes before v0.1
+                leaves beta. SOC 2 Type I and ISO 27001 come after v0.1.
               </span>
             </li>
             <li>
@@ -215,9 +216,8 @@ export default function Security() {
             <li>
               <span>Who can see your documents</span>
               <span className="muted">
-                Support works from what you send and from IDs and error codes. If a document must be
-                looked at, you grant time-boxed access in the app, and that access is logged where
-                you can see it.
+                Support works from what you send and from IDs and error codes. A way to grant
+                support time-boxed, logged access to a document is planned; it is not in the beta.
               </span>
             </li>
           </ul>
@@ -233,7 +233,7 @@ export default function Security() {
             </h2>
             <p className="lede">
               Don't open a public issue. Report it through GitHub's private vulnerability reporting;
-              we acknowledge within 2 working days.
+              you should hear back within a few days.
             </p>
           </div>
           <div className="actions">

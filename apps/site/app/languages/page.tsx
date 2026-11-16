@@ -56,43 +56,43 @@ export default function Languages() {
           </div>
           <ul className="rule-list">
             <li>
-              <span>Translated offline by default</span>
+              <span>Translated offline on your server</span>
               <span className="muted">
-                Indian-language text is translated into English on the same server with IndicTrans2,
-                so the same rules find the same duties in any language and nothing leaves the
-                building.
+                On a self-hosted server with translation set up, Indian-language text is translated
+                into English with IndicTrans2, so the same rules find the same duties in any
+                language and nothing leaves the building. Hosted doesn't translate yet in the beta.
               </span>
             </li>
             <li>
               <span>Read directly when AI is on</span>
               <span className="muted">
-                With AI on, the model reads the original language directly. Its findings still have
-                to be found on the page before they can become a deadline. Model translation is
-                flagged as such.
+                With AI on, the model reads the page text in its original language. Its findings
+                still have to be found on the page before they can become a deadline.
               </span>
             </li>
             <li>
               <span>Scans and photographs</span>
               <span className="muted">
-                Pages without a text layer go through an OCR ladder: PDFium for text-layer PDFs,
-                then PaddleOCR, then Tesseract, then a vision model for the hardest pages. Which
-                tool reads which script best is being measured on real notices.{" "}
+                PDFs with a text layer are read directly in any script. Scans go to PaddleOCR, then
+                Tesseract with the language's pack. The bundled PaddleOCR models read Latin script
+                only, and seven languages have no Tesseract pack, so those are read only from PDFs
+                with a text layer. Accuracy per script is still being measured on real notices.{" "}
                 <span className="verify">verify</span> We will publish the results per language
                 rather than claim them here.
               </span>
             </li>
             <li>
-              <span>When a script can't be read offline</span>
+              <span>Without translation</span>
               <span className="muted">
-                The original is still shown and searchable, marked "translation unavailable". You
-                can turn AI on for that notice, or read the original.
+                The notice is still read, stored, shown and searchable in its own script. The rules
+                won't find duties in the Indian-language parts, so add those by hand, or turn AI on.
               </span>
             </li>
             <li>
               <span>The interface</span>
               <span className="muted">
-                The app itself is in English in v0.1. Interface translation into Indian and other
-                languages is planned for 0.3; every string is in message files from day one.
+                The app itself is in English in v0.1. Interface languages other than English are on
+                the roadmap, for later.
               </span>
             </li>
           </ul>

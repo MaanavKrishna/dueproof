@@ -23,7 +23,7 @@ import { ScrollStory } from "@/components/ScrollStory";
 import { DueChip, StatusPill } from "@/components/ui";
 import { LANGUAGES } from "@/lib/languages";
 import { COMPUTED } from "@/lib/sample";
-import { LICENCE, REPO } from "@/lib/site";
+import { APP_URL, LICENCE, REPO } from "@/lib/site";
 
 const STAGES = [
   ["Received", "done"],
@@ -37,11 +37,7 @@ const STAGES = [
 ] as const;
 
 const MODES = [
-  [
-    "Off",
-    "Rules alone read every notice. The default on a self-hosted install.",
-    "Text goes nowhere.",
-  ],
+  ["Off", "Rules alone read every notice. The default in every edition.", "Text goes nowhere."],
   [
     "Local",
     "A model server on your own network, such as Ollama, vLLM or LM Studio.",
@@ -49,20 +45,24 @@ const MODES = [
   ],
   [
     "Your key",
-    "Your own account with Anthropic, OpenAI, Google, Azure OpenAI, AWS Bedrock or any compatible endpoint.",
+    "Your own account with Anthropic, OpenAI, Azure OpenAI, OpenRouter or any OpenAI-compatible endpoint.",
     "Text goes to the provider you chose, billed to you.",
   ],
   [
     "Our plan",
-    "Hosted plans with AI include a monthly notice allowance. At the cap, AI stops and the rules carry on.",
-    "Through a gateway that requires zero data retention.",
+    "Claude through Dueproof, on hosted only. A monthly budget stops AI at the cap, and the rules carry on.",
+    "Text goes to Anthropic's Claude, on our account.",
   ],
 ] as const;
 
 const ROUTES = [
   ["No model", 60, "Where the rules are confident, no model is called at all."],
-  ["Claude Haiku 5.5", 25, "Light work: triage, classification, summaries, clean digital notices."],
-  ["Claude Sonnet 5.5", 13, "Most extraction: scans, photos, regional languages, Ask and drafts."],
+  [
+    "Claude Haiku 5.5",
+    25,
+    "Clean digital notices, once its evaluation passes. Not used yet in v0.1.",
+  ],
+  ["Claude Sonnet 5.5", 13, "The default: scans, photos, regional languages and unusual notices."],
   [
     "Claude Opus 5.5",
     2,
@@ -247,8 +247,9 @@ export default function Home() {
               </div>
               <h3 className="h3">22 Indian languages and English</h3>
               <p className="muted small" style={{ marginBottom: "var(--dp-space-20)" }}>
-                Translated offline by default. The outline always sits on the original words; the
-                English is a working translation, labelled as one.
+                Translated offline on your own server. The outline always sits on the original
+                words; the English is a working translation, labelled as one. Hosted doesn't
+                translate yet in the beta.
               </p>
               <p className="scripts">
                 {scriptSample.map((l) => (
@@ -283,7 +284,7 @@ export default function Home() {
                 </div>
               </dl>
               <p className="fine" style={{ marginTop: "var(--dp-space-12)" }}>
-                Sample figures. Thousands and millions for other countries.
+                Sample figures.
               </p>
             </div>
             <div className="card">
@@ -292,12 +293,11 @@ export default function Home() {
               </div>
               <h3 className="h3">A statutory calendar for every client</h3>
               <p className="muted small" style={{ marginBottom: "var(--dp-space-16)" }}>
-                Built from each client's registrations. Due dates come from reviewed data files,
-                never a model, and a practising CA signs them off before release and at each yearly
-                update.
+                Built from each client's registrations. Due dates come from data files with a
+                source, never a model. Each is marked "verify" until a practising CA signs it off.
               </p>
               <p className="fine" style={{ marginBottom: "var(--dp-space-8)" }}>
-                Planned for the v0.1 calendar, central taxes first:
+                In the v0.1 calendar, central taxes first:
               </p>
               <div className="forms">
                 {[
@@ -488,9 +488,9 @@ export default function Home() {
             <div className="stack">
               <h3 className="h3">On our plan, a mix of models, routed by code</h3>
               <p className="muted">
-                Routing is code, not a model. Each step up has a recorded reason, and each route
-                goes live only when its evaluation beats rules alone. With your own key, you pick
-                the model for each tier.
+                Routing is code, not a model. Each step up has a recorded reason, and a route goes
+                live only when its evaluation passes. With your own key, you pick the model for each
+                tier.
               </p>
               <p className="fine">
                 Shares are the working estimate for a typical month, to be measured before prices
@@ -531,10 +531,7 @@ export default function Home() {
             <div className="edition">
               <p className="overline">Self-hosted</p>
               <p className="price">Free</p>
-              <p className="muted">
-                On your own server with Docker, or on one desktop with no server at all. Collects
-                nothing.
-              </p>
+              <p className="muted">On your own server with Docker Compose. Collects nothing.</p>
               <ul className="checks">
                 <li>
                   <CheckIcon size={18} />
@@ -567,10 +564,9 @@ export default function Home() {
             </div>
             <div className="edition featured">
               <p className="overline">Hosted by us</p>
-              <p className="price">Plans from Starter to Enterprise</p>
+              <p className="price">Free while in beta</p>
               <p className="muted">
-                With AI or without, and your own key on any plan. Database in Singapore, reading
-                engine in Mumbai.
+                Sign up and use it today. Database and app in Singapore, reading engine in Mumbai.
               </p>
               <ul className="checks">
                 <li>
@@ -579,7 +575,7 @@ export default function Home() {
                 </li>
                 <li>
                   <CheckIcon size={18} />
-                  <span>An AI notice allowance on AI plans, counted in notices, not tokens</span>
+                  <span>AI off until you turn it on</span>
                 </li>
                 <li>
                   <CheckIcon size={18} />
@@ -587,12 +583,15 @@ export default function Home() {
                 </li>
                 <li>
                   <CheckIcon size={18} />
-                  <span>Prices are coming soon</span>
+                  <span>Paid plans, with AI or without, come after the beta</span>
                 </li>
               </ul>
               <div className="actions">
-                <Link className="cta cta-primary" href="/pricing/">
-                  See plans
+                <a className="cta cta-primary" href={APP_URL}>
+                  Try the beta
+                </a>
+                <Link className="cta cta-secondary" href="/pricing/">
+                  Planned plans
                 </Link>
               </div>
             </div>
@@ -617,15 +616,15 @@ export default function Home() {
             <div>
               <h3 className="h4">No data collection</h3>
               <p>
-                Self-hosted sends us nothing: no telemetry, no crash reports, no licence phone-home.
-                The update check is off by default.
+                Self-hosted sends us nothing: no telemetry, no crash reports, no licence phone-home
+                and no update checks.
               </p>
             </div>
             <div>
               <h3 className="h4">No trackers on hosted</h3>
               <p>
                 No product analytics or session recording. We keep security and error logs without
-                document text, billing metering and AI usage counts.
+                document text, and AI usage counts.
               </p>
             </div>
             <div>
@@ -671,8 +670,8 @@ export default function Home() {
               At the desk, and in the client's office.
             </h2>
             <p className="lede">
-              A desktop app for Windows, macOS and Linux, and the same web app installable on any
-              phone, with the camera for posted letters.
+              A desktop app for Linux today, with Windows and macOS coming, and the same web app
+              installable on any phone, with the camera for posted letters.
             </p>
           </div>
           <div className="devices">
@@ -770,8 +769,8 @@ export default function Home() {
                 Desktop app
               </h3>
               <p className="muted small">
-                Connect mode works with a server, yours or ours. Local mode, planned for v0.1, runs
-                everything on one machine with no server, for one person, without sync.
+                It connects to a server, yours or ours. Built for Linux in the beta; Windows and
+                macOS builds are coming. A Local mode, with no server at all, comes later.
               </p>
             </div>
             <div className="card-flat">
@@ -808,7 +807,7 @@ export default function Home() {
             Stop copying dates into a spreadsheet.
           </h2>
           <p className="lede">
-            Self-host the free edition, or follow the hosted plans as they open. {LICENCE.short}
+            Try the hosted beta free, or self-host the free edition. {LICENCE.short}
           </p>
           <div className="actions">
             <Link className="cta cta-primary" href="/docs/install/">

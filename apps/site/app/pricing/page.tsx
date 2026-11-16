@@ -4,7 +4,7 @@ import { Fragment } from "react";
 import { AiSuggestedIcon, CheckIcon, MinusIcon } from "@/components/icons";
 import { PageHero } from "@/components/PageHero";
 import { HostedPlans } from "@/components/PricingPlans";
-import { LICENCE, REPO } from "@/lib/site";
+import { APP_URL, LICENCE, REPO } from "@/lib/site";
 
 export const metadata: Metadata = { title: "Pricing" };
 
@@ -17,28 +17,29 @@ const COMPARE: { group: string; rows: [string, Cell, Cell, Cell][] }[] = [
       ["Case threads, approval, filing proof, deadlines from orders", true, true, true],
       ["Statutory calendar, demand exposure, interest calculator", true, true, true],
       ["Clients, roles, review queue, search, reports", true, true, true],
-      ["English and 22 Indian languages, offline translation", true, true, true],
-      ["Backup, restore and export of all your data", true, true, true],
-      ["Desktop app", "Local and Connect", "Local and Connect", "Connect"],
+      ["Notices in English and 22 Indian languages", true, true, true],
+      ["Offline translation and Tesseract OCR for hard scans", true, true, "Not in the beta"],
+      ["Nightly backups, and CSV export", true, true, "CSV export"],
+      ["Desktop app (connects to a server)", "Linux", "Linux", "Linux"],
       ["Phone: installable web app with camera capture", true, true, true],
-      ["Sign in with Google or Microsoft", true, true, true],
+      ["Passkeys and two-step verification", true, true, true],
     ],
   },
   {
     group: "AI",
     rows: [
-      ["AI with your own key", true, true, "Any plan"],
+      ["AI with your own key", true, true, true],
       ["AI with a local model", true, true, false],
-      ["Dueproof AI plan (notice allowance)", false, false, "AI plans"],
+      ["Dueproof AI plan (notice allowance)", false, false, "Planned"],
     ],
   },
   {
     group: "For larger firms",
     rows: [
-      ["SAML single sign-on", false, true, "Enterprise"],
-      ["Signed audit export, custom retention", false, true, "Firm, Enterprise"],
-      ["White-label reports", false, true, "Firm, Enterprise"],
-      ["Support", "Community", "Email, 2 working days", "By plan"],
+      ["SAML single sign-on", false, true, "Planned: Enterprise"],
+      ["Signed audit export", false, true, "Planned: Firm, Enterprise"],
+      ["White-label reports", false, true, "Planned: Firm, Enterprise"],
+      ["Support", "Community", "Email, 2 working days", "Planned: by plan"],
     ],
   },
 ];
@@ -62,11 +63,11 @@ function Mark({ v }: { v: Cell }) {
 export default function Pricing() {
   return (
     <>
-      <PageHero overline="Pricing" title="Free to self-host. Hosted plans, with AI or without.">
+      <PageHero overline="Pricing" title="Free to self-host. Hosted is free while in beta.">
         <p>
           Anything that decides whether a finding, a date or an amount is correct or provable is
-          free in every edition. You pay for us running it, for AI on our account, or for features a
-          larger firm needs.
+          free in every edition. Later, you will pay for us running it, for AI on our account, or
+          for features a larger firm needs. Nothing is on sale yet.
         </p>
       </PageHero>
 
@@ -78,9 +79,8 @@ export default function Pricing() {
               On your server. Collects nothing.
             </h2>
             <p className="muted">
-              Docker Compose with Postgres on your own server, or the desktop app on one machine.
-              Business features unlock with a signed licence file checked offline: no activation
-              server, no call home.
+              Docker Compose with Postgres on your own server. Business features unlock with a
+              signed licence file checked offline: no activation server, no call home.
             </p>
           </div>
           <div className="plans plans-2">
@@ -103,7 +103,7 @@ export default function Pricing() {
                 </li>
                 <li>
                   <CheckIcon size={18} />
-                  <span>All 23 languages, translated offline</span>
+                  <span>All 23 languages, with offline translation on your server</span>
                 </li>
                 <li>
                   <CheckIcon size={18} />
@@ -133,7 +133,7 @@ export default function Pricing() {
                 </li>
                 <li>
                   <CheckIcon size={18} />
-                  <span>Signed audit export and custom retention</span>
+                  <span>Signed audit export</span>
                 </li>
                 <li>
                   <CheckIcon size={18} />
@@ -162,17 +162,18 @@ export default function Pricing() {
               Nothing to install. AI if you want it.
             </h2>
             <p className="muted">
-              A 14-day trial with a sample workspace of fictional notices. Billing through Razorpay
-              in India, in rupees, with UPI and GST invoices.
+              Free to use while Dueproof is in beta: sign up at{" "}
+              <a href={APP_URL}>dueproof-app.vercel.app</a>. The plans below come after the beta.
+              None is on sale yet, and nothing is billed.
             </p>
           </div>
           <HostedPlans />
           <div className="byok">
             <AiSuggestedIcon size={22} />
             <p>
-              <strong>Bring your own key on any plan.</strong> Use your own Anthropic, OpenAI,
-              Google, Azure OpenAI or AWS Bedrock account; text goes to that provider and is billed
-              to you, and you choose the model for each tier.
+              <strong>Bring your own key, today and on any plan.</strong> Use your own Anthropic,
+              OpenAI, Azure OpenAI or OpenRouter account, or any OpenAI-compatible endpoint; text
+              goes to that provider and is billed to you, and you choose the model for each tier.
             </p>
           </div>
         </div>
@@ -230,8 +231,8 @@ export default function Pricing() {
             </table>
           </div>
           <p className="fine" style={{ marginTop: "var(--dp-space-16)" }}>
-            Later, under the same licence key: SCIM provisioning, SIEM streaming, high availability
-            and multiple organisations in one install.
+            In the Hosted column, plan names are planned plans. Later, under the same licence key:
+            SCIM provisioning, SIEM streaming and high availability.
           </p>
         </div>
       </section>
@@ -256,39 +257,33 @@ export default function Pricing() {
             <li>
               <span>What happens at the AI cap?</span>
               <span className="muted">
-                The allowance is counted in notices, not tokens, so you can predict it. At the cap,
-                AI stops and the rules carry on reading. Nothing is lost.
+                Today you can set a monthly AI budget in Settings → AI. At the cap, AI stops and the
+                rules carry on reading. Nothing is lost. The planned AI plans will count their
+                allowance in notices, not tokens, so you can predict it.
               </span>
             </li>
             <li id="licence-key">
               <span>How the Business licence key works</span>
               <span className="muted">
-                A small file signed with Ed25519, pasted into Settings. It is checked offline at
-                start and once a day. No licence state can ever block reading, proof, deadlines,
-                export or backup. After expiry there are 30 days of grace, then Business features
-                switch off cleanly and no data is lost. A 30-day trial key is available on request.
+                A small file signed with Ed25519, added in Settings → System → Licence. It is
+                checked on your server, offline. No licence state can ever block reading, proof,
+                deadlines, export or backup. After expiry there are 30 days of grace, then Business
+                features switch off cleanly and no data is lost. Licences are not on sale yet.
               </span>
             </li>
             <li>
-              <span>If a payment fails</span>
+              <span>Paying</span>
               <span className="muted">
-                14 days of grace with a banner, then read-only with export still open. Downgrades
-                take effect at the end of the paid period, and a downgrade never deletes anything.
-              </span>
-            </li>
-            <li>
-              <span>Payments outside India</span>
-              <span className="muted">
-                Razorpay first. Stripe, in local currencies, follows once an account for an Indian
-                business is confirmed. <span className="verify">verify</span>
+                There is no billing yet, so nothing is charged during the beta. How you will pay for
+                hosted plans is announced with the prices.
               </span>
             </li>
             <li>
               <span>The licence</span>
               <span className="muted">
                 {LICENCE.long} You may run it for your own firm. What it forbids is offering it as a
-                competing commercial product or service. The wording is being reviewed by a lawyer
-                before launch. <a href={`${REPO}/blob/main/LICENSE`}>Read the licence</a>.
+                competing commercial product or service.{" "}
+                <a href={`${REPO}/blob/main/LICENSE`}>Read the licence</a>.
               </span>
             </li>
           </ul>

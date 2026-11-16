@@ -73,7 +73,7 @@ const PLANS: Plan[] = [
     },
     lines: [
       { text: "Everything in Pro" },
-      { text: "Signed audit export and custom retention" },
+      { text: "Signed audit export" },
       { text: "White-label reports with your logo only" },
       { text: "A named contact, first reply in 1 working day" },
     ],
@@ -115,7 +115,8 @@ export function HostedPlans() {
           ]}
         />
         <p className="fine">
-          Prices are set once the AI cost is measured. No plan is sold before then.
+          Planned for after the beta. Prices are set once the AI cost is measured, and no plan is
+          sold before then.
         </p>
       </div>
       <div className="plans">
