@@ -29,6 +29,13 @@
       "when": 1794832667763,
       "tag": "0003_contract_findings_conflict",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794844445822,
+      "tag": "0004_contract_sso_provider",
+      "breakpoints": true
     }
   ]
 }
