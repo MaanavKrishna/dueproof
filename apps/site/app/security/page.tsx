@@ -19,7 +19,12 @@ const COLLECT = [
 ] as const;
 
 const RESIDENCY = [
-  ["Database and app functions", "Mumbai (Neon Postgres, Vercel)", "Your own server"],
+  [
+    "Database and app functions",
+    "Singapore (Neon Postgres, Vercel): the closest region our database provider offers to India",
+    "Your own server",
+  ],
+  ["Reading engine (OCR, rules, proof)", "Mumbai (Vercel). It keeps nothing", "Your own server"],
   [
     "Uploaded files and page images",
     "Cloudflare R2, which does not guarantee India-only storage",
@@ -32,7 +37,7 @@ const RESIDENCY = [
   ],
   [
     "Heavy work: offline translation, rare-script OCR",
-    "Vercel Sandbox, which may not run in Mumbai",
+    "Off in the v0.1 beta. When on: Vercel Sandbox, which may not run in India",
     "Your own server",
   ],
   [
@@ -110,8 +115,8 @@ export default function Security() {
           </ul>
           <p className="muted small" style={{ marginTop: "var(--dp-space-24)" }}>
             Self-hosted makes no outbound call unless an admin turns it on (an AI provider, email,
-            single sign-on, WhatsApp, Web Push, the update check). A Network page in Settings lists
-            every destination that is switched on.
+            single sign-on, WhatsApp, Web Push, the update check). The Network section of Settings →
+            System lists every destination that is switched on.
           </p>
         </div>
       </section>
@@ -124,8 +129,9 @@ export default function Security() {
               Where your data lives, stated honestly.
             </h2>
             <p className="muted">
-              Hosted runs in Mumbai where it can. Where it doesn't, we say so here and in Settings.
-              If you need every byte in India today, self-host.
+              Hosted runs as close to India as our providers allow: the reading engine in Mumbai,
+              the database and app in Singapore. Every place your data goes is listed here. If you
+              need every byte in India today, self-host.
             </p>
           </div>
           <div className="table-scroll">
@@ -202,8 +208,8 @@ export default function Security() {
               <span>CERT-In log rules</span>
               <span className="muted">
                 An open question. Our hosting keeps logs briefly and not in India; the likely answer
-                is security and access logs kept for 180 days in the Mumbai database, but we're
-                taking legal advice before claiming it. <span className="verify">verify</span>
+                is security and access logs kept for 180 days in our own database, but we're taking
+                legal advice before claiming it. <span className="verify">verify</span>
               </span>
             </li>
             <li>

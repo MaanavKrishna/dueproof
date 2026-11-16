@@ -569,7 +569,8 @@ export default function Home() {
               <p className="overline">Hosted by us</p>
               <p className="price">Plans from Starter to Enterprise</p>
               <p className="muted">
-                With AI or without, and your own key on any plan. Database and functions in Mumbai.
+                With AI or without, and your own key on any plan. Database in Singapore, reading
+                engine in Mumbai.
               </p>
               <ul className="checks">
                 <li>
@@ -634,15 +635,16 @@ export default function Home() {
             <div>
               <h3 className="h4">Where hosted data lives</h3>
               <p>
-                Database and functions in Mumbai. Files are stored on Cloudflare R2, which does not
-                guarantee India-only storage.
+                The database and app run in Singapore, the closest region our database provider
+                offers to India, and the reading engine in Mumbai. Files are on Cloudflare R2 in
+                Asia-Pacific, without an India-only guarantee.
               </p>
             </div>
             <div>
               <h3 className="h4">Every exception disclosed</h3>
               <p>
                 With AI on, text is processed where that provider runs the model. Each exception is
-                listed in Settings.
+                listed on our Security page.
               </p>
             </div>
             <div>

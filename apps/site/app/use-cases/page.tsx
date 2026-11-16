@@ -86,7 +86,7 @@ const NOT_FOR = [
   ["Native phone apps", "Phones use the installable web app in v0.1. Store apps come later."],
   [
     "Every byte in India, hosted",
-    "Hosted files sit on storage without an India-only guarantee. Self-host if you need that today.",
+    "Hosted data sits in Singapore and Asia-Pacific today, not in India. Self-host if you need that.",
   ],
 ] as const;
 
