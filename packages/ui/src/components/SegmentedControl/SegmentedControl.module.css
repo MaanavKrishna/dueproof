@@ -7,6 +7,8 @@
   height: var(--dp-size-control-md);
   padding: var(--pad);
   border-radius: var(--dp-radius-md);
+  width: fit-content;
+  max-width: 100%;
   background: var(--dp-bg-sunken);
   isolation: isolate;
 }

@@ -57,6 +57,7 @@ export const pairs: Pair[] = [
   ...tones.flatMap((t) => [
     { fg: `feedback.${t}.fg`, bg: `feedback.${t}.bg`, min: AA_TEXT },
     { fg: `feedback.${t}.fg`, bg: "bg.surface", min: AA_TEXT },
+    { fg: "fg.primary", bg: `feedback.${t}.bg`, min: AA_TEXT, note: "banner body text" },
     { fg: `feedback.${t}.onSolid`, bg: `feedback.${t}.solid`, min: AA_TEXT },
     { fg: `feedback.${t}.onSolid`, bg: `feedback.${t}.solidHover`, min: AA_TEXT },
   ]),

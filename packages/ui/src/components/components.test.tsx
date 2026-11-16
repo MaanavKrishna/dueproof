@@ -1,4 +1,4 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -130,8 +130,7 @@ describe("Dialog", () => {
     expect(dialog.contains(document.activeElement)).toBe(true);
 
     await user.keyboard("{Escape}");
-    await act(async () => {});
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(trigger).toHaveFocus();
   });
 
@@ -140,8 +139,7 @@ describe("Dialog", () => {
     render(<Harness />);
     await user.click(screen.getByRole("button", { name: "Open" }));
     await user.click(await screen.findByRole("button", { name: "Cancel" }));
-    await act(async () => {});
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 });
 
@@ -400,7 +398,6 @@ describe("Toast", () => {
     expect(await screen.findByText("Marked as done")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Dismiss" }));
-    await act(async () => {});
-    expect(screen.queryByText("Marked as done")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText("Marked as done")).not.toBeInTheDocument());
   });
 });

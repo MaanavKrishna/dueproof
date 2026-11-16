@@ -11,6 +11,7 @@
 
 .icon {
   display: inline-flex;
+  align-self: center;
   flex: none;
   width: var(--dp-space-16);
   color: var(--dp-fg-secondary);
