@@ -20,6 +20,9 @@ importers:
 
   apps/app:
     dependencies:
+      '@dueproof/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@dueproof/auth':
         specifier: workspace:*
         version: link:../../packages/auth

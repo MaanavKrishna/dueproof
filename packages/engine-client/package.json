@@ -8,7 +8,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "node scripts/sync-recordings.mjs --check && vitest run",
+    "recordings": "node scripts/sync-recordings.mjs && biome format --write src/fake/recordings"
   },
   "dependencies": {
     "@dueproof/contracts": "workspace:*",

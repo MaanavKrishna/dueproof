@@ -279,6 +279,12 @@ export const findings = pgTable(
     /** Set when a person confirmed an AI-only or unlocated finding. */
     confirmedBy: text("confirmed_by"),
     aiRunId: text("ai_run_id"),
+    /**
+     * When rules and AI disagree on a located finding (04 §4 "conflict: both
+     * shown"): the other reading, e.g. `{ source: "ai", field: "due",
+     * dueRule, amountMinor, quote, page, reason }`. Null when they agree.
+     */
+    conflict: jsonb("conflict").$type<Record<string, unknown>>(),
     createdAt: createdAt(),
   },
   (t) => [index("findings_org_doc").on(t.orgId, t.documentId), index("findings_org_case").on(t.orgId, t.caseId)],

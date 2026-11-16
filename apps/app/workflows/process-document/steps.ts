@@ -9,6 +9,7 @@
  */
 import type { AnalyzeResponse, LinkResponse } from "@dueproof/engine-client";
 import { FatalError } from "workflow";
+import type { AiAssistResult } from "../../lib/pipeline/ai-assist";
 import type {
   DateOutcome,
   InspectResult,
@@ -19,11 +20,12 @@ import type {
 import type { DocumentRef } from "../../lib/pipeline/types";
 
 async function deps() {
-  const [{ getContainer }, stages] = await Promise.all([
+  const [{ getContainer }, stages, ai] = await Promise.all([
     import("../../lib/server/container"),
     import("../../lib/pipeline/stages"),
+    import("../../lib/pipeline/ai-assist"),
   ]);
-  return { c: await getContainer(), stages };
+  return { c: await getContainer(), stages, ai };
 }
 
 function classify(e: unknown): never {
@@ -78,16 +80,35 @@ export async function linkQuotes(
   return stages.linkStage(c, ref, analysis).catch(classify);
 }
 
+/** Will the AI path take the pages the OCR ladder left below the bar (instead of engine-heavy)? */
+export async function aiReadsPages(ref: DocumentRef): Promise<boolean> {
+  "use step";
+  const { c, ai } = await deps();
+  return ai.aiReadsPagesStage(c, ref).catch(classify);
+}
+
+export async function aiAssist(
+  ref: DocumentRef,
+  analysis: AnalyzeResponse,
+  link: LinkResponse,
+  lowConfidencePages: number[],
+): Promise<AiAssistResult> {
+  "use step";
+  const { c, ai } = await deps();
+  return ai.aiAssistStage(c, ref, analysis, link, lowConfidencePages).catch(classify);
+}
+
 type Items = ReconcileOutcome;
 
 export async function reconcileFindings(
   ref: DocumentRef,
   analysis: AnalyzeResponse,
   link: LinkResponse,
+  aiFindings: AiAssistResult["findings"] = [],
 ): Promise<Items> {
   "use step";
   const { c, stages } = await deps();
-  return stages.reconcileStage(c, ref, analysis, link).catch(classify);
+  return stages.reconcileStage(c, ref, analysis, link, aiFindings).catch(classify);
 }
 
 export async function resolveDates(
@@ -106,10 +127,21 @@ export async function writeResults(
   items: Items,
   dates: DateOutcome[],
   needsEscalation: number[],
+  ai?: AiAssistResult,
 ): Promise<WriteResult> {
   "use step";
   const { c, stages } = await deps();
-  return stages.writeStage(c, ref, analysis, items, dates, needsEscalation).catch(classify);
+  const aiInput =
+    ai && ai.status !== "off"
+      ? {
+          accepted: ai.accepted,
+          needsReview: ai.needsReview,
+          ...(ai.runId ? { runId: ai.runId } : {}),
+        }
+      : undefined;
+  return stages
+    .writeStage(c, ref, analysis, items, dates, needsEscalation, aiInput)
+    .catch(classify);
 }
 
 export async function markFailed(ref: DocumentRef, reason: string): Promise<void> {

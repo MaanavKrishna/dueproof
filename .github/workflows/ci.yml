@@ -36,6 +36,8 @@ jobs:
         run: pnpm typecheck
       - name: Tests (Vitest, every package; includes the tenant-isolation suite on PGlite)
         run: pnpm test
+      - name: AI eval (recorded mode; fails on any confident-wrong outline)
+        run: pnpm --filter @dueproof/ai run eval
 
   engine:
     name: engine tests (Python)

@@ -123,6 +123,13 @@ export const MIGRATIONS: EmbeddedMigration[] = [
     bps: true,
     sql: ['ALTER TABLE "deadlines" ADD COLUMN "detail" jsonb;'],
   },
+  {
+    tag: "0003_contract_findings_conflict",
+    folderMillis: 1794832667763,
+    hash: "ecf97d462b4797eaea2eee29fce485798d61040bd691e5bdc7aafc197471a548",
+    bps: true,
+    sql: ['ALTER TABLE "findings" ADD COLUMN "conflict" jsonb;'],
+  },
 ];
 
 export const RLS_SQL: string[] = [
