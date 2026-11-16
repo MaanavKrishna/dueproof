@@ -41,7 +41,9 @@ notices. Single sign-on, audit export and white-label reports need a
 Business licence. The hosted service is paid.
 
 **What licence is it under?**
-FSL-1.1-ALv2 (see `LICENSE`), except `ee/`, which is under a commercial
-licence.
+The PolyForm Shield License 1.0.0 (see `LICENSE`), except `ee/`, which is
+under a commercial licence. You may use Dueproof, self-host it, change it and
+improve it, for free. You may not sell it, or offer it to others as a product
+or service that competes with Dueproof, changed or not.
 
 **Why "Dueproof"?** Every due date, with proof.

@@ -6,11 +6,11 @@ export const RELEASED = "v0.1 beta";
 export const APP_URL = "https://dueproof-app.vercel.app";
 
 export const LICENCE = {
-  name: "FSL-1.1-ALv2",
-  short: "Source-available under FSL-1.1-ALv2.",
+  name: "PolyForm Shield 1.0.0",
+  short: "Source-available under PolyForm Shield 1.0.0.",
   long:
-    "Source-available under the Functional Source License (FSL-1.1-ALv2). Free to self-host. " +
-    "Each release becomes Apache-2.0 two years after it is published.",
+    "Source-available under the PolyForm Shield License 1.0.0. Free to use, self-host, change " +
+    "and improve. You may not sell it or offer it as a competing product or service.",
 } as const;
 
 export const NAV = [

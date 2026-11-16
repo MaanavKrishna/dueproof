@@ -21,7 +21,7 @@ build-backend = "setuptools.build_meta"
 name = "dueproof-engine"
 dynamic = ["version"]
 description = "Dueproof's engine: read notices, find what is owed and by when, and prove every finding on its page."
-license = "LicenseRef-FSL-1.1-ALv2"
+license = "LicenseRef-PolyForm-Shield-1.0.0"
 requires-python = ">=3.12"
 authors = [{ name = "The Dueproof Authors" }]
 dependencies = [

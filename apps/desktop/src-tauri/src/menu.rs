@@ -61,7 +61,7 @@ pub fn install(app: &AppHandle) -> tauri::Result<()> {
         let about = AboutMetadata {
             name: Some("Dueproof".into()),
             version: Some(env!("CARGO_PKG_VERSION").into()),
-            copyright: Some("Licensed under FSL-1.1-ALv2".into()),
+            copyright: Some("Licensed under PolyForm Shield 1.0.0".into()),
             ..Default::default()
         };
         let app_menu = Submenu::with_items(

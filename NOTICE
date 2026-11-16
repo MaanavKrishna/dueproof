@@ -1,13 +1,15 @@
 Dueproof
 Copyright 2026 The Dueproof Authors
 
-From version 0.1, this product is licensed under the Functional Source License,
-Version 1.1, ALv2 Future License (FSL-1.1-ALv2; see LICENSE). Each version
-becomes available under the Apache License, Version 2.0 two years after it is
-made available. The demo (0.0.1) and earlier commits remain available under
-the Apache License, Version 2.0.
+From version 0.1.0, this product is licensed under the PolyForm Shield License
+1.0.0 (see LICENSE): free to use, self-host, change and improve, but not to
+provide a product that competes with Dueproof, which includes selling it or
+offering it as a service. Earlier versions keep the licence they were
+published under: the demo (0.0.1) and earlier commits stay under the Apache
+License, Version 2.0, and commits published between the demo and 0.1.0 stay
+under the Functional Source License 1.1, ALv2 Future License.
 
-The ee/ directory is not covered by FSL-1.1-ALv2. It holds the Business
+The ee/ directory is not covered by the PolyForm Shield License. It holds the Business
 features, which are proprietary and licensed under the commercial terms in
 ee/LICENSE (draft, pending legal review); they may be used only with a valid
 Dueproof Business licence. The rest of the product does not depend on ee/.

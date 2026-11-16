@@ -146,9 +146,11 @@ The website is at <https://dueproof.vercel.app> and the hosted app at
 ## Licence of contributions
 
 <!-- TODO: lawyer review -->
-By contributing you agree that your contribution is licensed under the
-project's licence, the Functional Source License 1.1 with the Apache 2.0
-future licence (FSL-1.1-ALv2; see [LICENSE](LICENSE)). The `ee/` directory is
+Dueproof is under the PolyForm Shield License 1.0.0 (see [LICENSE](LICENSE)).
+By contributing, you confirm the contribution is your own work, and you grant
+Maanav Krishna a perpetual, worldwide, royalty-free, irrevocable licence to
+use, copy, change, distribute and relicense it as part of Dueproof. Your
+contribution is then available to everyone under the project's licence. The `ee/` directory is
 under a separate commercial licence ([ee/LICENSE](ee/LICENSE)); contributions
 to `ee/` need a separate agreement with the maintainers before they can be
 accepted.

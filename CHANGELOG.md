@@ -73,6 +73,12 @@ proof-linking.
   server, with OS notifications, a tray, deep links and start at login.
 - Phone: the web app installs as a PWA, with camera capture and Web Push.
 
+**Licence**
+- Dueproof is now under the PolyForm Shield License 1.0.0. You may use it,
+  self-host it, change it and improve it for free. You may not sell it or
+  offer it as a competing product or service. `ee/` keeps its commercial
+  licence. Earlier versions keep the licence they were published under.
+
 **Design and quality**
 - Ledger, a new design system: tokens, components with Storybook, light and
   dark themes, and Motion presets.

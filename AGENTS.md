@@ -63,4 +63,4 @@ packages/i18n       Messages and locale formatting
 
 ## Licence
 
-FSL-1.1-ALv2 (see `LICENSE`). Third-party notices in `NOTICE`.
+PolyForm Shield 1.0.0 (see `LICENSE`); `ee/` is under its own commercial licence. Third-party notices in `NOTICE`.

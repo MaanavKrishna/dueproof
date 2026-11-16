@@ -35,7 +35,7 @@
     "shortDescription": "Read notices, find what's owed and by when, with proof.",
     "longDescription": "Dueproof reads tax, regulatory and court notices, finds what's owed and by when, and proves every finding on the page it came from. This desktop app connects to your Dueproof server.",
     "copyright": "Copyright (c) 2026 Maanav Krishna",
-    "license": "FSL-1.1-ALv2",
+    "license": "PolyForm-Shield-1.0.0",
     "licenseFile": "../../../LICENSE",
     "createUpdaterArtifacts": false,
     "icon": [
