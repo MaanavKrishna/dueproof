@@ -1,13 +1,10 @@
 # Languages
 
-English is always read. Switch on any of the 22 languages IndicTrans2
-translates:
+Dueproof's screens, emails and reports are in English (British spelling,
+Indian number formats: ₹4,52,300, ₹4.52 lakh). The notices it reads can be
+in English or any of the 22 scheduled Indian languages.
 
-```bash
-DUEPROOF_LANGUAGES=hi,ta,bn dueproof serve
-```
-
-or set `LANGUAGES` in your [profile](profiles.md). `all` enables every one.
+## The languages
 
 | Code | Language | Script | Tesseract pack | | Code | Language | Script | Tesseract pack |
 |---|---|---|---|---|---|---|---|---|
@@ -23,50 +20,73 @@ or set `LANGUAGES` in your [profile](profiles.md). `all` enables every one.
 | `ml` | Malayalam | Malayalam | `mal` | | `brx` | Bodo | Devanagari | — |
 | `pa` | Punjabi | Gurmukhi | `pan` | | `sa` | Sanskrit | Devanagari | `san` |
 
-## How a language works without any setup
+The list lives in `services/engine/dueproof_engine/languages.py`.
 
-Each non-English sentence is translated to English on your machine **before**
-analysis, and the rules read the original and its translation together. So a
-Tamil circular yields dated, routed obligations with no Tamil vocabulary
-written by anyone. The quote that is outlined on the page — and the text a
-reader can check — is always the original.
+## How a notice in another language is read
 
-Translations are labelled *translated*. A translation that seems to have lost a
-number or a known term (from the profile's `TERMS`) is flagged *check
-terminology*. Dueproof never rewrites a translation to "fix" it.
+1. **Reading.** The engine reads the PDF's text layer in any script. Each
+   page's language is recognised by its script.
+2. **Translation.** Where offline translation is set up, lines in an Indian
+   language are translated into English on your own server by IndicTrans2
+   (one model, about 200 million parameters, for all 22). Nothing is sent
+   anywhere.
+3. **Finding.** The rules read the original and the English together, so a
+   Tamil notice yields dated duties without anyone writing Tamil rules.
+4. **Proof.** The quote outlined on the page is always the **original**
+   wording. The case page shows the English with a *Machine translation*
+   label, and lets you switch to the original.
 
-Tested end to end with the real model: **Hindi, Tamil, Bengali, Urdu, Telugu
-and Malayalam**. The other 16 use the same path and are not yet individually
-tested — reports welcome.
+Without translation, a notice in an Indian language is still read, stored,
+searchable and shown, but the rules (written in English) won't find duties
+in the Indian-language parts. Add those by hand, or turn on AI.
 
-## What each language needs
+Search matches words as written, in any script.
 
-- **The translation weights** (one model for all 22) — see [Install](install.md).
-  Without them a language is read, searched and displayed, but obligations are
-  found only through the profile's own-language vocabulary.
-- **For scans and photos, its Tesseract pack.** Only installed packs are used,
-  and `dueproof doctor` lists what is missing. Seven languages have no
-  Tesseract pack; they are read from PDFs with a text layer only.
-- **Nothing for display**: the browser uses your system's fonts.
+## Where translation is available
+
+| Running it | Translation |
+|---|---|
+| Self-hosted | Yes, once you install the weights: see [Install → Offline translation](install.md#offline-translation-optional). `/api/health` then shows `"translation": true`. Images built with `ENGINE_INSTALL_TRANSLATION=0` can't translate |
+| Hosted | Only through engine-heavy, when its snapshot includes the weights. engine-fast can't translate |
+| Desktop | Through the server it connects to |
+
+## Scans and photos
+
+The text layer is the reliable path. For scans, the OCR steps are PaddleOCR
+and then Tesseract:
+
+- The PaddleOCR models bundled in v0.1 read Latin script, not Indian
+  scripts. An Indian-language scan is read poorly at this step and pulled
+  below the confidence bar.
+- Tesseract reads a language only if its pack is installed. The self-hosted
+  engine image has Hindi, Malayalam and Tamil by default; add others with
+  `ENGINE_OCR_PACKS`. Seven languages have no Tesseract pack and can be read
+  only from PDFs with a text layer.
+- **Known gap in v0.1:** the app asks the engine to OCR with English only,
+  so the installed Indian packs aren't used yet. Treat scanned
+  Indian-language notices as needing review, and check their findings
+  against the page.
+
+A page still below the bar goes to **Needs review** (or, with AI on, to the
+model).
 
 ## Languages that share a script
 
 Hindi, Marathi, Nepali, Sanskrit, Konkani, Maithili, Dogri and Bodo are all
-written in Devanagari; Bengali and Assamese share a script, as do Urdu, Sindhi
-and Kashmiri. Dueproof recognises a sentence's language by its script, so among
-the languages you enable, **the first one listed claims its script**:
-`DUEPROOF_LANGUAGES=mr,ta` reads Devanagari as Marathi.
+written in Devanagari; Bengali and Assamese share a script, as do Urdu,
+Sindhi and Kashmiri. Since a line's language is recognised by its script,
+one language claims each shared script. Set the engine's
+`DUEPROOF_LANGUAGES` to put yours first: `DUEPROOF_LANGUAGES=mr,ta` reads
+Devanagari as Marathi. The engine image sets `all`, which means the order
+above: Devanagari is read as Hindi, Bengali script as Bengali, Arabic script
+as Urdu.
 
-## Going deeper for one language
+In v0.1 a whole document is translated as one language: the first non-English
+language found in it.
 
-A profile can add, for a language it cares about: month names
-(`LOCAL_MONTHS`), how "within N days" is written (`LOCAL_RELATIVE`), how duties
-and deadlines are worded (added to `OBLIGATION_CUES` and `DEADLINE_MARKERS`),
-and terms to check translations against (`TERMS`). This makes extraction work
-without the model and exact where a translation is not. `metro_rail_ml` does
-this for Malayalam.
+## Tested
 
-If text extraction damages a script — doubled vowel signs, combining marks
-arriving as separate words, words split across lines — add a repair module to
-`dueproof/pipeline/scripts/` and name it in `dueproof/languages.py`.
-`malayalam.py` is the model.
+The translation path has been tested end to end with the real model in
+Hindi, Tamil, Bengali, Urdu, Telugu and Malayalam (in the 0.0.x engine,
+which v0.1's engine carries forward). The other 16 use the same path and are
+not yet tested one by one. Reports are welcome.
