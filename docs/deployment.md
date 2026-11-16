@@ -1,70 +1,63 @@
 # Deployment
 
-Dueproof is one Python process and a data folder. Put a TLS-terminating proxy in
-front of it and back up the data folder.
+Dueproof v0.1 runs three ways:
 
-## systemd
+| | Where | Guide |
+|---|---|---|
+| **Self-hosted server** | Your Linux server, Docker Compose: app + engine + Postgres + Caddy | [Install](install.md), [Backup and restore](backup-and-restore.md), [Upgrading](upgrading.md) |
+| **Hosted** | Vercel (app, workflows, engine-fast, engine-heavy in Sandbox) + Neon + Cloudflare R2, Mumbai | [`infra/vercel/README.md`](../infra/vercel/README.md) |
+| **Desktop** | Tauri app, Local or Connect mode | arrives with the desktop app |
 
-```bash
-sudo useradd --system --home /var/lib/dueproof --create-home dueproof
-sudo python3 -m venv /opt/dueproof/.venv
-sudo /opt/dueproof/.venv/bin/pip install torch==2.13.0 --index-url https://download.pytorch.org/whl/cpu
-sudo /opt/dueproof/.venv/bin/pip install /path/to/dueproof
-sudo cp deploy/dueproof.service /etc/systemd/system/
-sudo systemctl enable --now dueproof
-sudo -u dueproof DUEPROOF_DATA=/var/lib/dueproof /opt/dueproof/.venv/bin/dueproof users add you@example.org --admin
+The demo's systemd and single-container instructions (0.0.x) no longer apply.
+
+## Hosted, in short
+
+```mermaid
+flowchart LR
+  B[Browser] --> APP["dueproof-app (Next.js, bom1)<br/>Workflow DevKit, Vercel World"]
+  APP --> NEON[("Neon Postgres<br/>aws-ap-south-1")]
+  APP --> R2[("Cloudflare R2")]
+  APP -->|signed URLs + 5-min token| EF["dueproof-engine-fast<br/>Python Function, no secrets"]
+  APP -. only when needed .-> EH["engine-heavy<br/>Vercel Sandbox from a snapshot<br/>network: R2 only"]
+  EF & EH --> R2
 ```
 
-`deploy/dueproof.service` keeps Dueproof on `127.0.0.1:8000` with a hardened
-sandbox. `deploy/dueproof-digest.timer` sends reminder digests on weekday
-mornings; put SMTP settings in `/etc/dueproof/smtp.env`.
+- **engine-fast** reads every document: PDF text layer, PaddleOCR, rules and
+  proof. It is its own Vercel project holding no secret except its token key,
+  because a function's outbound network can't be restricted.
+- **engine-heavy** handles what engine-fast can't: pages below the OCR
+  confidence bar (Tesseract) and offline translation (IndicTrans2). The
+  workflow starts a Sandbox microVM from a prebuilt snapshot with a network
+  policy that allows only the storage host, runs the batch and stops it
+  (`apps/app/lib/heavy-engine.ts`). It is off until `HEAVY_ENGINE_SNAPSHOT_ID`
+  is set.
+- Files never pass through a function: browsers and the engine use signed
+  storage URLs that expire within 5 minutes.
 
-## Docker Compose with HTTPS
+Configuration lives in `apps/app/vercel.ts` (region `bom1`, Fluid compute,
+function durations) and `services/engine/vercel.json`. The full set of
+environment variables for each project is in
+[`infra/vercel/README.md`](../infra/vercel/README.md).
 
-```bash
-DUEPROOF_DOMAIN=dueproof.example.org docker compose up -d
-docker compose exec dueproof dueproof users add you@example.org --admin
-```
+## Environment variables
 
-`compose.yaml` runs Dueproof behind Caddy, which obtains and renews the
-certificate. Mount the translation weights at `/data/models/indictrans2` if you
-use them.
+The app validates its environment at start and names any variable that is
+missing or wrong (never its value). The complete list with defaults is
+`apps/app/.env.example`; the self-hosted subset is
+`infra/docker/.env.example`.
 
-## A proxy you already run
+## Health and metrics
 
-Forward to `127.0.0.1:8000`, allow request bodies of at least 85 MB, and pass
-the original Host. For example, nginx:
+| Endpoint | What | Who can reach it |
+|---|---|---|
+| `GET /api/health` | Database and engine reachability and timings, version, edition. 200 (`ok`/`degraded`) or 503 (`down`) | Self-hosted: only from the server (Caddy refuses it). Hosted: public, holds no secrets |
+| `GET /api/metrics` | Prometheus text: parts up, check times, workflow runs by status, rate-limit refusals, memory | Loopback only, or anyone with `Authorization: Bearer $METRICS_TOKEN` |
 
-```nginx
-location / {
-    proxy_pass http://127.0.0.1:8000;
-    proxy_set_header Host $host;
-    client_max_body_size 85m;
-}
-```
+## Security headers and limits
 
-## Backups
-
-```bash
-dueproof backup /mnt/backups          # safe while running
-dueproof verify /mnt/backups/dueproof-20261024-083000
-dueproof restore /mnt/backups/dueproof-20261024-083000   # stop the app first
-```
-
-A backup is the database (copied with SQLite's online backup API), the uploaded
-originals and the page images. `verify` checks the database's integrity, that
-every original still hashes to what was recorded at ingest, and that every page
-image is present; `restore` verifies before writing and will not overwrite an
-existing database without `--force`. A backup you have not restored is not a
-backup: test a restore into a spare folder (`DUEPROOF_DATA=/tmp/restore-test`).
-
-## Operating it
-
-- `GET /health` — liveness, queue depth, document counts, translation state.
-- Logs go to stderr, one line per request with a request id that also appears
-  in the `X-Request-ID` response header and the audit trail.
-- A document caught mid-processing by a restart is picked up again at start-up.
-- Limits: 80 MB per upload, 300 pages per document, 40 megapixels per rendered
-  page. Two documents are processed at a time.
-- One server, SQLite: comfortable for a team and tens of thousands of documents.
-  There is no clustering or failover.
+Every response carries a strict Content Security Policy (a fresh nonce per
+page, `strict-dynamic`, `frame-ancestors 'none'`), HSTS (with preload on
+hosted), `Referrer-Policy: same-origin`, a restrictive `Permissions-Policy`
+and `X-Content-Type-Options: nosniff`. Sign-in, sign-up and uploads are
+rate-limited per IP, user and organisation, with counters in Postgres so
+limits hold across instances; change them with `RATE_LIMITS`.
