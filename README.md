@@ -57,7 +57,7 @@ the deadline register, with the sentence outlined on the page.
 |---|---|
 | **Self-hosted Free** | Everything that reads, proves and tracks notices, on your own server with Docker Compose. No telemetry, no phone-home. |
 | **Self-hosted Business** | Free plus SAML single sign-on, signed audit export and white-label reports, unlocked by an offline licence key ([`ee/`](ee/)). |
-| **Hosted** | Run by us on Vercel, Neon and Cloudflare R2 in Mumbai ([Deployment](docs/deployment.md)). |
+| **Hosted** | Run by us on Vercel, Neon and Cloudflare R2; app and database in Singapore, data stored outside India ([Deployment](docs/deployment.md)). |
 | **Desktop** | Windows, macOS and Linux app that connects to your server, with OS notifications and a tray ([Desktop app](docs/desktop.md)). |
 | **Phone** | The web app installs as a PWA, with camera capture and Web Push. |
 

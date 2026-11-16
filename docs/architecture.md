@@ -95,7 +95,7 @@ provable is outside `ee/` and works without a licence.
 
 | | Self-hosted | Hosted | Desktop |
 |---|---|---|---|
-| App | Docker (Node 24) | Vercel Functions, Mumbai | Connects to a server in v0.1 |
+| App | Docker (Node 24) | Vercel Functions: app in Singapore, engine-fast in Mumbai | Connects to a server in v0.1 |
 | Database | Postgres 17 with pgvector | Neon | (the server's) |
 | Workflow | Postgres World | Vercel World | |
 | Engine | One container with everything | engine-fast (Function) + engine-heavy (Sandbox) | |

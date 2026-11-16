@@ -6,6 +6,8 @@ has no network route out, translation runs on your server, and Dueproof
 sends no telemetry. **Settings → System → Network** lists every host the
 install connects to. If you turn AI on with your own key or the Dueproof AI
 plan, the parts of a notice the rules weren't sure of go to that provider.
+On the hosted service, your data is stored outside India: the database in
+Singapore and files in Cloudflare R2 (see [Deployment](deployment.md)).
 
 **Does it use ChatGPT or another AI model?**
 Not unless you turn it on. Rules read every notice, and they are lists of

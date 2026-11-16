@@ -2,7 +2,10 @@
 
 The hosted edition is three Vercel projects from this one repository, plus
 Neon (Postgres) through the Vercel Marketplace and a Cloudflare R2 bucket
-(03 §3). Everything runs in **Mumbai** where the provider allows it.
+(03 §3). The app and its database run in **Singapore**: Neon through the
+Vercel Marketplace offers Singapore (`aws-ap-southeast-1`) as its closest
+region to India, and the app's functions sit next to it (`sin1`).
+engine-fast stays in **Mumbai** (`bom1`).
 
 | Vercel project | Root Directory | What it is | Config |
 |---|---|---|---|
@@ -33,7 +36,9 @@ items marked **verify in M0** need a real account.
 ## 1. Cloudflare R2
 
 1. **R2 → Create bucket** `dueproof-prod` (location hint: Asia-Pacific). R2
-   cannot pin data to India; this is the disclosed residency exception (05 §6).
+   cannot pin data to India. Together with the database in Singapore, this
+   is the disclosed residency exception (05 §6): hosted data is stored
+   outside India.
    Make a second bucket `dueproof-preview` for preview deployments.
 2. **Settings → CORS policy** on each bucket, so browsers can PUT uploads and
    GET page images through signed URLs:
@@ -87,10 +92,11 @@ items marked **verify in M0** need a real account.
 
 1. **Add New → Project**, same repository, **Root Directory** `apps/app`.
    `apps/app/vercel.ts` sets the framework, the pnpm install and build,
-   region `bom1`, Fluid compute and the function durations (the Workflow
+   region `sin1`, Fluid compute and the function durations (the Workflow
    routes get the plan maximum).
 2. **Storage → Neon (Marketplace) → Create**: region **AWS Asia Pacific
-   (Mumbai) `aws-ap-south-1`**, connect it to `dueproof-app` for
+   (Singapore) `aws-ap-southeast-1`**, the closest region to India the
+   Marketplace offers. Connect it to `dueproof-app` for
    Production, Preview (a branch per preview) and Development. This adds
    `DATABASE_URL` (pooled) and related variables.
 3. Environment variables:
