@@ -1,113 +1,152 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PageTitle } from "@/components/PageTitle";
+import { ArrowRightIcon } from "@/components/icons";
+import { PageHero } from "@/components/PageHero";
 
-export const metadata: Metadata = { title: "Who it's for" };
+export const metadata: Metadata = { title: "Use cases" };
 
 const TEAMS = [
   {
-    who: "CA and CS firms",
-    situation:
-      "Every client brings its own GST, income-tax, TDS and MCA logins, and its own notices. Partners want to know what is due this week across all of them; associates want to stop copying dates into a spreadsheet.",
+    who: "CA firms",
+    lead: "Juniors download 30 to 60 notices a day from the GST, income-tax, TRACES and MCA portals, plus photos from clients. Managers run teams across hundreds of clients. Partners sign the replies.",
     how: [
-      "Drop notices in as they arrive: portal downloads, email attachments, phone photos of posted letters.",
-      "Each notice is filed by kind and routed to a desk; each duty gets a date, counted from receipt where the notice says so.",
-      "Associates own items; the weekly email tells each one what is due. Partners see the whole register.",
+      [
+        "Juniors",
+        "Bulk upload, clients matched automatically, and a keyboard review queue to confirm or correct each finding fast.",
+      ],
+      ["Managers", "Workload by person, overdue first, bulk reassignment, and a weekly review."],
+      [
+        "Partners",
+        "One screen for what's about to blow up, ₹ exposure per client, replies awaiting approval, and a hearing pack.",
+      ],
     ],
   },
   {
-    who: "In-house company secretaries",
-    situation:
-      "Letters from the Registrar of Companies, stock-exchange queries, SEBI and RBI circulars. The board asks who is handling each one, and the auditors ask when you first knew.",
+    who: "Company secretaries",
+    lead: "ROC, SEBI, stock-exchange and RBI letters for one to twenty group companies. The board asks who's handling each one; auditors ask when you first knew.",
     how: [
-      "The date each notice reached you is recorded, and every later correction is kept with a name and a time.",
-      "Findings carry the provision cited, so a reply can quote it.",
-      "The evidence report prints each duty with its passage cropped from the page.",
+      ["An entity view", "Every company's notices, hearings and filings in one place."],
+      [
+        "When you knew",
+        "The date each notice reached you is recorded, and every correction is kept with a name and a time.",
+      ],
+      [
+        "Board-ready evidence",
+        "A report that prints each duty with its passage cropped from the page.",
+      ],
     ],
   },
   {
     who: "Compliance teams at lenders and NBFCs",
-    situation:
-      "Regulatory circulars in English, orders and summons in the language of the state that issued them, and no permission to send any of it to a cloud service.",
+    lead: "Circulars in English, orders and summons in the language of the state that issued them, and inspectors asking how you knew.",
     how: [
-      "Everything runs on your server. Translation runs on the same machine.",
-      "Circulars are routed to the Regulatory desk; summons and orders to Legal.",
-      "Accuracy can be measured on your own labelled documents before anyone relies on it.",
+      [
+        "On your premises",
+        "The self-hosted edition keeps everything on your own servers, with AI off unless you turn it on.",
+      ],
+      [
+        "Access and audit",
+        "Client-level access, an append-only audit trail, and a signed audit export with a Business key.",
+      ],
+      [
+        "Redaction",
+        "PAN, Aadhaar and bank numbers can be redacted before any text reaches a model.",
+      ],
     ],
   },
-];
+  {
+    who: "IT administrators",
+    lead: "The person who installs it, secures it and keeps it running.",
+    how: [
+      [
+        "A clean deployment",
+        "Docker Compose with Postgres, single sign-on, users, backups, health and updates in the interface.",
+      ],
+      [
+        "Nothing hidden",
+        "A Network page lists every outbound destination switched on. No telemetry to switch off.",
+      ],
+      [
+        "Support you control",
+        "A support bundle you make, read and email yourself. Nothing is sent automatically.",
+      ],
+    ],
+  },
+] as const;
 
-// The default profile, dueproof/profiles/notices_in.py.
-const DESKS = [
-  ["GST & Indirect Tax", "ASMT-10, DRC-01 and DRC-01A, REG-17, notices under sections 61, 73 and 74"],
-  ["Direct Tax", "Income-tax notices under sections 142(1), 143(2), 148 and 148A; TDS notices"],
-  ["Corporate Secretarial", "Registrar of Companies and MCA notices, adjudication under section 454"],
-  ["Payroll & Labour", "EPFO and ESIC notices, summons under section 7A, damages under 14B"],
-  ["Regulatory", "RBI master directions and circulars, SEBI, IRDAI and PFRDA circulars"],
-  ["Legal & Litigation", "Show-cause notices, court and tribunal orders, summons, legal notices"],
-  ["Finance & Accounts", "Demand notices, including section 156 and DRC-07"],
-  ["Administration", "Anything else, until you teach it otherwise"],
-];
+const NOT_FOR = [
+  [
+    "Filing or paying for you",
+    "Dueproof proposes; a person decides. It never sends a reply, files on a portal or makes a payment. Drafts are drafts.",
+  ],
+  [
+    "An interface in your language, yet",
+    "Notices are read in 22 Indian languages, but the app itself is in English in v0.1.",
+  ],
+  ["Native phone apps", "Phones use the installable web app in v0.1. Store apps come later."],
+  [
+    "Every byte in India, hosted",
+    "Hosted files sit on storage without an India-only guarantee. Self-host if you need that today.",
+  ],
+] as const;
 
 export default function UseCases() {
   return (
     <>
-      <PageTitle title="Who it's for">
+      <PageHero overline="Use cases" title="For people who answer for a missed date.">
         <p>
-          People who receive notices on someone else's behalf and answer for it when a date slips. Dueproof is
-          built for Indian tax, corporate, labour, regulatory and court notices first.
+          Dueproof is built first for CA firms, and serves company secretaries and compliance teams
+          with the same features, an entity view and stricter settings.
         </p>
-      </PageTitle>
+      </PageHero>
 
-      <section className="band band-paper">
-        <div className="wrap people">
-          {TEAMS.map((t) => (
-            <div className="person" key={t.who}>
-              <h2 style={{ fontSize: "1.7rem" }}>{t.who}</h2>
-              <div>
-                <p>{t.situation}</p>
-                <ul style={{ margin: "16px 0 0", paddingLeft: "1.1em" }}>
-                  {t.how.map((h) => <li key={h} style={{ marginBottom: 8 }}>{h}</li>)}
-                </ul>
-              </div>
+      {TEAMS.map((t, i) => (
+        <section
+          key={t.who}
+          className={`band${i % 2 === 0 ? " band-canvas" : ""}`}
+          aria-labelledby={`team-${i}`}
+        >
+          <div className="wrap split">
+            <div className="stack">
+              <p className="overline">0{i + 1}</p>
+              <h2 id={`team-${i}`} className="h2">
+                {t.who}
+              </h2>
+              <p className="muted">{t.lead}</p>
             </div>
-          ))}
-        </div>
-      </section>
+            <ul className="rule-list">
+              {t.how.map(([h, p]) => (
+                <li key={h}>
+                  <span>{h}</span>
+                  <span className="muted">{p}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      ))}
 
-      <section className="band">
+      <section className="band band-dark" data-theme="dark" aria-labelledby="not-title">
         <div className="wrap">
           <div className="section-head">
-            <h2>The notices it knows, desk by desk</h2>
-            <p>
-              The default profile recognises these and files each to a desk. Rename the desks, add your own kinds
-              of notice, or start a profile for a different line of work.
-            </p>
+            <p className="overline">Better to know now</p>
+            <h2 id="not-title" className="h2">
+              What it isn't.
+            </h2>
           </div>
-          <div className="table-scroll">
-            <table className="table">
-              <thead><tr><th scope="col">Desk</th><th scope="col">Notices filed there</th></tr></thead>
-              <tbody>{DESKS.map(([d, n]) => <tr key={d}><th scope="row">{d}</th><td>{n}</td></tr>)}</tbody>
-            </table>
+          <div className="fact-grid two">
+            {NOT_FOR.map(([h, p]) => (
+              <div key={h}>
+                <h3 className="h4">{h}</h3>
+                <p>{p}</p>
+              </div>
+            ))}
           </div>
-          <p style={{ marginTop: 24 }}>
-            Hospitals, municipalities and metro rail operators have starter profiles too. <Link href="/docs/profiles/">Profiles</Link>.
+          <p style={{ marginTop: "var(--dp-space-40)" }}>
+            <Link className="text-link" href="/pricing/">
+              Choose an edition <ArrowRightIcon size={16} />
+            </Link>
           </p>
-        </div>
-      </section>
-
-      <section className="band cloth">
-        <div className="wrap">
-          <div className="section-head">
-            <h2>When it is not the right tool</h2>
-            <p>Better to know now than after a month of trying.</p>
-          </div>
-          <ul className="never">
-            <li><strong>Handwritten notices</strong><span className="muted">Not read yet. A review queue for them is on the roadmap.</span></li>
-            <li><strong>Word files and email bodies</strong><span className="muted">PDFs and images only, for now. DOCX and email are planned for 0.3.</span></li>
-            <li><strong>Tracking which laws apply to you</strong><span className="muted">Dueproof reads what arrives. A compliance calendar of statutory filings is a different product.</span></li>
-            <li><strong>Hands-off automation</strong><span className="muted">It proposes; a person decides. It never files a reply or makes a payment.</span></li>
-          </ul>
         </div>
       </section>
     </>
