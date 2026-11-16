@@ -29,7 +29,6 @@ import {
   organization,
   orgSettings,
   sql,
-  user,
   uuidv7,
   withOrg,
 } from "@dueproof/db";
@@ -315,44 +314,6 @@ export async function getMembership(
     role: row.role as Role,
     mayApproveReplies: row.mayApproveReplies ?? false,
   };
-}
-
-/** A member of an organisation, with the name and email the app shows. */
-export interface OrgMember extends Membership {
-  name: string;
-  email: string;
-  image: string | null;
-}
-
-/**
- * Everyone in an organisation (owners, assignees, @mentions). Read here
- * because the member and user tables belong to Better Auth, outside the
- * org-scoped app role.
- */
-export async function listOrgMembers(database: Database, orgId: string): Promise<OrgMember[]> {
-  const raw = unsafeRawDb(database);
-  const rows = await raw
-    .select({
-      userId: member.userId,
-      role: member.role,
-      mayApproveReplies: member.mayApproveReplies,
-      name: user.name,
-      email: user.email,
-      image: user.image,
-    })
-    .from(member)
-    .innerJoin(user, eq(user.id, member.userId))
-    .where(eq(member.organizationId, orgId))
-    .orderBy(asc(user.name));
-  return rows.map((r) => ({
-    orgId,
-    userId: r.userId,
-    role: r.role as Role,
-    mayApproveReplies: r.mayApproveReplies ?? false,
-    name: r.name,
-    email: r.email,
-    image: r.image,
-  }));
 }
 
 /** The organisation a user joined first, for sessions without an active one. */

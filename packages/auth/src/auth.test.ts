@@ -13,7 +13,7 @@ import {
 } from "@dueproof/db";
 import { unsafeRawDb } from "@dueproof/db/internal";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { type Auth, createAuth, getMembership, isFirstRun, listOrgMembers } from "./auth";
+import { type Auth, createAuth, getMembership, isFirstRun } from "./auth";
 import { hashPassword, verifyPassword } from "./password";
 
 const BASE = "https://dueproof.test";
@@ -116,18 +116,6 @@ describe("first run (self-hosted)", () => {
     expect(await raw.select().from(organization)).toHaveLength(1);
     const members = await raw.select().from(member);
     expect(members).toHaveLength(2);
-  });
-
-  it("lists the organisation's members with names, and nobody else's", async () => {
-    const raw = unsafeRawDb(database);
-    const [org] = await raw.select().from(organization);
-    const list = await listOrgMembers(database, org?.id ?? "");
-    expect(list.map((m) => [m.name, m.role])).toEqual([
-      ["Asha Rao", "owner"],
-      ["Ravi", "member"],
-    ]);
-    expect(list[0]?.mayApproveReplies).toBe(true);
-    expect(await listOrgMembers(database, "another-org")).toEqual([]);
   });
 });
 

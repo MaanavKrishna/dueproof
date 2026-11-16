@@ -5,9 +5,7 @@ export {
   firstMembershipOrg,
   getMembership,
   isFirstRun,
-  listOrgMembers,
   type Membership,
-  type OrgMember,
   type SignupPolicy,
 } from "./auth";
 export { ARGON2ID, hashPassword, verifyPassword } from "./password";
