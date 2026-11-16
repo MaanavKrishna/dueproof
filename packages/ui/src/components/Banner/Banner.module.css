@@ -1,0 +1,100 @@
+.banner {
+  --fg: var(--dp-fg-secondary);
+  --bg: var(--dp-bg-sunken);
+  --border: var(--dp-separator-default);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--dp-space-12);
+  padding: var(--dp-space-12) var(--dp-space-16);
+  background: var(--bg);
+  color: var(--dp-fg-primary);
+  font: var(--dp-text-body-font);
+}
+
+.inset {
+  border-radius: var(--dp-radius-lg);
+  box-shadow: inset 0 0 0 var(--dp-border-hairline) var(--border);
+}
+
+.strip {
+  box-shadow: inset 0 calc(var(--dp-border-hairline) * -1) 0 var(--border);
+}
+
+.info {
+  --fg: var(--dp-feedback-info-fg);
+  --bg: var(--dp-feedback-info-bg);
+  --border: var(--dp-feedback-info-border);
+}
+.success {
+  --fg: var(--dp-feedback-success-fg);
+  --bg: var(--dp-feedback-success-bg);
+  --border: var(--dp-feedback-success-border);
+}
+.warning {
+  --fg: var(--dp-feedback-warning-fg);
+  --bg: var(--dp-feedback-warning-bg);
+  --border: var(--dp-feedback-warning-border);
+}
+.danger {
+  --fg: var(--dp-feedback-danger-fg);
+  --bg: var(--dp-feedback-danger-bg);
+  --border: var(--dp-feedback-danger-border);
+}
+
+.icon {
+  flex: none;
+  margin-top: var(--dp-space-2);
+  color: var(--fg);
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--dp-space-2);
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font: var(--dp-text-headline-font);
+  color: var(--fg);
+}
+
+.neutral .title {
+  color: var(--dp-fg-primary);
+}
+
+.body {
+  color: var(--dp-fg-primary);
+}
+
+.actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--dp-space-8);
+  align-self: center;
+}
+
+.dismiss {
+  composes: focusRing from "../../styles/shared.module.css";
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--dp-size-control-sm);
+  height: var(--dp-size-control-sm);
+  margin: calc(var(--dp-space-4) * -1) calc(var(--dp-space-6) * -1) 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--dp-radius-sm);
+  background: transparent;
+  color: var(--dp-fg-secondary);
+  cursor: pointer;
+}
+
+.dismiss:hover {
+  background: var(--dp-bg-hover);
+  color: var(--dp-fg-primary);
+}

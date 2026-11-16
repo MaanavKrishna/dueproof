@@ -1,0 +1,67 @@
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--dp-space-4);
+  max-width: 100%;
+  height: var(--dp-space-24);
+  padding: 0 var(--dp-space-8);
+  border-radius: var(--dp-radius-sm);
+  background: var(--dp-bg-sunken);
+  color: var(--dp-fg-primary);
+  font: var(--dp-text-footnote-font);
+  font-weight: var(--dp-font-weight-medium);
+}
+
+.sm {
+  height: var(--dp-space-20);
+  padding: 0 var(--dp-space-6);
+  font: var(--dp-text-caption-font);
+}
+
+.removable {
+  padding-inline-end: var(--dp-space-2);
+}
+
+.icon {
+  flex: none;
+  color: var(--dp-fg-secondary);
+}
+
+.label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.remove {
+  composes: focusRing from "../../styles/shared.module.css";
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--dp-space-20);
+  height: var(--dp-space-20);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--dp-radius-xs);
+  background: transparent;
+  color: var(--dp-fg-secondary);
+  cursor: pointer;
+}
+
+.remove:hover {
+  background: var(--dp-bg-hover);
+  color: var(--dp-fg-primary);
+}
+
+.remove::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--dp-size-target);
+  height: var(--dp-size-target);
+  transform: translate(-50%, -50%);
+}

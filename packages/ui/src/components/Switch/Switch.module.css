@@ -1,0 +1,101 @@
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--dp-space-16);
+}
+
+.end {
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+}
+
+.row[data-disabled] {
+  color: var(--dp-fg-quaternary);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-2);
+  min-width: 0;
+}
+
+.label {
+  font: var(--dp-text-body-font);
+  cursor: pointer;
+}
+
+.description {
+  margin: 0;
+  font: var(--dp-text-footnote-font);
+  color: var(--dp-fg-secondary);
+}
+
+.switch {
+  composes: focusRing from "../../styles/shared.module.css";
+  --track-w: calc(var(--dp-space-40) - var(--dp-space-4));
+  --track-h: var(--dp-space-20);
+  --inset: var(--dp-space-2);
+  position: relative;
+  flex: none;
+  width: var(--track-w);
+  height: var(--track-h);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--dp-radius-pill);
+  background: var(--dp-separator-control);
+  cursor: pointer;
+  transition: background-color var(--dp-duration-snap) var(--dp-ease-out);
+}
+
+.md {
+  --track-w: calc(var(--dp-space-40) + var(--dp-space-4));
+  --track-h: var(--dp-space-24);
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, var(--dp-size-target));
+  height: max(100%, var(--dp-size-target));
+  transform: translate(-50%, -50%);
+}
+
+.switch[data-state="checked"] {
+  background: var(--dp-accent-solid);
+}
+
+.switch:hover:not(:disabled)[data-state="checked"] {
+  background: var(--dp-accent-hover);
+}
+
+.switch:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.thumb {
+  display: block;
+  width: calc(var(--track-h) - var(--inset) * 2);
+  height: calc(var(--track-h) - var(--inset) * 2);
+  border-radius: var(--dp-radius-pill);
+  background: var(--dp-neutral-0);
+  box-shadow: var(--dp-shadow-1);
+  transform: translateX(var(--inset));
+  transition: transform var(--dp-duration-snap) var(--dp-ease-spring);
+}
+
+.thumb[data-state="checked"] {
+  transform: translateX(calc(var(--track-w) - var(--track-h) + var(--inset)));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thumb {
+    transition-duration: var(--dp-duration-instant);
+    transition-timing-function: linear;
+  }
+}

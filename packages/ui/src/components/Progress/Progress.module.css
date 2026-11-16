@@ -1,0 +1,259 @@
+/* ---------- Bar ---------- */
+.barField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-6);
+}
+
+.barLabel {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--dp-space-12);
+  font: var(--dp-text-subhead-font);
+}
+
+.barValue {
+  composes: tabular from "../../styles/shared.module.css";
+  color: var(--dp-fg-secondary);
+}
+
+.accent {
+  --tone: var(--dp-accent-solid);
+}
+.success {
+  --tone: var(--dp-feedback-success-solid);
+}
+.danger {
+  --tone: var(--dp-feedback-danger-solid);
+}
+
+.bar {
+  position: relative;
+  height: var(--dp-space-6);
+  overflow: hidden;
+  border-radius: var(--dp-radius-pill);
+  background: var(--dp-bg-sunken);
+  box-shadow: inset 0 0 0 var(--dp-border-hairline) var(--dp-separator-subtle);
+}
+
+.sm {
+  height: var(--dp-space-4);
+}
+
+.indicator {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--tone);
+  transition: transform var(--dp-duration-standard) var(--dp-ease-standard);
+}
+
+.indeterminate {
+  width: 40%;
+  animation: slide 1.4s var(--dp-ease-standard) infinite;
+}
+
+@keyframes slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .indicator {
+    transition: none;
+  }
+  .indeterminate {
+    width: 100%;
+    animation: breathe 2s linear infinite;
+  }
+}
+
+@keyframes breathe {
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* ---------- Ring ---------- */
+.ring {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+}
+
+.ring > svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.ring-sm {
+  width: var(--dp-space-16);
+  height: var(--dp-space-16);
+}
+.ring-md {
+  width: var(--dp-space-40);
+  height: var(--dp-space-40);
+}
+.ring-lg {
+  width: var(--dp-space-64);
+  height: var(--dp-space-64);
+}
+
+.ringTrack {
+  fill: none;
+  stroke: var(--dp-bg-sunken);
+  stroke-width: 4;
+}
+
+.ringValue {
+  fill: none;
+  stroke: var(--tone);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: var(--dash);
+  transition: stroke-dasharray var(--dp-duration-standard) var(--dp-ease-standard);
+}
+
+.ring-sm .ringTrack,
+.ring-sm .ringValue {
+  stroke-width: 6;
+}
+
+.ringText {
+  position: absolute;
+  font: var(--dp-text-caption-font);
+  font-weight: var(--dp-font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.ring-lg .ringText {
+  font: var(--dp-text-subhead-font);
+  font-weight: var(--dp-font-weight-semibold);
+}
+
+/* ---------- Stepper ---------- */
+.stepper {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.horizontal {
+  flex-direction: row;
+  gap: var(--dp-space-8);
+}
+
+.vertical {
+  flex-direction: column;
+  gap: var(--dp-space-16);
+}
+
+.step {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+  gap: var(--dp-space-8);
+  min-width: 0;
+  color: var(--dp-fg-secondary);
+}
+
+/* Connector line to the next step. */
+.horizontal .step:not(:last-child)::after {
+  content: "";
+  flex: 1;
+  height: var(--dp-border-thick);
+  margin-top: calc(var(--dp-space-12) - var(--dp-border-hairline));
+  border-radius: var(--dp-radius-pill);
+  background: var(--dp-separator-default);
+}
+
+.horizontal .complete:not(:last-child)::after {
+  background: var(--dp-accent-solid);
+}
+
+.vertical .step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: calc(var(--dp-space-24) + var(--dp-space-4));
+  bottom: calc(var(--dp-space-16) * -1 + var(--dp-space-4));
+  left: calc(var(--dp-space-12) - var(--dp-border-hairline));
+  width: var(--dp-border-thick);
+  border-radius: var(--dp-radius-pill);
+  background: var(--dp-separator-default);
+}
+
+.vertical .complete:not(:last-child)::after {
+  background: var(--dp-accent-solid);
+}
+
+.marker {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--dp-space-24);
+  height: var(--dp-space-24);
+  border-radius: var(--dp-radius-pill);
+  box-shadow: inset 0 0 0 var(--dp-border-thick) var(--dp-separator-control);
+  font: var(--dp-text-caption-font);
+  font-weight: var(--dp-font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.complete .marker {
+  background: var(--dp-accent-solid);
+  box-shadow: none;
+  color: var(--dp-accent-on-solid);
+}
+
+.current {
+  color: var(--dp-fg-primary);
+}
+
+.current .marker {
+  box-shadow: inset 0 0 0 var(--dp-border-thick) var(--dp-accent-solid);
+  color: var(--dp-accent-text);
+}
+
+.error {
+  color: var(--dp-feedback-danger-fg);
+}
+
+.error .marker {
+  background: var(--dp-feedback-danger-bg);
+  box-shadow: inset 0 0 0 var(--dp-border-thick) var(--dp-feedback-danger-fg);
+}
+
+.stepText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-2);
+  min-width: 0;
+  padding-top: var(--dp-space-2);
+}
+
+.stepLabel {
+  font: var(--dp-text-subhead-font);
+  white-space: nowrap;
+}
+
+.current .stepLabel {
+  font-weight: var(--dp-font-weight-semibold);
+}
+
+.stepDetail {
+  font: var(--dp-text-footnote-font);
+  color: var(--dp-fg-secondary);
+}
+
+.srOnly {
+  composes: visuallyHidden from "../../styles/shared.module.css";
+}

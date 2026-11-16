@@ -1,0 +1,5 @@
+.paint {
+  background: var(--dp-bg-canvas);
+  color: var(--dp-fg-primary);
+  font: var(--dp-text-body-font);
+}

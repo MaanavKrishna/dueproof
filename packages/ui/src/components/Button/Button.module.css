@@ -1,0 +1,166 @@
+.button {
+  composes: focusRing from "../../styles/shared.module.css";
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  min-width: var(--dp-size-target);
+  min-height: var(--dp-size-target);
+  margin: 0;
+  border: 0;
+  border-radius: var(--dp-radius-md);
+  font: var(--dp-text-headline-font);
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--dp-duration-fade) var(--dp-ease-out),
+    box-shadow var(--dp-duration-fade) var(--dp-ease-out),
+    transform var(--dp-duration-snap) var(--dp-ease-spring);
+}
+
+.button:active:not(:disabled, [aria-disabled="true"]) {
+  transform: scale(0.98);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.button[data-loading] {
+  cursor: progress;
+}
+
+.content {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--dp-space-6);
+}
+
+.button[data-loading] .content {
+  visibility: hidden;
+}
+
+.label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spinner {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Sizes follow density through the control-height tokens. */
+.sm {
+  height: var(--dp-size-control-sm);
+  padding: 0 var(--dp-size-pad-x-sm);
+  border-radius: var(--dp-radius-sm);
+  font: var(--dp-text-subhead-font);
+}
+.md {
+  height: var(--dp-size-control-md);
+  padding: 0 var(--dp-size-pad-x-md);
+}
+.lg {
+  height: var(--dp-size-control-lg);
+  padding: 0 var(--dp-size-pad-x-lg);
+  border-radius: var(--dp-radius-lg);
+  font-size: var(--dp-text-title3-size);
+}
+
+.iconOnly {
+  padding: 0;
+  aspect-ratio: 1;
+}
+
+.fullWidth {
+  display: flex;
+  width: 100%;
+}
+
+/* Variants */
+.primary {
+  background: var(--dp-accent-solid);
+  color: var(--dp-accent-on-solid);
+  box-shadow: var(--dp-shadow-1);
+}
+.primary:hover:not(:disabled) {
+  background: var(--dp-accent-hover);
+}
+.primary:active:not(:disabled) {
+  background: var(--dp-accent-pressed);
+}
+
+.secondary {
+  background: var(--dp-bg-surface);
+  color: var(--dp-fg-primary);
+  box-shadow:
+    inset 0 0 0 var(--dp-border-hairline) var(--dp-separator-default),
+    0 var(--dp-border-hairline) var(--dp-space-2) var(--dp-shadow-color-ambient);
+}
+.secondary:hover:not(:disabled) {
+  background-image: linear-gradient(var(--dp-bg-hover), var(--dp-bg-hover));
+}
+.secondary:active:not(:disabled) {
+  background-image: linear-gradient(var(--dp-bg-pressed), var(--dp-bg-pressed));
+}
+
+.tertiary {
+  background: var(--dp-accent-subtle);
+  color: var(--dp-accent-subtle-fg);
+}
+.tertiary:hover:not(:disabled) {
+  background-image: linear-gradient(var(--dp-bg-hover), var(--dp-bg-hover));
+}
+.tertiary:active:not(:disabled) {
+  background-image: linear-gradient(var(--dp-bg-pressed), var(--dp-bg-pressed));
+}
+
+.plain {
+  background: transparent;
+  color: var(--dp-accent-text);
+}
+.plain:hover:not(:disabled) {
+  background: var(--dp-bg-hover);
+}
+.plain:active:not(:disabled) {
+  background: var(--dp-bg-pressed);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--dp-fg-secondary);
+}
+.ghost:hover:not(:disabled) {
+  background: var(--dp-bg-hover);
+  color: var(--dp-fg-primary);
+}
+.ghost:active:not(:disabled) {
+  background: var(--dp-bg-pressed);
+}
+
+.destructive {
+  background: var(--dp-feedback-danger-solid);
+  color: var(--dp-feedback-danger-on-solid);
+  box-shadow: var(--dp-shadow-1);
+}
+.destructive:hover:not(:disabled) {
+  background: var(--dp-feedback-danger-solid-hover);
+}
+.destructive:active:not(:disabled) {
+  background: var(--dp-feedback-danger-solid-hover);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button:active:not(:disabled) {
+    transform: none;
+  }
+}

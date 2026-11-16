@@ -1,0 +1,109 @@
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--dp-space-8);
+}
+
+.row[data-disabled] {
+  color: var(--dp-fg-quaternary);
+}
+
+.box {
+  composes: focusRing from "../../styles/shared.module.css";
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--dp-space-16) + var(--dp-space-2));
+  height: calc(var(--dp-space-16) + var(--dp-space-2));
+  margin: var(--dp-space-2) 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--dp-radius-xs);
+  background: var(--dp-bg-surface);
+  box-shadow: inset 0 0 0 var(--dp-border-hairline) var(--dp-separator-control);
+  color: var(--dp-accent-on-solid);
+  cursor: pointer;
+  transition:
+    background-color var(--dp-duration-snap) var(--dp-ease-out),
+    box-shadow var(--dp-duration-snap) var(--dp-ease-out);
+}
+
+/* Hit area grows to the minimum target. */
+.box::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--dp-size-target);
+  height: var(--dp-size-target);
+  transform: translate(-50%, -50%);
+}
+
+.box:hover:not(:disabled) {
+  box-shadow: inset 0 0 0 var(--dp-border-hairline) var(--dp-fg-tertiary);
+}
+
+.box[data-state="checked"],
+.box[data-state="indeterminate"] {
+  background: var(--dp-accent-solid);
+  box-shadow: none;
+}
+
+.box[data-state="checked"]:hover:not(:disabled),
+.box[data-state="indeterminate"]:hover:not(:disabled) {
+  background: var(--dp-accent-hover);
+  box-shadow: none;
+}
+
+.box[aria-invalid="true"] {
+  box-shadow: inset 0 0 0 var(--dp-border-thick) var(--dp-feedback-danger-fg);
+}
+
+.box:disabled {
+  background: var(--dp-bg-sunken);
+  box-shadow: inset 0 0 0 var(--dp-border-hairline) var(--dp-separator-default);
+  color: var(--dp-fg-quaternary);
+  cursor: not-allowed;
+}
+
+.indicator {
+  display: inline-flex;
+  animation: tick var(--dp-duration-snap) var(--dp-ease-spring);
+}
+
+@keyframes tick {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .indicator {
+    animation: none;
+  }
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-2);
+  min-width: 0;
+}
+
+.label {
+  font: var(--dp-text-body-font);
+  cursor: pointer;
+}
+
+.row[data-disabled] .label {
+  cursor: not-allowed;
+}
+
+.description {
+  margin: 0;
+  font: var(--dp-text-footnote-font);
+  color: var(--dp-fg-secondary);
+}
