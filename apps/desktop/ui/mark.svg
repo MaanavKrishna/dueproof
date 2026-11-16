@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Dueproof">
+  <rect width="512" height="512" rx="112" fill="#1F3A8A"/>
+  <path d="M150 104h160l72 72v232a24 24 0 0 1-24 24H150a24 24 0 0 1-24-24V128a24 24 0 0 1 24-24z" fill="#FFFFFF"/>
+  <path d="M310 104v56a16 16 0 0 0 16 16h56z" fill="#C9D3EE"/>
+  <rect x="168" y="214" width="176" height="20" rx="10" fill="#C9D3EE"/>
+  <rect x="160" y="258" width="196" height="44" rx="10" fill="#FCDD9A"/>
+  <rect x="172" y="272" width="150" height="16" rx="8" fill="#1F3A8A"/>
+  <rect x="168" y="328" width="132" height="20" rx="10" fill="#C9D3EE"/>
+</svg>
