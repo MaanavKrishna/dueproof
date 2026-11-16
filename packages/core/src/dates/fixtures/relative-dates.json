@@ -1,0 +1,273 @@
+{
+  "$comment": "Golden cases for resolveDate. Default context: Mon–Sat working, no holidays, roll-forward off. `demo` records what the demo engine (services/engine/dueproof/pipeline/analyze.py parse_date/deadline_in) returns for the same sentence, and whether we agree. Every convention here is VERIFY until a CA signs off.",
+  "cases": [
+    {
+      "name": "demo: 'within 15 days of this circular' (issue 6 Aug 2026)",
+      "rule": { "type": "relative", "anchor": "issue", "amount": 15, "unit": "days" },
+      "anchors": { "issue": "2026-08-06" },
+      "want": { "dueOn": "2026-08-21", "basis": "15 days from issue on 6 Aug 2026" },
+      "demo": { "dueOn": "2026-08-21", "agrees": true }
+    },
+    {
+      "name": "demo: 'Within 2 weeks' (weeks are extracted as 14 days)",
+      "rule": { "type": "relative", "anchor": "issue", "amount": 14, "unit": "days" },
+      "anchors": { "issue": "2026-08-06" },
+      "want": { "dueOn": "2026-08-20" },
+      "demo": { "dueOn": "2026-08-20", "agrees": true }
+    },
+    {
+      "name": "demo: 'within 1 month' is a calendar month, not 30 days",
+      "rule": { "type": "relative", "anchor": "issue", "amount": 1, "unit": "months" },
+      "anchors": { "issue": "2026-08-06" },
+      "want": {
+        "dueOn": "2026-09-06",
+        "basis": "1 month from issue on 6 Aug 2026",
+        "warningsMatch": ["falls on a Sun"]
+      },
+      "demo": {
+        "dueOn": "2026-09-05",
+        "agrees": false,
+        "note": "The demo counts a month as 30 days. A month is a calendar month (General Clauses Act s.3(35)); verify."
+      }
+    },
+    {
+      "name": "demo: Malayalam '15 ദിവസത്തിനകം' (15 days)",
+      "rule": { "type": "relative", "anchor": "issue", "amount": 15, "unit": "days" },
+      "anchors": { "issue": "2026-08-06" },
+      "want": { "dueOn": "2026-08-21" },
+      "demo": { "dueOn": "2026-08-21", "agrees": true }
+    },
+    {
+      "name": "demo: 'within 15 days, i.e. by 30 August 2026' — the stated date wins and is never moved",
+      "rule": { "type": "fixed", "date": "2026-08-30" },
+      "anchors": {},
+      "want": {
+        "dueOn": "2026-08-30",
+        "basis": "On 30 Aug 2026, as stated",
+        "warningsMatch": ["falls on a Sun"],
+        "adjustments": []
+      },
+      "demo": { "dueOn": "2026-08-30", "agrees": true }
+    },
+    {
+      "name": "demo golden ASMT-10: 30 days of receipt, receipt known (24 Oct 2026)",
+      "rule": { "type": "relative", "anchor": "receipt", "amount": 30, "unit": "days" },
+      "anchors": { "issue": "2026-10-20", "receipt": "2026-10-24" },
+      "want": { "dueOn": "2026-11-23", "basis": "30 days from receipt on 24 Oct 2026" },
+      "demo": {
+        "dueOn": "2026-11-23",
+        "agrees": true,
+        "note": "deadline_in(s, base, received) uses the receipt date when given"
+      }
+    },
+    {
+      "name": "demo golden ASMT-10: 30 days of receipt, receipt unknown — we ask, the demo used the issue date",
+      "rule": { "type": "relative", "anchor": "receipt", "amount": 30, "unit": "days" },
+      "anchors": { "issue": "2026-10-20" },
+      "want": { "error": "missing_anchor", "anchor": "receipt" },
+      "demo": {
+        "dueOn": "2026-11-19",
+        "agrees": false,
+        "note": "The demo silently falls back to the document date. A date from the wrong anchor is worse than no date: the UI asks for the receipt date."
+      }
+    },
+    {
+      "name": "demo golden: hearing fixed on 18 Nov 2026",
+      "rule": { "type": "fixed", "date": "2026-11-18" },
+      "anchors": {},
+      "want": { "dueOn": "2026-11-18", "warnings": [] },
+      "demo": { "dueOn": "2026-11-18", "agrees": true }
+    },
+    {
+      "name": "demo golden: invoice 'on or before 15 September 2026'",
+      "rule": { "type": "fixed", "date": "2026-09-15" },
+      "anchors": {},
+      "want": { "dueOn": "2026-09-15" },
+      "demo": { "dueOn": "2026-09-15", "agrees": true }
+    },
+    {
+      "name": "demo rejects '31/02/2026'; a fixed rule with an impossible date is an error",
+      "rule": { "type": "fixed", "date": "2026-02-31" },
+      "anchors": {},
+      "want": { "error": "invalid_date" },
+      "demo": { "dueOn": null, "agrees": true }
+    },
+
+    {
+      "name": "month end: 31 Jan 2027 + 1 month → 28 Feb 2027 (clamped, recorded)",
+      "rule": { "type": "relative", "anchor": "order", "amount": 1, "unit": "months" },
+      "anchors": { "order": "2027-01-31" },
+      "want": { "dueOn": "2027-02-28", "adjustmentsMatch": ["month's last day"] }
+    },
+    {
+      "name": "leap year: 31 Jan 2028 + 1 month → 29 Feb 2028",
+      "rule": { "type": "relative", "anchor": "order", "amount": 1, "unit": "months" },
+      "anchors": { "order": "2028-01-31" },
+      "want": { "dueOn": "2028-02-29" }
+    },
+    {
+      "name": "leap day anchor: 29 Feb 2028 + 12 months → 28 Feb 2029",
+      "rule": { "type": "relative", "anchor": "service", "amount": 12, "unit": "months" },
+      "anchors": { "service": "2028-02-29" },
+      "want": { "dueOn": "2029-02-28" }
+    },
+    {
+      "name": "leap year days: 1 Feb 2028 + 30 days → 2 Mar 2028",
+      "rule": { "type": "relative", "anchor": "receipt", "amount": 30, "unit": "days" },
+      "anchors": { "receipt": "2028-02-01" },
+      "want": { "dueOn": "2028-03-02" }
+    },
+    {
+      "name": "31 Aug 2026 + 3 months → 30 Nov 2026",
+      "rule": { "type": "relative", "anchor": "service", "amount": 3, "unit": "months" },
+      "anchors": { "service": "2026-08-31" },
+      "want": { "dueOn": "2026-11-30" }
+    },
+    {
+      "name": "year end: 15 Dec 2026 + 30 days → 14 Jan 2027",
+      "rule": { "type": "relative", "anchor": "receipt", "amount": 30, "unit": "days" },
+      "anchors": { "receipt": "2026-12-15" },
+      "want": { "dueOn": "2027-01-14" }
+    },
+    {
+      "name": "FY boundary: 1 Mar 2027 + 1 month → 1 Apr 2027",
+      "rule": { "type": "relative", "anchor": "issue", "amount": 1, "unit": "months" },
+      "anchors": { "issue": "2027-03-01" },
+      "want": { "dueOn": "2027-04-01" }
+    },
+
+    {
+      "name": "working days skip Sundays and holidays",
+      "rule": { "type": "relative", "anchor": "receipt", "amount": 5, "unit": "working_days" },
+      "anchors": { "receipt": "2026-11-13" },
+      "workingDays": [1, 2, 3, 4, 5],
+      "holidays": ["2026-11-17"],
+      "want": { "dueOn": "2026-11-23", "basis": "5 working days from receipt on 13 Nov 2026" }
+    },
+    {
+      "name": "an unknown unit is rejected, not treated as months",
+      "rule": { "type": "relative", "anchor": "receipt", "amount": 1, "unit": "working_day" },
+      "anchors": { "receipt": "2026-11-21" },
+      "want": { "error": "invalid_rule" }
+    },
+    {
+      "name": "1 working day from Saturday 21 Nov 2026 (Mon–Sat week) is Monday 23 Nov",
+      "rule": { "type": "relative", "anchor": "receipt", "amount": 1, "unit": "working_days" },
+      "anchors": { "receipt": "2026-11-21" },
+      "want": { "dueOn": "2026-11-23", "basis": "1 working day from receipt on 21 Nov 2026" }
+    },
+    {
+      "name": "working days with no working days set is an error",
+      "rule": { "type": "relative", "anchor": "receipt", "amount": 5, "unit": "working_days" },
+      "anchors": { "receipt": "2026-11-13" },
+      "workingDays": [],
+      "want": { "error": "no_working_days" }
+    },
+
+    {
+      "name": "lands on a Sunday, roll-forward off (default): not moved, warned",
+      "rule": { "type": "relative", "anchor": "receipt", "amount": 30, "unit": "days" },
+      "anchors": { "receipt": "2026-10-23" },
+      "want": {
+        "dueOn": "2026-11-22",
+        "adjustments": [],
+        "warningsMatch": ["falls on a Sun", "Not moved"]
+      }
+    },
+    {
+      "name": "lands on a Sunday, roll-forward on: next working day, recorded",
+      "rule": { "type": "relative", "anchor": "receipt", "amount": 30, "unit": "days" },
+      "anchors": { "receipt": "2026-10-23" },
+      "rollForward": true,
+      "want": {
+        "dueOn": "2026-11-23",
+        "originalDueOn": "2026-11-22",
+        "adjustmentsMatch": ["is a Sun", "23 Nov 2026"]
+      }
+    },
+    {
+      "name": "roll-forward over a Sunday and a following holiday",
+      "rule": { "type": "relative", "anchor": "receipt", "amount": 30, "unit": "days" },
+      "anchors": { "receipt": "2026-10-23" },
+      "rollForward": true,
+      "holidays": ["2026-11-23"],
+      "want": { "dueOn": "2026-11-24" }
+    },
+    {
+      "name": "lands on a holiday, roll-forward on",
+      "rule": { "type": "relative", "anchor": "receipt", "amount": 10, "unit": "days" },
+      "anchors": { "receipt": "2026-11-10" },
+      "rollForward": true,
+      "holidays": ["2026-11-20"],
+      "want": { "dueOn": "2026-11-21", "adjustmentsMatch": ["is a holiday"] }
+    },
+
+    {
+      "name": "GST s.107 shape: 3 months + 1 month condonable, two separate dates",
+      "rule": {
+        "type": "relative",
+        "anchor": "service",
+        "amount": 3,
+        "unit": "months",
+        "condonable": { "amount": 1, "unit": "months" }
+      },
+      "anchors": { "service": "2026-08-31" },
+      "want": {
+        "dueOn": "2026-11-30",
+        "windowEndOn": "2026-12-30",
+        "basis": "3 months from service on 31 Aug 2026",
+        "windowBasis": "A further 1 month may be allowed (condonation), to 30 Dec 2026"
+      }
+    },
+    {
+      "name": "condonation window runs from the clamped last day: 30 Nov 2026 + 3m → 28 Feb 2027, + 1m → 28 Mar 2027",
+      "rule": {
+        "type": "relative",
+        "anchor": "service",
+        "amount": 3,
+        "unit": "months",
+        "condonable": { "amount": 1, "unit": "months" }
+      },
+      "anchors": { "service": "2026-11-30" },
+      "want": { "dueOn": "2027-02-28", "windowEndOn": "2027-03-28" }
+    },
+    {
+      "name": "condonation window runs from the unrolled date; each date rolled separately",
+      "rule": {
+        "type": "relative",
+        "anchor": "service",
+        "amount": 3,
+        "unit": "months",
+        "condonable": { "amount": 1, "unit": "months" }
+      },
+      "anchors": { "service": "2026-11-30" },
+      "rollForward": true,
+      "want": { "dueOn": "2027-03-01", "originalDueOn": "2027-02-28", "windowEndOn": "2027-03-29" }
+    },
+    {
+      "name": "condonable in days",
+      "rule": {
+        "type": "relative",
+        "anchor": "order",
+        "amount": 30,
+        "unit": "days",
+        "condonable": { "amount": 30, "unit": "days" }
+      },
+      "anchors": { "order": "2026-11-16" },
+      "want": { "dueOn": "2026-12-16", "windowEndOn": "2027-01-15" }
+    },
+
+    {
+      "name": "missing hearing anchor asks for it",
+      "rule": { "type": "relative", "anchor": "hearing", "amount": 7, "unit": "days" },
+      "anchors": { "receipt": "2026-11-16" },
+      "want": { "error": "missing_anchor", "anchor": "hearing" }
+    },
+    {
+      "name": "an impossible anchor date is an error",
+      "rule": { "type": "relative", "anchor": "receipt", "amount": 7, "unit": "days" },
+      "anchors": { "receipt": "2026-11-31" },
+      "want": { "error": "invalid_date" }
+    }
+  ]
+}

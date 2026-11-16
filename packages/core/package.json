@@ -3,8 +3,24 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/index.ts" },
-  "scripts": { "typecheck": "tsc --noEmit", "test": "vitest run --passWithNoTests" },
-  "dependencies": { "@dueproof/contracts": "workspace:*" },
-  "devDependencies": { "typescript": "7.0.2", "vitest": "5.1.0" }
+  "exports": {
+    ".": "./src/index.ts",
+    "./dates": "./src/dates/index.ts",
+    "./statutory": "./src/statutory/index.ts",
+    "./money": "./src/money/index.ts",
+    "./policy": "./src/policy.ts",
+    "./reconcile": "./src/reconcile.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@dueproof/contracts": "workspace:*",
+    "@dueproof/i18n": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  }
 }
