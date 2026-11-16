@@ -1,5 +1,13 @@
 import { MentionIcon, SendIcon } from "@dueproof/icons";
-import { type FormEvent, type KeyboardEvent, useId, useMemo, useRef, useState } from "react";
+import {
+  type FormEvent,
+  type KeyboardEvent,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { cx } from "../../utils/cx";
 import { Avatar } from "../Avatar/Avatar";
 import { Button } from "../Button/Button";
@@ -70,6 +78,16 @@ export function CommentComposer({
   const [mentioned, setMentioned] = useState<Map<string, string>>(new Map());
   const [busy, setBusy] = useState(false);
   const ref = useRef<HTMLTextAreaElement>(null);
+  const caretAfter = useRef<number | null>(null);
+
+  // Put the caret after an inserted mention once the new text has rendered.
+  useLayoutEffect(() => {
+    const pos = caretAfter.current;
+    if (pos === null || !ref.current) return;
+    caretAfter.current = null;
+    ref.current.focus();
+    ref.current.setSelectionRange(pos, pos);
+  });
   const listId = useId();
   const hintId = useId();
   const isApple = useIsApple();
@@ -105,11 +123,7 @@ export function CommentComposer({
     setMentioned((prev) => new Map(prev).set(user.id, user.name));
     setMention(null);
     setActive(0);
-    const pos = mention.start + insert.length;
-    requestAnimationFrame(() => {
-      ref.current?.focus();
-      ref.current?.setSelectionRange(pos, pos);
-    });
+    caretAfter.current = mention.start + insert.length;
   };
 
   const submit = async (e?: FormEvent) => {

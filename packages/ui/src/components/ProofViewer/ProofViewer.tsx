@@ -541,6 +541,11 @@ export function ProofViewer({
 
           <div
             ref={viewportRef}
+            role="group"
+            aria-label={`Page ${page?.number ?? 1} of ${pages.length}`}
+            // Focusable so the page can be scrolled from the keyboard and shortcuts keep working.
+            // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable region must be focusable.
+            tabIndex={0}
             className={cx(styles.viewport, dragging && styles.dragging)}
             data-zoom={typeof zoom === "number" ? "custom" : zoom}
             onPointerDown={onPointerDown}
