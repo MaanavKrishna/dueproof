@@ -1,0 +1,67 @@
+.nameCell,
+.ids {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.name {
+  font-weight: var(--dp-font-weight-medium);
+}
+
+.ids {
+  font: var(--dp-text-mono-font);
+}
+
+.muted {
+  color: var(--dp-fg-tertiary);
+}
+
+.tags,
+.inlineActions,
+.dupes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dp-space-4);
+  align-items: center;
+}
+
+.inlineActions {
+  gap: var(--dp-space-8);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-16);
+  padding-block: var(--dp-space-16);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-16);
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--dp-space-12);
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--dp-space-8);
+}
+
+.error {
+  margin: 0;
+  color: var(--dp-feedback-danger-fg);
+  font: var(--dp-text-footnote-font);
+}
+
+.issues {
+  margin: 0;
+  padding-inline-start: var(--dp-space-16);
+}
