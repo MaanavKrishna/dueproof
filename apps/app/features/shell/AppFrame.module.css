@@ -1,0 +1,63 @@
+.footer {
+  display: flex;
+  align-items: center;
+  gap: var(--dp-space-4);
+  min-width: 0;
+}
+
+[data-collapsed] .footer {
+  flex-direction: column;
+}
+
+.userButton {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--dp-space-8);
+  min-width: 0;
+  min-height: var(--dp-space-40);
+  padding: var(--dp-space-4) var(--dp-space-6);
+  border: 0;
+  border-radius: var(--dp-radius-md);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.userButton:hover {
+  background: var(--dp-bg-hover);
+}
+
+.userText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.userName,
+.userOrg {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.userName {
+  font: var(--dp-text-subhead-font);
+  font-weight: var(--dp-font-weight-medium);
+}
+
+.userOrg {
+  font: var(--dp-text-caption-font);
+  color: var(--dp-fg-secondary);
+}
+
+.muted {
+  font: var(--dp-text-footnote-font);
+  color: var(--dp-fg-secondary);
+}
+
+[data-collapsed] .userText {
+  display: none;
+}
