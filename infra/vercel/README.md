@@ -17,8 +17,10 @@ engine-heavy (Tesseract, IndicTrans2) is not a project: it runs in Vercel
 Sandbox microVMs started by `dueproof-app` from a snapshot built by
 `infra/sandbox/build-snapshot.ts`.
 
-Nothing here has been deployed yet. `next build` passes for the app; the
-items marked **verify in M0** need a real account.
+The hosted edition runs this way: the app at <https://dueproof-app.vercel.app>
+and the website at <https://dueproof.vercel.app>. engine-heavy is off on
+hosted in the v0.1 beta. Items marked **verify in M0** are not yet confirmed
+on a real account.
 
 ## 0. Before you start
 
