@@ -35,6 +35,7 @@ import {
   Timeline,
   type TimelineItem,
   type TimelineTone,
+  useMediaQuery,
   useToast,
 } from "@dueproof/ui";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -99,6 +100,7 @@ export function DeadlinesView({
   const [adding, setAdding] = useState(false);
   const [, startTransition] = useTransition();
   const { toast } = useToast();
+  const phone = useMediaQuery("(max-width: 40rem)");
 
   const people = useMemo(() => new Map(data.people.map((p) => [p.id, p.name])), [data.people]);
   const definitions: FilterDefinition[] = useMemo(
@@ -182,15 +184,18 @@ export function DeadlinesView({
       scrollPage
       actions={
         <>
-          <FeedMenu />
-          <Button
-            icon={DownloadIcon}
-            onClick={() => {
-              window.location.href = csvHref;
-            }}
-          >
-            Export CSV
-          </Button>
+          {/* On phones only "Add deadline" stays in the bar (Subscribe and CSV are desk tasks). */}
+          {phone ? null : <FeedMenu />}
+          {phone ? null : (
+            <Button
+              icon={DownloadIcon}
+              onClick={() => {
+                window.location.href = csvHref;
+              }}
+            >
+              Export CSV
+            </Button>
+          )}
           <AddDeadlineDialog
             open={adding}
             onOpenChange={setAdding}
@@ -236,6 +241,7 @@ export function DeadlinesView({
           people={people}
           data={data}
           onChanged={refresh}
+          compact={phone}
         />
       ) : view === "calendar" ? (
         <div className={styles.pad}>
@@ -295,12 +301,15 @@ function DeadlineList({
   people,
   data,
   onChanged,
+  compact = false,
 }: {
   rows: DeadlineRow[];
   today: string;
   people: Map<string, string>;
   data: DeadlinesPageData;
   onChanged: () => void;
+  /** Phones: the due chip sits under the title and the basis is left to the detail. */
+  compact?: boolean;
 }) {
   const groups = groupByWeek(rows, today);
   if (!groups.length) {
@@ -336,7 +345,12 @@ function DeadlineList({
               }
               description={
                 <span className={styles.rowDescription}>
-                  <span>{describeRow(r, people)}</span>
+                  {compact ? (
+                    <span>
+                      <DueChip state={r.state} detail={shortDate(r.dueOn)} size="sm" />
+                    </span>
+                  ) : null}
+                  <span>{compact ? (r.clientName ?? "No client") : describeRow(r, people)}</span>
                   {r.windowEndOn ? (
                     <span className={styles.window}>
                       Condonation window to {shortDate(r.windowEndOn)}
@@ -345,7 +359,9 @@ function DeadlineList({
                   ) : null}
                 </span>
               }
-              value={<DueChip state={r.state} detail={shortDate(r.dueOn)} size="sm" />}
+              {...(compact
+                ? {}
+                : { value: <DueChip state={r.state} detail={shortDate(r.dueOn)} size="sm" /> })}
               control={<DeadlineActions row={r} data={data} onChanged={onChanged} />}
             />
           ))}
