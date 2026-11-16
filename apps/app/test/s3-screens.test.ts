@@ -524,7 +524,7 @@ describe("web push and the daily job", () => {
     const mailer = {
       send: async (m: MailMessage) => {
         outbox.push(m);
-        return { driver: "log" as const, delivered: false };
+        return { driver: "smtp" as const, delivered: true };
       },
     };
     const first = await runDaily(container, { today: "2026-11-16", mailer });
@@ -549,6 +549,25 @@ describe("web push and the daily job", () => {
 
     const again = await runDaily(container, { today: "2026-11-16", mailer });
     expect(again).toMatchObject({ digests: 0, escalations: 0, notifications: 0 });
+  });
+
+  it("doesn't mark digests sent when the log driver only recorded them", async () => {
+    const recorded: MailMessage[] = [];
+    const logOnly = {
+      send: async (m: MailMessage) => {
+        recorded.push(m);
+        return { driver: "log" as const, delivered: false };
+      },
+    };
+    const dry = await runDaily(container, { today: "2026-11-17", mailer: logOnly });
+    expect(recorded.length).toBeGreaterThanOrEqual(2);
+    expect(dry.digests).toBe(0);
+    // Once mail works, the same day's digests still go out.
+    const delivered = {
+      send: async () => ({ driver: "smtp" as const, delivered: true }),
+    };
+    const real = await runDaily(container, { today: "2026-11-17", mailer: delivered });
+    expect(real.digests).toBe(recorded.length);
   });
 
   it("protects the cron route with its secret", async () => {
