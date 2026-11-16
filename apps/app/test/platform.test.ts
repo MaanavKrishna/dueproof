@@ -11,16 +11,19 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createAuth } from "@dueproof/auth";
 import {
+  clients,
   createDatabase,
   type Database,
   invitation,
   migrate,
   organization,
+  registrations,
   uuidv7,
 } from "@dueproof/db";
 import { unsafeRawDb } from "@dueproof/db/internal";
 import { handleLocalStorageRequest, LocalDiskStorage } from "@dueproof/storage";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { regenerateStatutory } from "../app/actions/statutory";
 import { GET as documentEvents } from "../app/api/v1/documents/[id]/events/route";
 import { POST as initRoute } from "../app/api/v1/uploads/route";
 import { type AuthContext, authorize } from "../lib/authorize";
@@ -35,6 +38,10 @@ const FIXTURE = new URL(
   import.meta.url,
 );
 const APP = "http://localhost:3000";
+
+// Server actions read the request's headers from next/headers.
+const request = vi.hoisted(() => ({ headers: new Headers() }));
+vi.mock("next/headers", () => ({ headers: async () => request.headers }));
 
 let dir: string;
 let database: Database;
@@ -173,9 +180,9 @@ describe("sign-up, upload and processing", () => {
     expect(detail.document).not.toHaveProperty("storageKey");
     expect(detail.findings).toHaveLength(5);
     // Reconciled by core with no AI findings: every finding is the rules' own, located on the page.
-    expect(
-      detail.findings.map((f) => [f.origin, f.verification, f.evidence.length]),
-    ).toEqual(Array.from({ length: 5 }, () => ["rule", "exact", 1]));
+    expect(detail.findings.map((f) => [f.origin, f.verification, f.evidence.length])).toEqual(
+      Array.from({ length: 5 }, () => ["rule", "exact", 1]),
+    );
 
     // Dates come from core's date engine, with its basis and working kept on the row.
     const due = detail.deadlines.map((d) => [d.source, d.dueOn, d.basis, d.windowEndOn]);
@@ -312,6 +319,27 @@ describe("sign-up, upload and processing", () => {
     expect(viewer.orgId).toBe(owner.orgId);
     expect((await getDocumentDetail(viewer, documentId)).findings).toHaveLength(5);
     await expect(authorize("document.upload", { headers })).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("regenerates a client's statutory calendar through the server action", async () => {
+    const clientId = uuidv7();
+    const db = unsafeRawDb(database);
+    await db.insert(clients).values({ id: clientId, orgId: owner.orgId, name: "Harbour Traders" });
+    await db.insert(registrations).values({
+      id: uuidv7(),
+      orgId: owner.orgId,
+      clientId,
+      kind: "tds",
+      identifier: "BLRA12345B",
+    });
+    request.headers = new Headers({ cookie: await signInCookie("owner@harbour.test") });
+    const res = await regenerateStatutory(clientId);
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.data.inserted).toBeGreaterThan(0);
+
+    // A viewer may not change a client's calendar.
+    request.headers = new Headers({ cookie: await signInCookie("viewer@harbour.test") });
+    expect(await regenerateStatutory(clientId)).toMatchObject({ ok: false, error: "forbidden" });
   });
 
   it("another organisation can't see the document, its findings or its events", async () => {
