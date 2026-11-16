@@ -7,7 +7,7 @@
   "functions": {
     "api/index.py": {
       "maxDuration": 300,
-      "memory": 3009,
+      "memory": 2048,
       "includeFiles": "{dueproof_engine/**,models/ppocr/**}",
       "excludeFiles": "{tests/**,fixtures/**,scripts/**,.venv/**,.scratch/**,**/__pycache__/**,dueproof_engine/pipeline/indictrans2/**}"
     }
