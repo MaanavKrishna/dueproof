@@ -1,0 +1,26 @@
+Dueproof engine — third-party notices (in addition to the repository's NOTICE)
+
+dueproof_engine/pipeline/indictrans2/
+    IndicTrans2 model code, copied verbatim from
+    https://huggingface.co/ai4bharat/indictrans2-indic-en-dist-200M at revision
+    eb9e49d81077cfc5311e82ff36d8c1fc11557b5d.
+    Copyright 2023 The IndicTrans2 Authors and AI4Bharat team.
+    Licensed under the Apache License, Version 2.0 (headers retained in each file).
+    The weights are not included; they are licence-gated and fetched separately
+    by `python -m dueproof_engine.tools.model`.
+
+models/ppocr/ (not in the repository; fetched by scripts/fetch_ocr_models.py)
+    PP-OCRv6_det_small.onnx and PP-OCRv6_rec_small.onnx, converted from official
+    PaddleOCR models to ONNX and packaged by RapidOCR (rapidocr 3.10.0 on PyPI).
+    The model weights are copyright Baidu and/or the applicable PaddleOCR rights
+    holders; RapidOCR is copyright the RapidOCR Authors. Both are licensed under
+    the Apache License, Version 2.0. RapidOCR's LICENSE and MODEL_LICENSES.md are
+    copied next to the models. No RapidOCR code is installed or run: the
+    pre/post-processing in dueproof_engine/ocr/paddle.py is our own, after
+    PaddleOCR's documented DB and CTC algorithms.
+
+Run-time dependencies keep their own licences (none copyleft): pypdfium2/PDFium
+(Apache-2.0 / BSD-3-Clause), ONNX Runtime (MIT), numpy (BSD), Pillow (MIT-CMU),
+RapidFuzz (MIT), FastAPI/Starlette/Pydantic/Uvicorn/httpx (MIT/BSD).
+engine-heavy adds Tesseract (Apache-2.0), pytesseract (Apache-2.0), OpenCV
+(Apache-2.0), PyTorch (BSD), transformers (Apache-2.0), IndicTransToolkit (MIT).

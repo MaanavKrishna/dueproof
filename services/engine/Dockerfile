@@ -1,34 +1,58 @@
-# Dueproof in a container.
+# The full engine (engine-fast + engine-heavy in one image), for the
+# self-hosted server, the desktop sidecar and the Vercel Sandbox snapshot.
 #
-#   docker build -t dueproof .
-#   docker run -p 8000:8000 -v dueproof-data:/data dueproof
-#   docker exec -it <container> dueproof users add you@example.org --admin
+#   docker build -t dueproof-engine services/engine
+#   docker run --read-only --tmpfs /tmp -p 8000:8000 \
+#     -e ENGINE_SHARED_SECRET=... \
+#     -v /srv/dueproof/indictrans2:/models/indictrans2:ro \
+#     dueproof-engine
 #
-# OCR_PACKS adds Tesseract language packs beside English (the default profile
-# reads Hindi), e.g. --build-arg OCR_PACKS="tesseract-ocr-hin tesseract-ocr-tam".
-FROM python:3.14-slim
+# Stateless and read-only friendly: the engine writes nothing but /tmp.
+# PaddleOCR models are fetched at build time (pinned SHA-256). Translation
+# weights are licence-gated and never downloaded by the image: run
+# `python -m dueproof_engine.tools.model` once on a connected machine and
+# mount the folder it fills at /models/indictrans2 (read-only is fine).
+# Without them /v1/translate answers engine "none".
+#
+# OCR_PACKS adds Tesseract language packs beside English, e.g.
+#   --build-arg OCR_PACKS="tesseract-ocr-hin tesseract-ocr-tam tesseract-ocr-mal"
+# INSTALL_TRANSLATION=0 leaves torch and IndicTrans2 out (a much smaller image).
 
-ARG OCR_PACKS="tesseract-ocr-hin"
+FROM python:3.13-slim AS build
+ARG INSTALL_TRANSLATION=1
+COPY --from=ghcr.io/astral-sh/uv:0.11 /uv /usr/local/bin/uv
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PROJECT_ENVIRONMENT=/opt/engine
+WORKDIR /src
+COPY pyproject.toml uv.lock ./
+# torch from PyTorch's CPU index first, so the heavy group does not pull the
+# CUDA build (gigabytes the engine never uses).
+RUN uv venv /opt/engine \
+ && if [ "$INSTALL_TRANSLATION" = "1" ]; then \
+      uv pip install --python /opt/engine/bin/python torch --index-url https://download.pytorch.org/whl/cpu \
+      && uv sync --frozen --no-install-project --no-default-groups --group heavy --inexact; \
+    else \
+      uv sync --frozen --no-install-project --no-default-groups --group tesseract; \
+    fi
+COPY dueproof_engine ./dueproof_engine
+COPY scripts/fetch_ocr_models.py ./scripts/
+RUN /opt/engine/bin/python scripts/fetch_ocr_models.py --dest /opt/models/ppocr
+
+FROM python:3.13-slim
+ARG OCR_PACKS="tesseract-ocr-hin tesseract-ocr-mal tesseract-ocr-tam"
 RUN apt-get update \
  && apt-get install -y --no-install-recommends tesseract-ocr ${OCR_PACKS} \
- && rm -rf /var/lib/apt/lists/*
-
+ && rm -rf /var/lib/apt/lists/* \
+ && useradd --system --uid 10001 --home-dir /nonexistent --shell /usr/sbin/nologin engine
+COPY --from=build /opt/engine /opt/engine
+COPY --from=build /opt/models /models
+COPY --chown=root:root dueproof_engine /app/dueproof_engine
 WORKDIR /app
-# The CPU build of PyTorch: the GPU one is gigabytes Dueproof does not need.
-RUN pip install --no-cache-dir torch==2.13.0 --index-url https://download.pytorch.org/whl/cpu
-COPY pyproject.toml README.md LICENSE NOTICE ./
-COPY dueproof ./dueproof
-RUN pip install --no-cache-dir .
-
-# Translation weights are never downloaded by the image or the app. Run
-# `dueproof fetch-model` on a connected machine and mount the folder it fills
-# at /data/models/indictrans2 (read-only is fine).
-RUN useradd --create-home dueproof && mkdir -p /data && chown dueproof /data
-USER dueproof
-WORKDIR /data
-VOLUME /data
-ENV DUEPROOF_DATA=/data DUEPROOF_SECURE_COOKIES=1
+ENV PATH=/opt/engine/bin:$PATH \
+    PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 \
+    DUEPROOF_MODELS=/models DUEPROOF_LANGUAGES=all \
+    HF_HOME=/tmp/hf
+USER engine
 EXPOSE 8000
-HEALTHCHECK --interval=30s --timeout=5s --start-period=90s \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s \
   CMD python -c "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/health', timeout=4)"
-CMD ["dueproof", "serve", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "dueproof_engine.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2", "--no-server-header"]
