@@ -1,0 +1,225 @@
+.page {
+  height: 100%;
+  min-height: 0;
+}
+
+.scrollPage {
+  overflow-y: auto;
+}
+
+.banner {
+  padding: 0 var(--dp-space-24) var(--dp-space-12);
+}
+
+/* List page: the table fills the remaining height. */
+.list {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.listScroll {
+  height: auto;
+  min-height: 100%;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(calc(var(--dp-space-96) * 2), 1fr));
+  gap: var(--dp-space-12);
+  padding: 0 var(--dp-space-24) var(--dp-space-12);
+}
+
+.filters {
+  padding: 0 var(--dp-space-24);
+}
+
+.listBody {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: calc(var(--dp-space-96) * 3);
+  padding: var(--dp-space-4) var(--dp-space-24) var(--dp-space-24);
+}
+
+.listScroll .listBody {
+  flex: none;
+}
+
+/* Detail page */
+.detail {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.stageBar {
+  padding: var(--dp-space-4) var(--dp-space-24) var(--dp-space-12);
+}
+
+.detailBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-24);
+  width: 100%;
+  max-width: calc(var(--dp-layout-content) + var(--dp-space-48));
+  padding: 0 var(--dp-space-24) var(--dp-space-48);
+}
+
+.tabList {
+  position: sticky;
+  top: var(--dp-layout-toolbar);
+  z-index: var(--dp-z-raised);
+  background: var(--dp-bg-canvas);
+}
+
+.tabPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-16);
+  padding-top: var(--dp-space-16);
+}
+
+.unsaved {
+  margin-inline-end: auto;
+  color: var(--dp-fg-secondary);
+  font: var(--dp-text-callout-font);
+}
+
+/* Wizard */
+.wizard {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  background: var(--dp-bg-canvas);
+  color: var(--dp-fg-primary);
+}
+
+.wizardBar {
+  display: flex;
+  align-items: center;
+  gap: var(--dp-space-12);
+  min-height: var(--dp-layout-toolbar);
+  padding: 0 var(--dp-space-16) 0 var(--dp-space-24);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+}
+
+.wizardTitle {
+  flex: 1;
+  margin: 0;
+  font: var(--dp-text-headline-font);
+}
+
+.stepCount {
+  color: var(--dp-fg-secondary);
+  font: var(--dp-text-footnote-font);
+  font-variant-numeric: tabular-nums;
+}
+
+.wizardProgress {
+  padding: 0 var(--dp-space-24);
+}
+
+.wizardMain {
+  display: grid;
+  flex: 1;
+  grid-template-columns: calc(var(--dp-space-96) * 2.2) minmax(0, var(--dp-layout-dialog-md)) minmax(
+      0,
+      calc(var(--dp-space-96) * 3)
+    );
+  justify-content: center;
+  gap: var(--dp-space-48);
+  padding: var(--dp-space-40) var(--dp-space-24);
+}
+
+.wizardSteps {
+  padding-top: var(--dp-space-4);
+}
+
+.wizardForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-24);
+  margin: 0;
+}
+
+.wizardHead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-8);
+}
+
+.wizardHeading {
+  margin: 0;
+  font: var(--dp-text-title1-font);
+  letter-spacing: var(--dp-text-title1-tracking);
+  outline: none;
+}
+
+.wizardDescription {
+  margin: 0;
+  color: var(--dp-fg-secondary);
+  font: var(--dp-text-reading-font);
+}
+
+.wizardContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-16);
+}
+
+.wizardFooter {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--dp-space-8);
+  padding: var(--dp-space-16) 0;
+  background: var(--dp-bg-canvas);
+  box-shadow: inset 0 var(--dp-border-hairline) 0 var(--dp-separator-subtle);
+}
+
+.wizardFooterEnd {
+  display: flex;
+  gap: var(--dp-space-8);
+}
+
+.wizardAside {
+  align-self: start;
+  padding: var(--dp-space-16);
+  border-radius: var(--dp-radius-lg);
+  background: var(--dp-bg-sunken);
+  color: var(--dp-fg-secondary);
+  font: var(--dp-text-callout-font);
+}
+
+@media (width < 64rem) {
+  .wizardMain {
+    grid-template-columns: minmax(0, var(--dp-layout-dialog-md));
+    gap: var(--dp-space-24);
+    padding: var(--dp-space-24) var(--dp-space-16);
+  }
+  .wizardSteps,
+  .wizardAside {
+    display: none;
+  }
+}
+
+@media (width < 40rem) {
+  .banner,
+  .summary,
+  .filters,
+  .stageBar,
+  .detailBody {
+    padding-inline: var(--dp-space-16);
+  }
+  .listBody {
+    padding-inline: var(--dp-space-8);
+  }
+}

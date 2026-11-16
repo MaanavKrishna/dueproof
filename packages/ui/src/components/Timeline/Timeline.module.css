@@ -1,0 +1,157 @@
+.timeline {
+  --marker: var(--dp-space-24);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.compact {
+  --marker: var(--dp-space-20);
+}
+
+.item {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--marker) 1fr;
+  gap: var(--dp-space-12);
+  padding-bottom: var(--dp-space-20);
+}
+
+.compact .item {
+  padding-bottom: var(--dp-space-12);
+}
+
+.item:last-child {
+  padding-bottom: 0;
+}
+
+.rail {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+/* The connecting line, from below this marker to the next. */
+.item:not(:last-child) .rail::after {
+  content: "";
+  position: absolute;
+  top: calc(var(--marker) + var(--dp-space-4));
+  bottom: calc(var(--dp-space-20) * -1 + var(--dp-space-4));
+  left: calc(50% - var(--dp-border-hairline));
+  width: var(--dp-border-thick);
+  border-radius: var(--dp-radius-pill);
+  background: var(--dp-separator-default);
+}
+
+.upcoming:not(:last-child) .rail::after {
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--dp-separator-default) 0 var(--dp-space-4),
+    transparent var(--dp-space-4) var(--dp-space-8)
+  );
+}
+
+.compact .item:not(:last-child) .rail::after {
+  bottom: calc(var(--dp-space-12) * -1 + var(--dp-space-4));
+}
+
+.marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--marker);
+  height: var(--marker);
+  border-radius: var(--dp-radius-pill);
+  background: var(--dp-bg-sunken);
+  box-shadow: inset 0 0 0 var(--dp-border-hairline) var(--dp-separator-default);
+  color: var(--dp-fg-secondary);
+}
+
+.tone-accent .marker {
+  background: var(--dp-accent-subtle);
+  color: var(--dp-accent-subtle-fg);
+  box-shadow: none;
+}
+.tone-success .marker {
+  background: var(--dp-feedback-success-bg);
+  color: var(--dp-feedback-success-fg);
+  box-shadow: none;
+}
+.tone-warning .marker {
+  background: var(--dp-feedback-warning-bg);
+  color: var(--dp-feedback-warning-fg);
+  box-shadow: none;
+}
+.tone-danger .marker {
+  background: var(--dp-feedback-danger-bg);
+  color: var(--dp-feedback-danger-fg);
+  box-shadow: none;
+}
+.tone-proof .marker {
+  background: var(--dp-proof-bg);
+  color: var(--dp-proof-fg);
+  box-shadow: inset 0 0 0 var(--dp-border-hairline) var(--dp-proof-border);
+}
+
+.current .marker {
+  background: var(--dp-accent-solid);
+  color: var(--dp-accent-on-solid);
+  box-shadow: 0 0 0 var(--dp-space-4) var(--dp-accent-subtle);
+}
+
+.upcoming .marker {
+  background: var(--dp-bg-surface);
+  box-shadow: inset 0 0 0 var(--dp-border-hairline) var(--dp-separator-control);
+  color: var(--dp-fg-tertiary);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-2);
+  min-width: 0;
+  padding-top: var(--dp-space-2);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--dp-space-8);
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  font: var(--dp-text-headline-font);
+}
+
+.upcoming .title {
+  color: var(--dp-fg-secondary);
+  font-weight: var(--dp-font-weight-medium);
+}
+
+.meta {
+  flex: none;
+  color: var(--dp-fg-tertiary);
+  font: var(--dp-text-footnote-font);
+}
+
+.time {
+  color: var(--dp-fg-tertiary);
+  font: var(--dp-text-footnote-font);
+  font-variant-numeric: tabular-nums;
+}
+
+.description {
+  margin: var(--dp-space-2) 0 0;
+  color: var(--dp-fg-secondary);
+  font: var(--dp-text-callout-font);
+}
+
+.extra {
+  margin-top: var(--dp-space-8);
+}
+
+.srOnly {
+  composes: visuallyHidden from "../../styles/shared.module.css";
+}

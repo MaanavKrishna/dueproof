@@ -1,0 +1,161 @@
+.nav {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.list {
+  display: flex;
+  margin: 0;
+  padding: var(--dp-space-2);
+  list-style: none;
+}
+
+.stage {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  min-width: calc(var(--dp-space-96) * 1.1);
+}
+
+.compact .stage {
+  min-width: var(--dp-space-40);
+}
+
+.compact .current {
+  flex-grow: 3;
+  min-width: calc(var(--dp-space-96) * 1.3);
+}
+
+/* Connector to the next stage. */
+.stage:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: calc(var(--dp-space-12) - var(--dp-border-hairline));
+  right: var(--dp-space-6);
+  left: calc(var(--dp-space-24) + var(--dp-space-6));
+  height: var(--dp-border-thick);
+  border-radius: var(--dp-radius-pill);
+  background: var(--dp-separator-default);
+  z-index: 0;
+}
+
+.compact .stage:not(:last-child)::after {
+  display: none;
+}
+
+.complete:not(:last-child)::after {
+  background: var(--dp-accent-solid);
+}
+
+.button {
+  composes: focusRing from "../../styles/shared.module.css";
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--dp-space-6);
+  margin: 0;
+  padding: 0 var(--dp-space-8) 0 0;
+  border: 0;
+  border-radius: var(--dp-radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+}
+
+button.button {
+  cursor: pointer;
+}
+
+button.button:disabled {
+  cursor: default;
+}
+
+.marker {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--dp-space-24);
+  height: var(--dp-space-24);
+  border-radius: var(--dp-radius-pill);
+  background: var(--dp-bg-surface);
+  box-shadow: inset 0 0 0 var(--dp-border-hairline) var(--dp-separator-control);
+  color: var(--dp-fg-tertiary);
+  transition:
+    background-color var(--dp-duration-standard) var(--dp-ease-out),
+    color var(--dp-duration-standard) var(--dp-ease-out);
+}
+
+.complete .marker {
+  background: var(--dp-accent-solid);
+  color: var(--dp-accent-on-solid);
+  box-shadow: none;
+}
+
+.current .marker {
+  background: var(--dp-accent-solid);
+  color: var(--dp-accent-on-solid);
+  box-shadow: 0 0 0 var(--dp-space-4) var(--dp-accent-subtle);
+}
+
+.skipped .marker {
+  background: var(--dp-bg-sunken);
+  color: var(--dp-fg-quaternary);
+  box-shadow: none;
+}
+
+button.button:hover:not(:disabled) .marker {
+  box-shadow: inset 0 0 0 var(--dp-border-thick) var(--dp-accent-solid);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.label {
+  color: var(--dp-fg-secondary);
+  font: var(--dp-text-subhead-font);
+  font-weight: var(--dp-font-weight-medium);
+  text-wrap: balance;
+}
+
+.complete .label {
+  color: var(--dp-fg-primary);
+}
+
+.current .label {
+  color: var(--dp-fg-primary);
+  font-weight: var(--dp-font-weight-semibold);
+}
+
+.upcoming .label {
+  color: var(--dp-fg-tertiary);
+}
+
+.skipped .label {
+  color: var(--dp-fg-quaternary);
+  text-decoration: line-through;
+}
+
+.detail {
+  color: var(--dp-fg-tertiary);
+  font: var(--dp-text-caption-font);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.srOnly {
+  composes: visuallyHidden from "../../styles/shared.module.css";
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marker {
+    transition: none;
+  }
+}

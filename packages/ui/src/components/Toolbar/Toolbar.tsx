@@ -1,5 +1,5 @@
 import { MenuIcon } from "@dueproof/icons";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 import { cx } from "../../utils/cx";
 import { useAppShell } from "../AppShell/AppShell";
 import { IconButton } from "../IconButton/IconButton";
@@ -25,6 +25,12 @@ export interface ToolbarProps {
   children?: ReactNode;
   /** Show a menu button that opens the sidebar on phones. Default true. */
   mobileMenu?: boolean;
+  /**
+   * A custom header in place of the large title (e.g. a NoticeHeader that
+   * carries the page's <h1>). It scrolls under the bar like a large title, and
+   * the bar shows `title` once it's gone.
+   */
+  hero?: ReactNode;
   className?: string;
 }
 
@@ -42,15 +48,17 @@ export function Toolbar({
   largeTitle = true,
   children,
   mobileMenu = true,
+  hero,
   className,
 }: ToolbarProps) {
   const shell = useAppShell();
   const barRef = useRef<HTMLDivElement>(null);
-  const titleRef = useRef<HTMLHeadingElement>(null);
-  const [collapsed, setCollapsed] = useState(!largeTitle);
+  const titleRef = useRef<HTMLElement>(null);
+  const collapsing = largeTitle || hero != null;
+  const [collapsed, setCollapsed] = useState(!collapsing);
 
   useEffect(() => {
-    if (!largeTitle) {
+    if (!collapsing) {
       setCollapsed(true);
       return;
     }
@@ -63,7 +71,7 @@ export function Toolbar({
     );
     observer.observe(target);
     return () => observer.disconnect();
-  }, [largeTitle]);
+  }, [collapsing]);
 
   return (
     <>
@@ -76,7 +84,7 @@ export function Toolbar({
           <IconButton icon={MenuIcon} label="Open navigation" onClick={shell.toggleSidebar} />
         ) : null}
         {leading ? <div className={styles.leading}>{leading}</div> : null}
-        {largeTitle ? (
+        {collapsing ? (
           <div className={styles.inlineTitle} aria-hidden="true">
             {title}
           </div>
@@ -85,10 +93,15 @@ export function Toolbar({
         )}
         {actions ? <div className={styles.actions}>{actions}</div> : null}
       </div>
-      {largeTitle ? (
+      {hero != null ? (
+        <div ref={titleRef as RefObject<HTMLDivElement>} className={styles.large}>
+          {breadcrumbs ? <div className={styles.breadcrumbs}>{breadcrumbs}</div> : null}
+          {hero}
+        </div>
+      ) : largeTitle ? (
         <div className={styles.large}>
           {breadcrumbs ? <div className={styles.breadcrumbs}>{breadcrumbs}</div> : null}
-          <h1 ref={titleRef} className={styles.largeTitle}>
+          <h1 ref={titleRef as RefObject<HTMLHeadingElement>} className={styles.largeTitle}>
             {title}
           </h1>
           {subtitle ? <p className={styles.subtitle}>{subtitle}</p> : null}

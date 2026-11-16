@@ -1,0 +1,99 @@
+.composer {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--dp-space-12);
+  margin: 0;
+}
+
+.box {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  border-radius: var(--dp-radius-lg);
+  background: var(--dp-bg-surface);
+  box-shadow: inset 0 0 0 var(--dp-border-hairline) var(--dp-separator-control);
+  transition: box-shadow var(--dp-duration-fade) var(--dp-ease-out);
+}
+
+.box:focus-within {
+  box-shadow:
+    inset 0 0 0 var(--dp-border-hairline) var(--dp-accent-solid),
+    0 0 0 var(--dp-focus-width) var(--dp-accent-subtle);
+}
+
+.input {
+  width: 100%;
+  min-height: calc(var(--dp-space-48) + var(--dp-space-8));
+  max-height: calc(var(--dp-space-96) * 2.5);
+  margin: 0;
+  padding: var(--dp-space-12) var(--dp-space-12) var(--dp-space-4);
+  border: 0;
+  background: transparent;
+  color: var(--dp-fg-primary);
+  font: var(--dp-text-body-font);
+  resize: vertical;
+  field-sizing: content;
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--dp-fg-tertiary);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--dp-space-8);
+  padding: var(--dp-space-4) var(--dp-space-8) var(--dp-space-8) var(--dp-space-12);
+}
+
+.hint {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--dp-space-4);
+  color: var(--dp-fg-tertiary);
+  font: var(--dp-text-caption-font);
+}
+
+.popup {
+  composes: floating from "../../styles/shared.module.css";
+  position: absolute;
+  top: calc(100% + var(--dp-space-4));
+  left: var(--dp-space-12);
+  width: min(calc(var(--dp-space-96) * 3), calc(100% - var(--dp-space-24)));
+  min-width: 0;
+}
+
+.option {
+  composes: item from "../../styles/shared.module.css";
+}
+
+.active {
+  background: var(--dp-accent-solid);
+  color: var(--dp-accent-on-solid);
+}
+
+.optionName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.optionRole {
+  color: var(--dp-fg-tertiary);
+  font: var(--dp-text-footnote-font);
+}
+
+.active .optionRole {
+  color: inherit;
+  opacity: 0.85;
+}
+
+.srOnly {
+  composes: visuallyHidden from "../../styles/shared.module.css";
+}

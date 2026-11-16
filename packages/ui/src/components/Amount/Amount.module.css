@@ -1,0 +1,77 @@
+.amount {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--dp-space-2);
+  color: var(--dp-fg-primary);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "lnum";
+  white-space: nowrap;
+}
+
+.sm {
+  font: var(--dp-text-footnote-font);
+  font-variant-numeric: tabular-nums;
+}
+.md {
+  font: var(--dp-text-body-font);
+  font-variant-numeric: tabular-nums;
+}
+.lg {
+  font: var(--dp-text-title2-font);
+  letter-spacing: var(--dp-text-title2-tracking);
+  font-variant-numeric: tabular-nums;
+}
+.xl {
+  font: var(--dp-text-large-title-font);
+  letter-spacing: var(--dp-text-large-title-tracking);
+  font-variant-numeric: tabular-nums;
+}
+
+.danger {
+  color: var(--dp-due-overdue-fg);
+}
+
+.muted {
+  color: var(--dp-fg-tertiary);
+}
+
+.positive {
+  color: var(--dp-feedback-success-fg);
+}
+
+.struck {
+  text-decoration: line-through;
+  text-decoration-thickness: var(--dp-border-hairline);
+}
+
+/* Estimates: lighter, italic, with ≈ and "est." so they never read as quoted figures. */
+.estimate {
+  color: var(--dp-fg-secondary);
+  font-style: italic;
+  font-weight: var(--dp-font-weight-regular);
+}
+
+.approx {
+  color: var(--dp-fg-tertiary);
+  font-style: normal;
+}
+
+.est {
+  margin-inline-start: var(--dp-space-2);
+  padding: 0 var(--dp-space-4);
+  border-radius: var(--dp-radius-xs);
+  box-shadow: inset 0 0 0 var(--dp-border-hairline) var(--dp-separator-control);
+  color: var(--dp-fg-tertiary);
+  font: var(--dp-text-caption-font);
+  font-style: normal;
+  font-weight: var(--dp-font-weight-semibold);
+  align-self: center;
+}
+
+.dash {
+  color: var(--dp-fg-tertiary);
+}
+
+.srOnly {
+  composes: visuallyHidden from "../../styles/shared.module.css";
+}

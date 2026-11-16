@@ -1,0 +1,312 @@
+.calendar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-12);
+  min-width: 0;
+  color: var(--dp-fg-primary);
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--dp-space-12);
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font: var(--dp-text-title2-font);
+  letter-spacing: var(--dp-text-title2-tracking);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: var(--dp-space-4);
+}
+
+.grid {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--dp-radius-lg);
+  background: var(--dp-separator-subtle);
+  box-shadow:
+    inset 0 0 0 var(--dp-border-hairline) var(--dp-separator-subtle),
+    var(--dp-shadow-1);
+}
+
+.weekdays,
+.weekRow {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--dp-border-hairline);
+}
+
+.weekRow {
+  margin-top: var(--dp-border-hairline);
+}
+
+.weekday {
+  padding: var(--dp-space-8);
+  background: var(--dp-bg-surface);
+  color: var(--dp-fg-tertiary);
+  font: var(--dp-text-footnote-font);
+  font-weight: var(--dp-font-weight-semibold);
+}
+
+.sundayHead {
+  color: var(--dp-fg-quaternary);
+}
+
+.weekdayDate {
+  color: var(--dp-fg-primary);
+  font: var(--dp-text-headline-font);
+  font-variant-numeric: tabular-nums;
+}
+
+.day {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-4);
+  min-width: 0;
+  min-height: calc(var(--dp-space-96) * 1.15);
+  padding: var(--dp-space-4);
+  background: var(--dp-bg-surface);
+}
+
+.view-week .day {
+  min-height: calc(var(--dp-space-96) * 3.5);
+}
+
+:global([data-density="compact"]) .day {
+  min-height: var(--dp-space-80);
+}
+
+.outside {
+  background: var(--dp-bg-canvas);
+}
+
+.holiday {
+  background-color: var(--dp-bg-sunken);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0 var(--dp-space-6),
+    var(--dp-bg-hover) var(--dp-space-6) var(--dp-space-8)
+  );
+}
+
+.sunday:not(.holiday) {
+  background: var(--dp-bg-canvas);
+}
+
+.dayButton {
+  composes: focusRing from "../../styles/shared.module.css";
+  display: flex;
+  align-items: center;
+  gap: var(--dp-space-6);
+  min-width: 0;
+  margin: 0;
+  padding: var(--dp-space-2) var(--dp-space-4);
+  border: 0;
+  border-radius: var(--dp-radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.dayButton:hover {
+  background: var(--dp-bg-hover);
+}
+
+.dayNumber {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--dp-space-24);
+  height: var(--dp-space-24);
+  border-radius: var(--dp-radius-pill);
+  font: var(--dp-text-subhead-font);
+  font-weight: var(--dp-font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.outside .dayNumber {
+  color: var(--dp-fg-quaternary);
+}
+
+.today .dayNumber {
+  background: var(--dp-accent-solid);
+  color: var(--dp-accent-on-solid);
+}
+
+.focused {
+  box-shadow: inset 0 0 0 var(--dp-border-thick) var(--dp-accent-subtle);
+}
+
+.holidayName {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dp-fg-secondary);
+  font: var(--dp-text-caption-font);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.events {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  composes: focusRing from "../../styles/shared.module.css";
+  display: flex;
+  align-items: center;
+  gap: var(--dp-space-4);
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: var(--dp-space-2) var(--dp-space-6);
+  border: 0;
+  border-radius: var(--dp-radius-xs);
+  font: var(--dp-text-caption-font);
+  font-weight: var(--dp-font-weight-medium);
+  text-align: start;
+  cursor: pointer;
+  box-shadow: inset var(--dp-border-thick) 0 0 currentColor;
+}
+
+.chip:hover {
+  filter: brightness(0.97);
+}
+
+.chipDetailed {
+  flex-wrap: wrap;
+  padding: var(--dp-space-4) var(--dp-space-8);
+  font: var(--dp-text-footnote-font);
+  font-weight: var(--dp-font-weight-medium);
+}
+
+.chipIcon {
+  flex: none;
+}
+
+.chipTime {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.chipTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chipClient {
+  flex-basis: 100%;
+  overflow: hidden;
+  opacity: 0.8;
+  font: var(--dp-text-caption-font);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.due-overdue {
+  background: var(--dp-due-overdue-bg);
+  color: var(--dp-due-overdue-fg);
+}
+.due-today {
+  background: var(--dp-due-today-bg);
+  color: var(--dp-due-today-fg);
+}
+.due-week {
+  background: var(--dp-due-week-bg);
+  color: var(--dp-due-week-fg);
+}
+.due-later {
+  background: var(--dp-due-later-bg);
+  color: var(--dp-due-later-fg);
+}
+.due-done {
+  background: var(--dp-due-done-bg);
+  color: var(--dp-due-done-fg);
+}
+
+.due-done .chipTitle {
+  text-decoration: line-through;
+}
+
+.more {
+  composes: focusRing from "../../styles/shared.module.css";
+  margin: 0;
+  padding: var(--dp-space-2) var(--dp-space-6);
+  border: 0;
+  border-radius: var(--dp-radius-xs);
+  background: transparent;
+  color: var(--dp-fg-secondary);
+  font: var(--dp-text-caption-font);
+  font-weight: var(--dp-font-weight-semibold);
+  text-align: start;
+  cursor: pointer;
+}
+
+.more:hover {
+  background: var(--dp-bg-hover);
+  color: var(--dp-fg-primary);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dp-space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--dp-space-4);
+  padding: var(--dp-space-2) var(--dp-space-8);
+  border-radius: var(--dp-radius-pill);
+  font: var(--dp-text-caption-font);
+  font-weight: var(--dp-font-weight-medium);
+}
+
+.legendHoliday {
+  background-color: var(--dp-bg-sunken);
+  color: var(--dp-fg-secondary);
+}
+
+.srOnly {
+  composes: visuallyHidden from "../../styles/shared.module.css";
+}
+
+@media (width < 40rem) {
+  .day {
+    min-height: var(--dp-space-64);
+    padding: var(--dp-space-2);
+  }
+  .chipTitle,
+  .chipTime,
+  .holidayName {
+    display: none;
+  }
+  .chip {
+    justify-content: center;
+    padding: var(--dp-space-2);
+  }
+}
