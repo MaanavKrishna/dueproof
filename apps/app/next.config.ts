@@ -47,7 +47,17 @@ const config: NextConfig = {
   // The repo has its own AGENTS.md; don't let `next dev` write another one here.
   agentRules: false,
   async headers() {
-    return [{ source: "/:path*", headers: staticSecurityHeaders }];
+    return [
+      { source: "/:path*", headers: staticSecurityHeaders },
+      // The service worker is replaced on the next visit, never served stale (03 §14).
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+    ];
   },
 };
 
