@@ -1,0 +1,106 @@
+.month {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-8);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--dp-space-2);
+}
+
+.title {
+  flex: 1;
+  margin: 0;
+  padding-inline-start: var(--dp-space-4);
+  font: var(--dp-text-headline-font);
+}
+
+.grid {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: var(--dp-space-2);
+  table-layout: fixed;
+}
+
+.weekday {
+  padding: var(--dp-space-2) 0;
+  color: var(--dp-fg-tertiary);
+  font: var(--dp-text-caption-font);
+  font-weight: var(--dp-font-weight-semibold);
+  text-align: center;
+}
+
+.cell {
+  padding: 0;
+  text-align: center;
+}
+
+.day {
+  composes: focusRing from "../../styles/shared.module.css";
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--dp-size-control-md);
+  height: var(--dp-size-control-md);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--dp-radius-pill);
+  background: transparent;
+  color: var(--dp-fg-primary);
+  font: var(--dp-text-body-font);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.day:hover:not(:disabled) {
+  background: var(--dp-bg-hover);
+}
+
+.outside {
+  color: var(--dp-fg-quaternary);
+}
+
+.sunday {
+  color: var(--dp-fg-secondary);
+}
+
+.holiday {
+  background: var(--dp-bg-sunken);
+  color: var(--dp-fg-secondary);
+}
+
+.holiday::after {
+  content: "";
+  position: absolute;
+  bottom: var(--dp-space-4);
+  width: var(--dp-space-4);
+  height: var(--dp-space-4);
+  border-radius: var(--dp-radius-pill);
+  background: var(--dp-fg-tertiary);
+}
+
+.marked {
+  box-shadow: inset 0 0 0 var(--dp-border-hairline) var(--dp-separator-control);
+}
+
+.today {
+  color: var(--dp-accent-text);
+  font-weight: var(--dp-font-weight-bold);
+}
+
+.selected,
+.selected:hover:not(:disabled) {
+  background: var(--dp-accent-solid);
+  color: var(--dp-accent-on-solid);
+  font-weight: var(--dp-font-weight-semibold);
+}
+
+.day:disabled {
+  color: var(--dp-fg-quaternary);
+  text-decoration: line-through;
+  cursor: not-allowed;
+}

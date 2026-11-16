@@ -1,0 +1,63 @@
+.nav {
+  min-width: 0;
+}
+
+.list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--dp-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: var(--dp-text-subhead-font);
+}
+
+.item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--dp-space-2);
+  min-width: 0;
+}
+
+.sep {
+  display: inline-flex;
+  color: var(--dp-fg-quaternary);
+}
+
+.link {
+  composes: focusRing from "../../styles/shared.module.css";
+  display: inline-flex;
+  align-items: center;
+  max-width: calc(var(--dp-space-96) * 2.5);
+  min-height: var(--dp-size-target);
+  margin: 0;
+  padding: 0 var(--dp-space-4);
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--dp-radius-sm);
+  background: none;
+  color: var(--dp-fg-secondary);
+  font: inherit;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.link:hover {
+  background: var(--dp-bg-hover);
+  color: var(--dp-fg-primary);
+}
+
+.current,
+.current:hover {
+  background: none;
+  color: var(--dp-fg-primary);
+  font-weight: var(--dp-font-weight-medium);
+  cursor: default;
+}
+
+.more {
+  padding: 0 var(--dp-space-6);
+}

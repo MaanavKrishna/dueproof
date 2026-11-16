@@ -1,0 +1,213 @@
+.layout {
+  display: grid;
+  grid-template-columns: calc(var(--dp-space-96) * 2.3) minmax(0, 1fr);
+  gap: var(--dp-space-32);
+  align-items: start;
+  padding: var(--dp-space-8) var(--dp-space-24) var(--dp-space-32);
+}
+
+.nav {
+  position: sticky;
+  top: calc(var(--dp-layout-toolbar) + var(--dp-space-8));
+}
+
+.navList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.navItem {
+  composes: focusRing from "../../styles/shared.module.css";
+  display: flex;
+  align-items: center;
+  gap: var(--dp-space-12);
+  width: 100%;
+  min-height: var(--dp-size-control-md);
+  margin: 0;
+  padding: 0 var(--dp-space-12);
+  border: 0;
+  border-radius: var(--dp-radius-md);
+  background: transparent;
+  color: var(--dp-fg-primary);
+  font: var(--dp-text-body-font);
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.navItem:hover {
+  background: var(--dp-bg-hover);
+}
+
+.navActive,
+.navActive:hover {
+  background: var(--dp-bg-surface);
+  box-shadow:
+    inset 0 0 0 var(--dp-border-hairline) var(--dp-separator-subtle),
+    var(--dp-shadow-1);
+  font-weight: var(--dp-font-weight-medium);
+}
+
+.navIcon {
+  flex: none;
+  color: var(--dp-fg-secondary);
+}
+
+.navActive .navIcon {
+  color: var(--dp-accent-text);
+}
+
+.navLabel {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.navBadge {
+  color: var(--dp-fg-tertiary);
+  font: var(--dp-text-caption-font);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: var(--dp-layout-content);
+}
+
+.forms {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-32);
+}
+
+.footer {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--dp-z-sticky);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--dp-space-8);
+  margin-top: var(--dp-space-24);
+  padding: var(--dp-space-12) var(--dp-space-16);
+  border-radius: var(--dp-radius-lg);
+  background: var(--dp-material-thick);
+  -webkit-backdrop-filter: var(--dp-blur-material);
+  backdrop-filter: var(--dp-blur-material);
+  box-shadow: var(--dp-shadow-2);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-12);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--dp-space-16);
+}
+
+.sectionText {
+  flex: 1;
+  min-width: 0;
+}
+
+.sectionTitle {
+  margin: 0;
+  font: var(--dp-text-title2-font);
+  letter-spacing: var(--dp-text-title2-tracking);
+}
+
+.sectionDescription {
+  margin: var(--dp-space-4) 0 0;
+  max-width: var(--dp-layout-measure);
+  color: var(--dp-fg-secondary);
+  font: var(--dp-text-callout-font);
+}
+
+.sectionActions {
+  display: flex;
+  flex: none;
+  gap: var(--dp-space-8);
+}
+
+.sectionBody {
+  overflow: hidden;
+  border-radius: var(--dp-radius-lg);
+  background: var(--dp-bg-surface);
+  box-shadow:
+    inset 0 0 0 var(--dp-border-hairline) var(--dp-separator-subtle),
+    var(--dp-shadow-1);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--dp-space-24);
+  padding: var(--dp-space-16) var(--dp-space-20);
+}
+
+.row + .row {
+  box-shadow: inset 0 var(--dp-border-hairline) 0 var(--dp-separator-subtle);
+}
+
+.stacked {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--dp-space-12);
+}
+
+.rowText {
+  flex: 1;
+  min-width: 0;
+}
+
+.rowLabel {
+  font: var(--dp-text-headline-font);
+}
+
+.rowDescription {
+  margin-top: var(--dp-space-2);
+  color: var(--dp-fg-secondary);
+  font: var(--dp-text-footnote-font);
+}
+
+.rowControl {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--dp-space-8);
+  min-width: 0;
+}
+
+.stacked .rowControl {
+  flex: 1;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+@media (width < 64rem) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--dp-space-16);
+    padding-inline: var(--dp-space-16);
+  }
+  .nav {
+    position: static;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .navList {
+    flex-direction: row;
+  }
+  .row {
+    flex-wrap: wrap;
+  }
+}

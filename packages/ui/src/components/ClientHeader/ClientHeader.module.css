@@ -1,0 +1,140 @@
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-16);
+  color: var(--dp-fg-primary);
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  gap: var(--dp-space-16);
+}
+
+.titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.nameRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--dp-space-8);
+}
+
+.name {
+  margin: 0;
+  font: var(--dp-text-title1-font);
+  letter-spacing: var(--dp-text-title1-tracking);
+}
+
+.subtitle {
+  margin: var(--dp-space-2) 0 0;
+  color: var(--dp-fg-secondary);
+  font: var(--dp-text-callout-font);
+}
+
+.actions {
+  display: flex;
+  flex: none;
+  gap: var(--dp-space-8);
+}
+
+.ids {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dp-space-8) var(--dp-space-24);
+  margin: 0;
+}
+
+.id {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-2);
+  min-width: 0;
+}
+
+.idType {
+  color: var(--dp-fg-tertiary);
+  font: var(--dp-text-overline-font);
+  letter-spacing: var(--dp-text-overline-tracking);
+  text-transform: uppercase;
+}
+
+.idValue {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--dp-space-6);
+  margin: 0;
+}
+
+.mono {
+  font: var(--dp-text-mono-font);
+  font-weight: var(--dp-font-weight-medium);
+  letter-spacing: 0.02em;
+  user-select: all;
+}
+
+.invalid {
+  text-decoration: underline wavy var(--dp-feedback-warning-solid);
+  text-decoration-thickness: var(--dp-border-hairline);
+  text-underline-offset: var(--dp-space-2);
+}
+
+.ok {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--dp-space-16);
+  height: var(--dp-space-16);
+  border-radius: var(--dp-radius-pill);
+  background: var(--dp-feedback-success-bg);
+  color: var(--dp-feedback-success-fg);
+}
+
+.warn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--dp-space-4);
+  color: var(--dp-feedback-warning-fg);
+  font: var(--dp-text-caption-font);
+  font-weight: var(--dp-font-weight-medium);
+}
+
+.copy {
+  composes: focusRing from "../../styles/shared.module.css";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--dp-size-target);
+  height: var(--dp-size-target);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--dp-radius-sm);
+  background: transparent;
+  color: var(--dp-fg-tertiary);
+  cursor: pointer;
+}
+
+.copy:hover {
+  background: var(--dp-bg-hover);
+  color: var(--dp-fg-primary);
+}
+
+.note {
+  color: var(--dp-fg-tertiary);
+  font: var(--dp-text-caption-font);
+}
+
+.srOnly {
+  composes: visuallyHidden from "../../styles/shared.module.css";
+}
+
+@media (width < 40rem) {
+  .top {
+    flex-wrap: wrap;
+  }
+}

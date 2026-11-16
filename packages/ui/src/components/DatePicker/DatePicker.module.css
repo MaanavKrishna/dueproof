@@ -1,0 +1,112 @@
+.control {
+  padding-inline-end: var(--dp-space-4);
+}
+
+.input {
+  font-variant-numeric: tabular-nums;
+}
+
+.trigger {
+  composes: focusRing from "../../styles/shared.module.css";
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--dp-size-control-sm);
+  height: var(--dp-size-control-sm);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--dp-radius-sm);
+  background: transparent;
+  color: var(--dp-fg-secondary);
+  cursor: pointer;
+}
+
+.trigger:hover:not(:disabled) {
+  background: var(--dp-bg-hover);
+  color: var(--dp-fg-primary);
+}
+
+.popover {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-12);
+  padding: var(--dp-space-12);
+}
+
+.helpers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-4);
+  padding-top: var(--dp-space-12);
+  box-shadow: inset 0 var(--dp-border-hairline) 0 var(--dp-separator-subtle);
+}
+
+.helpersTitle {
+  margin: 0;
+  padding: 0 var(--dp-space-4);
+  color: var(--dp-fg-tertiary);
+  font: var(--dp-text-overline-font);
+  letter-spacing: var(--dp-text-overline-tracking);
+  text-transform: uppercase;
+}
+
+.helperList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.helper {
+  composes: focusRing from "../../styles/shared.module.css";
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--dp-space-12);
+  width: 100%;
+  min-height: var(--dp-size-control-md);
+  margin: 0;
+  padding: 0 var(--dp-space-8);
+  border: 0;
+  border-radius: var(--dp-radius-sm);
+  background: transparent;
+  color: var(--dp-fg-primary);
+  font: var(--dp-text-callout-font);
+  text-align: start;
+  cursor: pointer;
+}
+
+.helper:hover {
+  background: var(--dp-bg-hover);
+}
+
+.helperResult {
+  color: var(--dp-accent-text);
+  font-weight: var(--dp-font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--dp-space-8);
+}
+
+.link {
+  composes: focusRing from "../../styles/shared.module.css";
+  margin: 0;
+  padding: var(--dp-space-4) var(--dp-space-6);
+  border: 0;
+  border-radius: var(--dp-radius-sm);
+  background: none;
+  color: var(--dp-accent-text);
+  font: var(--dp-text-subhead-font);
+  font-weight: var(--dp-font-weight-medium);
+  cursor: pointer;
+}
+
+.link:hover {
+  background: var(--dp-bg-hover);
+}

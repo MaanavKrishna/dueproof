@@ -1,0 +1,52 @@
+.badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--dp-space-4);
+  height: var(--dp-space-24);
+  padding: 0 var(--dp-space-8);
+  border-radius: var(--dp-radius-pill);
+  font: var(--dp-text-footnote-font);
+  font-weight: var(--dp-font-weight-medium);
+  white-space: nowrap;
+}
+
+.sm {
+  height: var(--dp-space-20);
+  padding: 0 var(--dp-space-6);
+  font: var(--dp-text-caption-font);
+  font-weight: var(--dp-font-weight-medium);
+}
+
+/* Unverified AI output: dashed and quiet, never styled like a fact. */
+.suggested {
+  border: var(--dp-border-hairline) dashed var(--dp-separator-control);
+  background: transparent;
+  color: var(--dp-fg-secondary);
+  font-style: italic;
+}
+
+.verified {
+  background: var(--dp-proof-bg);
+  box-shadow: inset 0 0 0 var(--dp-border-hairline) var(--dp-proof-border);
+  color: var(--dp-proof-fg);
+}
+
+.origin {
+  background: var(--dp-bg-sunken);
+  color: var(--dp-fg-secondary);
+}
+
+.origin-ai {
+  border: var(--dp-border-hairline) dashed var(--dp-separator-control);
+  background: transparent;
+}
+
+.origin-human {
+  background: var(--dp-accent-subtle);
+  color: var(--dp-accent-subtle-fg);
+}
+
+.srOnly {
+  composes: visuallyHidden from "../../styles/shared.module.css";
+}

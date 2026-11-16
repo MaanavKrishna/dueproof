@@ -48,6 +48,17 @@ export function MotionFeatures({ children }: { children: ReactNode }) {
   return <LazyMotion features={domAnimation}>{children}</LazyMotion>;
 }
 
+const loadLayoutFeatures = () => import("motion/react").then((mod) => mod.domMax);
+
+/**
+ * Layout animations (`layout`, `layoutId`) need Motion's larger `domMax`
+ * feature set. Wrap only the parts that use them (the proof viewer's jump
+ * pulse); the features load lazily.
+ */
+export function LayoutMotionFeatures({ children }: { children: ReactNode }) {
+  return <LazyMotion features={loadLayoutFeatures}>{children}</LazyMotion>;
+}
+
 export interface MotionProviderProps {
   children: ReactNode;
 }

@@ -1,0 +1,97 @@
+.split {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+
+.primary {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.inspector {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: var(--dp-layout-inspector);
+  min-height: 0;
+  background: var(--dp-bg-surface);
+  box-shadow: inset var(--dp-border-hairline) 0 0 var(--dp-separator-default);
+  color: var(--dp-fg-primary);
+}
+
+.split[data-size="lg"] .inspector {
+  width: calc(var(--dp-layout-inspector) * 1.3);
+}
+
+.header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--dp-space-8);
+  min-height: var(--dp-layout-toolbar);
+  padding: 0 var(--dp-space-8) 0 var(--dp-space-16);
+  box-shadow: inset 0 calc(var(--dp-border-hairline) * -1) 0 var(--dp-separator-subtle);
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font: var(--dp-text-headline-font);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--dp-space-4);
+}
+
+.body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Narrower than 1280: the inspector floats over the content. */
+@media (width < 80rem) {
+  .inspector,
+  .split[data-size="lg"] .inspector {
+    position: absolute;
+    top: var(--dp-space-8);
+    right: var(--dp-space-8);
+    bottom: var(--dp-space-8);
+    z-index: var(--dp-z-overlay);
+    width: min(var(--dp-layout-inspector), calc(100% - var(--dp-space-16)));
+    overflow: hidden;
+    border-radius: var(--dp-radius-xl);
+    background: var(--dp-material-thick);
+    -webkit-backdrop-filter: var(--dp-blur-material);
+    backdrop-filter: var(--dp-blur-material);
+    box-shadow: var(--dp-shadow-3);
+  }
+}
+
+/* Phones: a full-screen pane. */
+@media (width < 40rem) {
+  .inspector,
+  .split[data-size="lg"] .inspector {
+    position: fixed;
+    inset: 0;
+    z-index: var(--dp-z-modal);
+    width: 100%;
+    border-radius: 0;
+    background: var(--dp-bg-surface);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

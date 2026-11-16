@@ -1,0 +1,18 @@
+.form {
+  margin: 0;
+}
+
+.phrase {
+  padding: 0 var(--dp-space-4);
+  border-radius: var(--dp-radius-xs);
+  background: var(--dp-bg-sunken);
+  font-family: var(--dp-font-family-mono);
+  font-weight: var(--dp-font-weight-semibold);
+  user-select: all;
+}
+
+.error {
+  margin: var(--dp-space-12) 0 0;
+  color: var(--dp-feedback-danger-fg);
+  font: var(--dp-text-footnote-font);
+}
