@@ -1,0 +1,826 @@
+{
+  "name": "notice-gst-asmt10.pdf",
+  "source": "services/engine/tests/fixtures/notice-gst-asmt10.pdf",
+  "note": "Hand-made by the platform lane from the fixture text layer (pypdfium2). Replace with services/engine/fixtures/recorded/ when the engine lane records real responses.",
+  "sha256": "040d3c78dafcc4513b5564831be099fa1042b6e88b8eea1161c27e4dab950cc2",
+  "mime": "application/pdf",
+  "inspect": {
+    "ok": true,
+    "pageCount": 1,
+    "encrypted": false,
+    "textLayerPages": [1]
+  },
+  "read": {
+    "pages": [
+      {
+        "page": 1,
+        "width": 595.0,
+        "height": 842.0,
+        "rotation": 0,
+        "text": "OFFICE OF THE ASSISTANT COMMISSIONER OF STATE TAX\nCommercial Taxes Department · Northline Division\nReference No: ZD2910260012345 Date: 20 October 2026\nSubject: Notice under Section 61 for intimating discrepancies in the return (Form GST ASMT-10)\nTo: Harbour Valley Components Pvt Ltd, GSTIN 29AAACH0000A1Z5, Tax period April 2025 to\nMarch 2026.\nOn scrutiny of the returns filed for the above period, discrepancies were noticed in the input tax\ncredit claimed against the supplier statements.\nYou are hereby directed to explain the discrepancies and pay the tax of Rs. 4,52,300 with\ninterest within 30 days of receipt of this notice.\nA personal hearing is fixed on 18 November 2026 at 11:00 AM before the undersigned at the\nDivision office.\nFailure to reply will attract proceedings under Section 73(1) of the Act, including a penalty of Rs.\n2.5 lakh, without further notice.\nSd/- Assistant Commissioner of State Tax",
+        "words": [
+          {
+            "text": "OFFICE",
+            "rect": [56.78, 70.87, 101.21, 80.71],
+            "line": 0
+          },
+          {
+            "text": "OF",
+            "rect": [106.49, 70.87, 122.51, 80.71],
+            "line": 0
+          },
+          {
+            "text": "THE",
+            "rect": [127.59, 70.99, 151.98, 80.59],
+            "line": 0
+          },
+          {
+            "text": "ASSISTANT",
+            "rect": [156.8, 70.87, 228.82, 80.75],
+            "line": 0
+          },
+          {
+            "text": "COMMISSIONER",
+            "rect": [233.87, 70.87, 335.12, 80.75],
+            "line": 0
+          },
+          {
+            "text": "OF",
+            "rect": [339.95, 70.87, 355.96, 80.71],
+            "line": 0
+          },
+          {
+            "text": "STATE",
+            "rect": [361.16, 70.87, 401.45, 80.75],
+            "line": 0
+          },
+          {
+            "text": "TAX",
+            "rect": [406.57, 70.99, 431.79, 80.59],
+            "line": 0
+          },
+          {
+            "text": "Commercial",
+            "rect": [56.54, 99.85, 106.19, 106.81],
+            "line": 1
+          },
+          {
+            "text": "Taxes",
+            "rect": [109.85, 100.05, 134.72, 106.81],
+            "line": 1
+          },
+          {
+            "text": "Department",
+            "rect": [138.49, 100.05, 187.51, 108.53],
+            "line": 1
+          },
+          {
+            "text": "·",
+            "rect": [190.92, 102.94, 192.11, 104.18],
+            "line": 1
+          },
+          {
+            "text": "Northline",
+            "rect": [196.13, 99.85, 233.62, 106.8],
+            "line": 1
+          },
+          {
+            "text": "Division",
+            "rect": [237.39, 99.85, 269.43, 106.8],
+            "line": 1
+          },
+          {
+            "text": "Reference",
+            "rect": [56.92, 123.26, 106.75, 131.49],
+            "line": 2
+          },
+          {
+            "text": "No:",
+            "rect": [111.14, 123.62, 126.61, 131.49],
+            "line": 2
+          },
+          {
+            "text": "ZD2910260012345",
+            "rect": [131.01, 123.5, 223.98, 131.47],
+            "line": 2
+          },
+          {
+            "text": "Date:",
+            "rect": [234.37, 123.62, 258.67, 131.5],
+            "line": 2
+          },
+          {
+            "text": "20",
+            "rect": [263.23, 123.52, 274.83, 131.47],
+            "line": 2
+          },
+          {
+            "text": "October",
+            "rect": [279.03, 123.52, 318.41, 131.49],
+            "line": 2
+          },
+          {
+            "text": "2026",
+            "rect": [322.37, 123.52, 346.88, 131.47],
+            "line": 2
+          },
+          {
+            "text": "Subject:",
+            "rect": [56.6, 149.14, 95.66, 159.27],
+            "line": 3
+          },
+          {
+            "text": "Notice",
+            "rect": [100.35, 149.14, 131.2, 157.25],
+            "line": 3
+          },
+          {
+            "text": "under",
+            "rect": [135.47, 149.38, 163.33, 157.25],
+            "line": 3
+          },
+          {
+            "text": "Section",
+            "rect": [167.11, 149.14, 203.02, 157.26],
+            "line": 3
+          },
+          {
+            "text": "61",
+            "rect": [207.4, 149.28, 216.63, 157.23],
+            "line": 3
+          },
+          {
+            "text": "for",
+            "rect": [220.6, 149.02, 234.38, 157.25],
+            "line": 3
+          },
+          {
+            "text": "intimating",
+            "rect": [238.21, 149.14, 285.15, 159.39],
+            "line": 3
+          },
+          {
+            "text": "discrepancies",
+            "rect": [289.45, 149.14, 357.67, 159.27],
+            "line": 3
+          },
+          {
+            "text": "in",
+            "rect": [361.77, 149.14, 369.07, 157.14],
+            "line": 3
+          },
+          {
+            "text": "the",
+            "rect": [372.92, 149.38, 388.06, 157.25],
+            "line": 3
+          },
+          {
+            "text": "return",
+            "rect": [392.34, 149.93, 420.58, 157.25],
+            "line": 3
+          },
+          {
+            "text": "(Form",
+            "rect": [425.44, 148.9, 452.97, 158.55],
+            "line": 3
+          },
+          {
+            "text": "GST",
+            "rect": [457.35, 149.28, 477.56, 157.26],
+            "line": 3
+          },
+          {
+            "text": "ASMT-10)",
+            "rect": [481.27, 148.9, 529.63, 158.55],
+            "line": 3
+          },
+          {
+            "text": "To:",
+            "rect": [56.5, 175.13, 71.27, 183.01],
+            "line": 4
+          },
+          {
+            "text": "Harbour",
+            "rect": [75.96, 175.13, 115.31, 183.02],
+            "line": 4
+          },
+          {
+            "text": "Valley",
+            "rect": [118.76, 175.13, 148.45, 185.07],
+            "line": 4
+          },
+          {
+            "text": "Components",
+            "rect": [152.31, 175.04, 214.5, 185.03],
+            "line": 4
+          },
+          {
+            "text": "Pvt",
+            "rect": [218.89, 175.13, 233.79, 182.96],
+            "line": 4
+          },
+          {
+            "text": "Ltd,",
+            "rect": [237.87, 175.13, 254.9, 184.72],
+            "line": 4
+          },
+          {
+            "text": "GSTIN",
+            "rect": [259.34, 175.04, 289.86, 183.02],
+            "line": 4
+          },
+          {
+            "text": "29AAACH0000A1Z5,",
+            "rect": [294.51, 175.02, 396.74, 184.72],
+            "line": 4
+          },
+          {
+            "text": "Tax",
+            "rect": [401.05, 175.13, 418.61, 183.02],
+            "line": 4
+          },
+          {
+            "text": "period",
+            "rect": [422.69, 174.89, 452.83, 185.03],
+            "line": 4
+          },
+          {
+            "text": "April",
+            "rect": [456.85, 174.89, 478.47, 185.03],
+            "line": 4
+          },
+          {
+            "text": "2025",
+            "rect": [483.01, 175.04, 507.24, 182.99],
+            "line": 4
+          },
+          {
+            "text": "to",
+            "rect": [510.91, 175.69, 520.01, 183.01],
+            "line": 4
+          },
+          {
+            "text": "March",
+            "rect": [56.92, 189.88, 86.71, 197.77],
+            "line": 5
+          },
+          {
+            "text": "2026.",
+            "rect": [91.26, 189.79, 118.59, 197.74],
+            "line": 5
+          },
+          {
+            "text": "On",
+            "rect": [56.63, 216.02, 69.42, 223.97],
+            "line": 6
+          },
+          {
+            "text": "scrutiny",
+            "rect": [73.72, 215.88, 112.65, 226.05],
+            "line": 6
+          },
+          {
+            "text": "of",
+            "rect": [116.41, 215.76, 125.88, 223.99],
+            "line": 6
+          },
+          {
+            "text": "the",
+            "rect": [129.1, 216.12, 144.24, 223.99],
+            "line": 6
+          },
+          {
+            "text": "returns",
+            "rect": [148.52, 216.67, 182.58, 223.99],
+            "line": 6
+          },
+          {
+            "text": "filed",
+            "rect": [186.15, 215.76, 206.75, 223.99],
+            "line": 6
+          },
+          {
+            "text": "for",
+            "rect": [210.61, 215.76, 224.4, 223.99],
+            "line": 6
+          },
+          {
+            "text": "the",
+            "rect": [227.69, 216.12, 242.83, 223.99],
+            "line": 6
+          },
+          {
+            "text": "above",
+            "rect": [246.75, 216.12, 276.41, 224.0],
+            "line": 6
+          },
+          {
+            "text": "period,",
+            "rect": [280.68, 215.88, 313.79, 226.01],
+            "line": 6
+          },
+          {
+            "text": "discrepancies",
+            "rect": [318.13, 215.88, 386.35, 226.01],
+            "line": 6
+          },
+          {
+            "text": "were",
+            "rect": [390.17, 217.98, 414.08, 223.99],
+            "line": 6
+          },
+          {
+            "text": "noticed",
+            "rect": [418.35, 215.88, 453.74, 223.99],
+            "line": 6
+          },
+          {
+            "text": "in",
+            "rect": [458.14, 215.88, 465.44, 223.88],
+            "line": 6
+          },
+          {
+            "text": "the",
+            "rect": [469.29, 216.12, 484.43, 223.99],
+            "line": 6
+          },
+          {
+            "text": "input",
+            "rect": [488.54, 215.88, 512.49, 226.01],
+            "line": 6
+          },
+          {
+            "text": "tax",
+            "rect": [515.75, 216.67, 530.37, 224.0],
+            "line": 6
+          },
+          {
+            "text": "credit",
+            "rect": [56.54, 230.62, 84.26, 238.74],
+            "line": 7
+          },
+          {
+            "text": "claimed",
+            "rect": [87.95, 230.62, 125.31, 238.75],
+            "line": 7
+          },
+          {
+            "text": "against",
+            "rect": [129.53, 230.62, 164.78, 240.88],
+            "line": 7
+          },
+          {
+            "text": "the",
+            "rect": [168.05, 230.87, 183.19, 238.74],
+            "line": 7
+          },
+          {
+            "text": "supplier",
+            "rect": [187.21, 230.62, 226.16, 240.76],
+            "line": 7
+          },
+          {
+            "text": "statements.",
+            "rect": [229.9, 231.42, 286.43, 238.75],
+            "line": 7
+          },
+          {
+            "text": "You",
+            "rect": [56.26, 257.1, 74.81, 264.97],
+            "line": 8
+          },
+          {
+            "text": "are",
+            "rect": [79.03, 258.96, 94.01, 264.99],
+            "line": 8
+          },
+          {
+            "text": "hereby",
+            "rect": [98.28, 257.1, 131.93, 267.03],
+            "line": 8
+          },
+          {
+            "text": "directed",
+            "rect": [135.68, 256.86, 175.35, 264.97],
+            "line": 8
+          },
+          {
+            "text": "to",
+            "rect": [179.22, 257.66, 188.31, 264.97],
+            "line": 8
+          },
+          {
+            "text": "explain",
+            "rect": [192.32, 256.86, 226.43, 266.99],
+            "line": 8
+          },
+          {
+            "text": "the",
+            "rect": [230.28, 257.1, 245.42, 264.97],
+            "line": 8
+          },
+          {
+            "text": "discrepancies",
+            "rect": [249.42, 256.86, 317.64, 266.99],
+            "line": 8
+          },
+          {
+            "text": "and",
+            "rect": [321.57, 257.1, 338.81, 264.99],
+            "line": 8
+          },
+          {
+            "text": "pay",
+            "rect": [343.37, 258.97, 360.51, 267.03],
+            "line": 8
+          },
+          {
+            "text": "the",
+            "rect": [363.84, 257.1, 378.98, 264.97],
+            "line": 8
+          },
+          {
+            "text": "tax",
+            "rect": [382.55, 257.66, 397.17, 264.99],
+            "line": 8
+          },
+          {
+            "text": "of",
+            "rect": [400.98, 256.74, 410.45, 264.97],
+            "line": 8
+          },
+          {
+            "text": "Rs.",
+            "rect": [414.49, 257.1, 428.06, 264.97],
+            "line": 8
+          },
+          {
+            "text": "4,52,300",
+            "rect": [432.45, 257.01, 476.36, 266.69],
+            "line": 8
+          },
+          {
+            "text": "with",
+            "rect": [480.28, 256.86, 499.89, 264.92],
+            "line": 8
+          },
+          {
+            "text": "interest",
+            "rect": [56.64, 271.61, 93.12, 279.72],
+            "line": 9
+          },
+          {
+            "text": "within",
+            "rect": [96.63, 271.61, 124.99, 279.67],
+            "line": 9
+          },
+          {
+            "text": "30",
+            "rect": [129.37, 271.75, 141.21, 279.7],
+            "line": 9
+          },
+          {
+            "text": "days",
+            "rect": [145.31, 271.85, 168.01, 281.78],
+            "line": 9
+          },
+          {
+            "text": "of",
+            "rect": [172.01, 271.49, 181.49, 279.72],
+            "line": 9
+          },
+          {
+            "text": "receipt",
+            "rect": [185.41, 271.61, 218.98, 281.74],
+            "line": 9
+          },
+          {
+            "text": "of",
+            "rect": [222.68, 271.49, 232.15, 279.72],
+            "line": 9
+          },
+          {
+            "text": "this",
+            "rect": [235.37, 271.61, 252.47, 279.72],
+            "line": 9
+          },
+          {
+            "text": "notice.",
+            "rect": [256.74, 271.61, 288.71, 279.72],
+            "line": 9
+          },
+          {
+            "text": "A",
+            "rect": [56.26, 298.08, 62.98, 305.84],
+            "line": 10
+          },
+          {
+            "text": "personal",
+            "rect": [66.99, 298.08, 108.32, 307.97],
+            "line": 10
+          },
+          {
+            "text": "hearing",
+            "rect": [112.89, 297.84, 148.61, 308.1],
+            "line": 10
+          },
+          {
+            "text": "is",
+            "rect": [153.01, 297.84, 159.93, 305.96],
+            "line": 10
+          },
+          {
+            "text": "fixed",
+            "rect": [163.5, 297.73, 187.28, 305.96],
+            "line": 10
+          },
+          {
+            "text": "on",
+            "rect": [191.58, 299.95, 202.73, 305.96],
+            "line": 10
+          },
+          {
+            "text": "18",
+            "rect": [206.97, 297.99, 216.61, 305.94],
+            "line": 10
+          },
+          {
+            "text": "November",
+            "rect": [221.1, 298.08, 271.85, 305.96],
+            "line": 10
+          },
+          {
+            "text": "2026",
+            "rect": [275.82, 297.99, 300.32, 305.94],
+            "line": 10
+          },
+          {
+            "text": "at",
+            "rect": [304.36, 298.64, 313.01, 305.97],
+            "line": 10
+          },
+          {
+            "text": "11:00",
+            "rect": [316.66, 297.99, 340.33, 305.94],
+            "line": 10
+          },
+          {
+            "text": "AM",
+            "rect": [344.16, 298.08, 359.69, 305.84],
+            "line": 10
+          },
+          {
+            "text": "before",
+            "rect": [364.37, 297.73, 395.84, 305.96],
+            "line": 10
+          },
+          {
+            "text": "the",
+            "rect": [399.41, 298.08, 414.55, 305.96],
+            "line": 10
+          },
+          {
+            "text": "undersigned",
+            "rect": [418.83, 297.84, 479.36, 308.1],
+            "line": 10
+          },
+          {
+            "text": "at",
+            "rect": [483.58, 298.64, 492.23, 305.97],
+            "line": 10
+          },
+          {
+            "text": "the",
+            "rect": [495.5, 298.08, 510.64, 305.96],
+            "line": 10
+          },
+          {
+            "text": "Division",
+            "rect": [56.92, 312.59, 94.31, 320.71],
+            "line": 11
+          },
+          {
+            "text": "office.",
+            "rect": [98.6, 312.47, 128.99, 320.71],
+            "line": 11
+          },
+          {
+            "text": "Failure",
+            "rect": [56.92, 338.82, 88.93, 346.95],
+            "line": 12
+          },
+          {
+            "text": "to",
+            "rect": [92.5, 339.62, 101.59, 346.94],
+            "line": 12
+          },
+          {
+            "text": "reply",
+            "rect": [105.88, 339.07, 129.73, 349.0],
+            "line": 12
+          },
+          {
+            "text": "will",
+            "rect": [133.31, 338.82, 148.36, 346.82],
+            "line": 12
+          },
+          {
+            "text": "attract",
+            "rect": [152.58, 339.62, 183.93, 346.95],
+            "line": 12
+          },
+          {
+            "text": "proceedings",
+            "rect": [187.9, 338.82, 248.61, 349.08],
+            "line": 12
+          },
+          {
+            "text": "under",
+            "rect": [252.89, 339.07, 280.74, 346.94],
+            "line": 12
+          },
+          {
+            "text": "Section",
+            "rect": [284.52, 338.82, 320.43, 346.95],
+            "line": 12
+          },
+          {
+            "text": "73(1)",
+            "rect": [324.68, 338.59, 347.39, 348.24],
+            "line": 12
+          },
+          {
+            "text": "of",
+            "rect": [351.98, 338.71, 361.46, 346.94],
+            "line": 12
+          },
+          {
+            "text": "the",
+            "rect": [364.68, 339.07, 379.82, 346.94],
+            "line": 12
+          },
+          {
+            "text": "Act,",
+            "rect": [383.55, 339.07, 402.11, 348.65],
+            "line": 12
+          },
+          {
+            "text": "including",
+            "rect": [406.56, 338.82, 450.19, 349.08],
+            "line": 12
+          },
+          {
+            "text": "a",
+            "rect": [454.41, 340.93, 459.03, 346.95],
+            "line": 12
+          },
+          {
+            "text": "penalty",
+            "rect": [463.6, 339.07, 499.03, 349.0],
+            "line": 12
+          },
+          {
+            "text": "of",
+            "rect": [502.79, 338.71, 512.26, 346.94],
+            "line": 12
+          },
+          {
+            "text": "Rs.",
+            "rect": [516.3, 339.07, 529.86, 346.94],
+            "line": 12
+          },
+          {
+            "text": "2.5",
+            "rect": [56.79, 353.72, 71.03, 361.67],
+            "line": 13
+          },
+          {
+            "text": "lakh,",
+            "rect": [75.4, 353.81, 97.15, 363.4],
+            "line": 13
+          },
+          {
+            "text": "without",
+            "rect": [101.32, 353.57, 137.45, 361.69],
+            "line": 13
+          },
+          {
+            "text": "further",
+            "rect": [140.71, 353.46, 174.12, 361.69],
+            "line": 13
+          },
+          {
+            "text": "notice.",
+            "rect": [178.11, 353.57, 210.09, 361.69],
+            "line": 13
+          },
+          {
+            "text": "Sd/-",
+            "rect": [56.51, 379.4, 74.03, 387.33],
+            "line": 14
+          },
+          {
+            "text": "Assistant",
+            "rect": [77.4, 379.5, 115.85, 386.46],
+            "line": 14
+          },
+          {
+            "text": "Commissioner",
+            "rect": [119.1, 379.5, 179.25, 386.45],
+            "line": 14
+          },
+          {
+            "text": "of",
+            "rect": [182.43, 379.4, 190.55, 386.45],
+            "line": 14
+          },
+          {
+            "text": "State",
+            "rect": [193.74, 379.62, 214.73, 386.46],
+            "line": 14
+          },
+          {
+            "text": "Tax",
+            "rect": [218.14, 379.7, 233.18, 386.46],
+            "line": 14
+          }
+        ],
+        "engine": "text_layer",
+        "confidence": 1.0,
+        "languages": ["en"]
+      }
+    ],
+    "needsEscalation": []
+  },
+  "analyze": {
+    "docType": "in.gst.asmt10",
+    "title": "Notice under Section 61 for intimating discrepancies in the return (Form GST ASMT-10)",
+    "reference": "ZD2910260012345",
+    "issuingOffice": "Office of the Assistant Commissioner of State Tax, Northline Division",
+    "issuedOn": "2026-10-20",
+    "sections": ["61", "73(1)"],
+    "confident": true,
+    "findings": [
+      {
+        "kind": "obligation",
+        "text": "Explain the discrepancies and pay the tax of Rs. 4,52,300 with interest",
+        "quote": "You are hereby directed to explain the discrepancies and pay the tax",
+        "quoteLang": "en",
+        "pageHint": 1,
+        "confidence": 0.93,
+        "dueRule": {
+          "type": "relative",
+          "anchor": "receipt",
+          "amount": 30,
+          "unit": "days"
+        },
+        "engineDueOn": "2026-11-23",
+        "amountMinor": 45230000,
+        "desk": "Finance",
+        "severity": "high"
+      },
+      {
+        "kind": "hearing",
+        "text": "Personal hearing before the Assistant Commissioner at the Division office, 11:00 AM",
+        "quote": "A personal hearing is fixed on 18 November 2026",
+        "quoteLang": "en",
+        "pageHint": 1,
+        "confidence": 0.95,
+        "dueRule": {
+          "type": "fixed",
+          "date": "2026-11-18"
+        },
+        "engineDueOn": "2026-11-18",
+        "desk": "Legal & Compliance",
+        "severity": "high"
+      },
+      {
+        "kind": "amount",
+        "text": "Tax demanded: Rs. 4,52,300 with interest",
+        "quote": "pay the tax of Rs. 4,52,300",
+        "quoteLang": "en",
+        "pageHint": 1,
+        "confidence": 0.9,
+        "amountMinor": 45230000,
+        "desk": "Finance"
+      },
+      {
+        "kind": "reference",
+        "text": "Reference No ZD2910260012345",
+        "quote": "Reference No: ZD2910260012345",
+        "quoteLang": "en",
+        "pageHint": 1,
+        "confidence": 0.97
+      },
+      {
+        "kind": "section",
+        "text": "Proceedings under Section 73(1) if no reply",
+        "quote": "proceedings under Section 73(1) of the Act",
+        "quoteLang": "en",
+        "pageHint": 1,
+        "confidence": 0.8,
+        "severity": "medium"
+      }
+    ]
+  }
+}

@@ -1,10 +1,10 @@
 name: website
-# Publishes website/ to https://maanavkrishna.github.io/dueproof/ whenever
+# Publishes apps/site to https://maanavkrishna.github.io/dueproof/ whenever
 # the site or the documentation it renders changes.
 on:
   push:
     branches: [main]
-    paths: ["website/**", "docs/**", ".github/workflows/pages.yml"]
+    paths: ["apps/site/**", "docs/**", "pnpm-lock.yaml", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -22,22 +22,20 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    defaults:
-      run:
-        working-directory: website
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: website/package-lock.json
-      - run: npm ci
-      - run: npm run build
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @dueproof/site build
         env:
           PAGES_BASE_PATH: /dueproof
+          NEXT_TELEMETRY_DISABLED: "1"
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: website/out
+          path: apps/site/out
       - id: deployment
         uses: actions/deploy-pages@v4

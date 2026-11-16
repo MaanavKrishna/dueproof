@@ -1,0 +1,157 @@
+/**
+ * Server environment, validated with Zod once at boot (instrumentation.ts)
+ * and on first use. Nothing here is NEXT_PUBLIC_: no secret reaches the
+ * browser (05 §3).
+ */
+import { createHmac } from "node:crypto";
+import { z } from "zod";
+
+const bool = z
+  .enum(["1", "0", "true", "false", "yes", "no"])
+  .transform((v) => v === "1" || v === "true" || v === "yes");
+
+const secret = z.string().min(32, "must be at least 32 characters");
+
+const Env = z
+  .object({
+    NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+    /** Which edition this install is. Drives defaults below. */
+    DUEPROOF_EDITION: z.enum(["self-hosted", "hosted", "desktop"]).default("self-hosted"),
+    /** Public origin of the app, as browsers reach it. */
+    APP_URL: z.string().url().default("http://localhost:3000"),
+
+    AUTH_SECRET: secret,
+    /** first-user: first sign-up owns the org, then invitations only. open: anyone (hosted). */
+    AUTH_SIGNUP: z.enum(["first-user", "open"]).optional(),
+    /** Extra origins allowed to call /api/auth (comma separated), e.g. the desktop shell. */
+    AUTH_TRUSTED_ORIGINS: z.string().optional(),
+    /** Header our own proxy sets with the client IP (Caddy: x-forwarded-for; Vercel: x-real-ip). */
+    AUTH_IP_HEADER: z.string().optional(),
+
+    DATABASE_DRIVER: z.enum(["pglite", "postgres", "neon"]).optional(),
+    DATABASE_URL: z.string().optional(),
+    PGLITE_DATA_DIR: z.string().default(".data/pglite"),
+    DB_MIGRATE_ON_START: bool.default(true),
+
+    STORAGE_DRIVER: z.enum(["local", "s3", "vercel-blob"]).default("local"),
+    STORAGE_LOCAL_DIR: z.string().default(".data/files"),
+    /** HMAC key for local signed URLs. Defaults to one derived from AUTH_SECRET. */
+    STORAGE_SIGNING_SECRET: secret.optional(),
+    /** Base URL the engine uses to reach local signed URLs (e.g. http://app:3000 in Compose). */
+    STORAGE_ENGINE_BASE_URL: z.string().url().optional(),
+    S3_BUCKET: z.string().optional(),
+    S3_ENDPOINT: z.string().url().optional(),
+    S3_REGION: z.string().default("auto"),
+    S3_ACCESS_KEY_ID: z.string().optional(),
+    S3_SECRET_ACCESS_KEY: z.string().optional(),
+    S3_FORCE_PATH_STYLE: bool.default(false),
+    BLOB_READ_WRITE_TOKEN: z.string().optional(),
+
+    /** http: call services/engine. fake: in-process recordings (dev and tests). */
+    ENGINE_MODE: z.enum(["http", "fake"]).optional(),
+    ENGINE_URL: z.string().url().optional(),
+    ENGINE_SHARED_SECRET: secret.optional(),
+    /** Highest OCR rung the engine may use here (engine-fast stops at paddleocr). */
+    ENGINE_MAX_RUNG: z
+      .enum(["text_layer", "paddleocr", "tesseract", "vision", "none"])
+      .default("tesseract"),
+
+    /** Per-file upload cap in bytes (05 §3a: 50 MB). */
+    UPLOAD_MAX_BYTES: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(50 * 1024 * 1024),
+
+    /** Bare pages under /dev that exercise sign-in and upload. On by default outside production. */
+    DUEPROOF_DEV_PAGES: bool.optional(),
+  })
+  .superRefine((env, ctx) => {
+    const driver = env.DATABASE_DRIVER ?? (env.DATABASE_URL ? "postgres" : "pglite");
+    if (driver !== "pglite" && !env.DATABASE_URL) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["DATABASE_URL"],
+        message: `required for DATABASE_DRIVER=${driver}`,
+      });
+    }
+    if (env.STORAGE_DRIVER === "s3") {
+      for (const k of ["S3_BUCKET", "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY"] as const) {
+        if (!env[k])
+          ctx.addIssue({ code: "custom", path: [k], message: "required for STORAGE_DRIVER=s3" });
+      }
+    }
+    if (env.STORAGE_DRIVER === "vercel-blob" && !env.BLOB_READ_WRITE_TOKEN) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["BLOB_READ_WRITE_TOKEN"],
+        message: "required for vercel-blob",
+      });
+    }
+    const engineMode = env.ENGINE_MODE ?? (env.ENGINE_URL ? "http" : "fake");
+    if (engineMode === "http") {
+      if (!env.ENGINE_URL)
+        ctx.addIssue({
+          code: "custom",
+          path: ["ENGINE_URL"],
+          message: "required for ENGINE_MODE=http",
+        });
+      if (!env.ENGINE_SHARED_SECRET) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["ENGINE_SHARED_SECRET"],
+          message: "required for ENGINE_MODE=http",
+        });
+      }
+    }
+    if (
+      engineMode === "fake" &&
+      env.NODE_ENV === "production" &&
+      env.DUEPROOF_EDITION !== "desktop"
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["ENGINE_MODE"],
+        message: "the fake engine is not for production",
+      });
+    }
+  })
+  .transform((env) => ({
+    ...env,
+    DATABASE_DRIVER:
+      env.DATABASE_DRIVER ?? (env.DATABASE_URL ? ("postgres" as const) : ("pglite" as const)),
+    ENGINE_MODE: env.ENGINE_MODE ?? (env.ENGINE_URL ? ("http" as const) : ("fake" as const)),
+    AUTH_SIGNUP:
+      env.AUTH_SIGNUP ??
+      (env.DUEPROOF_EDITION === "hosted" ? ("open" as const) : ("first-user" as const)),
+    STORAGE_SIGNING_SECRET:
+      env.STORAGE_SIGNING_SECRET ??
+      createHmac("sha256", env.AUTH_SECRET).update("dueproof:storage").digest("hex"),
+    DUEPROOF_DEV_PAGES: env.DUEPROOF_DEV_PAGES ?? env.NODE_ENV !== "production",
+  }));
+
+export type Env = z.output<typeof Env>;
+
+export class EnvError extends Error {
+  override name = "EnvError";
+}
+
+/** Parse an environment. Error messages name variables, never values. */
+export function parseEnv(source: Record<string, string | undefined>): Env {
+  const cleaned = Object.fromEntries(
+    Object.entries(source).filter(([, v]) => v !== undefined && v !== ""),
+  );
+  const result = Env.safeParse(cleaned);
+  if (!result.success) {
+    const lines = result.error.issues.map((i) => `  ${i.path.join(".") || "(env)"}: ${i.message}`);
+    throw new EnvError(`Invalid environment:\n${lines.join("\n")}`);
+  }
+  return result.data;
+}
+
+let cached: Env | undefined;
+
+export function getEnv(): Env {
+  cached ??= parseEnv(process.env);
+  return cached;
+}
