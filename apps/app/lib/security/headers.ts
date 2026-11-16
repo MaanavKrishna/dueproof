@@ -28,7 +28,10 @@ export function contentSecurityPolicy(o: CspOptions): string {
   const directives: Array<[string, string]> = [
     ["default-src", "'self'"],
     ["script-src", `'self' 'nonce-${o.nonce}' 'strict-dynamic'${o.dev ? " 'unsafe-eval'" : ""}`],
-    ["style-src", `'self' 'nonce-${o.nonce}'`],
+    // Dev: Turbopack injects CSS as <style> elements without the nonce; blocked, the
+    // HMR client falls back to full reloads (a reload loop). A nonce makes browsers
+    // ignore 'unsafe-inline', so development drops it. Production keeps the nonce.
+    ["style-src", o.dev ? "'self' 'unsafe-inline'" : `'self' 'nonce-${o.nonce}'`],
     ["style-src-attr", "'unsafe-inline'"],
     ["img-src", `'self' blob: data:${storage ? ` ${storage}` : ""}`],
     ["font-src", "'self'"],

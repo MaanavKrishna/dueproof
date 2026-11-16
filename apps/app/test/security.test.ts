@@ -70,6 +70,8 @@ describe("content security policy", () => {
     expect(dev).toContain("'unsafe-eval'");
     expect(dev).toContain("ws:");
     expect(dev).not.toContain("upgrade-insecure-requests");
+    // Turbopack's dev CSS has no nonce: without this, pages reload in a loop.
+    expect(dev).toContain("style-src 'self' 'unsafe-inline'");
   });
 });
 
