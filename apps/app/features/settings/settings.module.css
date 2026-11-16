@@ -1,0 +1,215 @@
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-24);
+  padding: var(--dp-space-32) var(--dp-space-32);
+}
+
+.skeletonTitle {
+  width: calc(var(--dp-space-96) * 2);
+  height: var(--dp-space-32);
+}
+
+.skeletonBody {
+  display: flex;
+  gap: var(--dp-space-32);
+}
+
+.skeletonNav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-16);
+  width: calc(var(--dp-space-96) * 2);
+}
+
+.skeletonForms {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--dp-space-20);
+  max-width: calc(var(--dp-space-96) * 7);
+}
+
+.skeletonCard {
+  height: calc(var(--dp-space-96) + var(--dp-space-48));
+}
+
+@media (width < 40rem) {
+  .skeleton {
+    padding: var(--dp-space-16);
+  }
+  .skeletonNav {
+    display: none;
+  }
+}
+
+/* Inline groups of controls */
+.inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--dp-space-8);
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-12);
+}
+
+.person {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--dp-space-8);
+  min-width: 0;
+}
+
+.personText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.personName {
+  font: var(--dp-text-headline-font);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.personEmail,
+.muted {
+  font: var(--dp-text-footnote-font);
+  color: var(--dp-fg-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mono {
+  font: var(--dp-text-mono-font);
+  word-break: break-all;
+}
+
+.codes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--dp-space-4) var(--dp-space-16);
+  margin: 0;
+  padding: var(--dp-space-12) var(--dp-space-16);
+  border-radius: var(--dp-radius-md);
+  background: var(--dp-bg-sunken);
+  font: var(--dp-text-mono-font);
+  list-style: none;
+}
+
+.logo {
+  display: block;
+  max-width: calc(var(--dp-space-96) * 2);
+  max-height: var(--dp-space-48);
+  object-fit: contain;
+}
+
+.holidayRow {
+  display: grid;
+  grid-template-columns: minmax(0, 11rem) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--dp-space-8);
+}
+
+.holidayList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-8);
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: var(--dp-space-2);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font: var(--dp-text-body-font);
+}
+
+.table th {
+  padding: var(--dp-size-cell-pad-y) var(--dp-size-cell-pad-x);
+  border-bottom: var(--dp-border-hairline) solid var(--dp-separator-default);
+  font: var(--dp-text-footnote-font);
+  font-weight: var(--dp-font-weight-semibold);
+  color: var(--dp-fg-secondary);
+  text-align: start;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: var(--dp-size-cell-pad-y) var(--dp-size-cell-pad-x);
+  border-bottom: var(--dp-border-hairline) solid var(--dp-separator-subtle);
+  vertical-align: middle;
+}
+
+.table tr:last-child td {
+  border-bottom: 0;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.actions {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  gap: var(--dp-space-4);
+}
+
+.end {
+  text-align: end;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--dp-space-12);
+}
+
+.checkList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-8);
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.detail {
+  font: var(--dp-text-footnote-font);
+  color: var(--dp-fg-secondary);
+}
+
+
+@media (width < 40rem) {
+  .holidayRow {
+    grid-template-columns: 1fr auto;
+  }
+  .holidayRow > :first-child {
+    grid-column: 1 / -1;
+  }
+  .hideNarrow {
+    display: none;
+  }
+}
+
+.qr {
+  width: calc(var(--dp-space-96) + var(--dp-space-48));
+  height: calc(var(--dp-space-96) + var(--dp-space-48));
+  padding: var(--dp-space-8);
+  border-radius: var(--dp-radius-md);
+  background: var(--dp-bg-page);
+}
+
+.fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
