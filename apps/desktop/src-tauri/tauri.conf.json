@@ -46,7 +46,8 @@
       "icons/icon.ico"
     ],
     "linux": {
-      "deb": { "section": "office" }
+      "deb": { "section": "office", "desktopTemplate": "linux/dueproof.desktop" },
+      "rpm": { "desktopTemplate": "linux/dueproof.desktop" }
     },
     "macOS": {
       "minimumSystemVersion": "12.0",
