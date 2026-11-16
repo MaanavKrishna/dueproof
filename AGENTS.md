@@ -56,6 +56,10 @@ packages/i18n       Messages and locale formatting
 11. British spelling in user-facing text ("organisation", "licence" as a
     noun). Plain, short sentences.
 12. `ee/` is under a commercial licence; code outside `ee/` never imports it.
+13. **Commits are authored by the owner only** (Maanav Krishna,
+    `67054795+MaanavKrishna@users.noreply.github.com`). Never add
+    `Co-Authored-By: Claude …`, session links or any other AI attribution
+    trailer to commit messages or pull requests.
 
 ## Licence
 
