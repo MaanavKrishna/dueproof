@@ -1,4 +1,5 @@
 "use server";
+import { headers } from "next/headers";
 /**
  * Server actions for the upload flow, for the app's own UI. Next.js checks
  * the request origin for server actions; authorize() checks the session,
@@ -10,6 +11,7 @@
  */
 import { authorize } from "@/lib/authorize";
 import { HttpError } from "@/lib/errors";
+import { limitRequest } from "@/lib/rate-limit";
 import {
   type CompleteUploadResult,
   completeUpload,
@@ -31,7 +33,11 @@ async function run<T>(fn: () => Promise<T>): Promise<ActionResult<T>> {
 }
 
 export async function startUpload(input: InitUploadInput): Promise<ActionResult<InitUploadResult>> {
-  return run(async () => initUpload(await authorize("document.upload"), input));
+  return run(async () => {
+    const ctx = await authorize("document.upload");
+    await limitRequest(await headers(), "upload", ctx);
+    return initUpload(ctx, input);
+  });
 }
 
 export async function finishUpload(

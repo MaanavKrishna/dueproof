@@ -63,6 +63,32 @@ const Env = z
       .positive()
       .default(50 * 1024 * 1024),
 
+    /**
+     * engine-heavy in Vercel Sandbox (hosted only, 03 §3a): the snapshot made by
+     * infra/sandbox/build-snapshot.ts. Unset = no escalation; pages engine-fast
+     * can't read go to the AI step or a person, and translation is skipped.
+     */
+    HEAVY_ENGINE_SNAPSHOT_ID: z.string().optional(),
+    HEAVY_ENGINE_REGION: z.string().default("bom1"),
+    HEAVY_ENGINE_VCPUS: z.coerce.number().int().min(1).max(32).default(4),
+    /** Sandbox lifetime cap for one batch (ms). */
+    HEAVY_ENGINE_TIMEOUT_MS: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(15 * 60 * 1000),
+    /** Hosts the Sandbox may reach (comma separated). Default: the storage host only. */
+    HEAVY_ENGINE_ALLOWED_HOSTS: z.string().optional(),
+
+    /** Bearer token for GET /api/metrics from outside the machine. Unset: local requests only. */
+    METRICS_TOKEN: secret.optional(),
+    /** Postgres-backed rate limits (05 §3a). */
+    RATE_LIMIT_ENABLED: bool.default(true),
+    /** Overrides, e.g. "upload.user=100/1h,search.user=60/1m" (see lib/rate-limit.ts). */
+    RATE_LIMITS: z.string().optional(),
+    /** Version reported by /api/health and /api/metrics (set by the image build). */
+    DUEPROOF_VERSION: z.string().default("0.1.0-dev"),
+
     /** Bare pages under /dev that exercise sign-in and upload. On by default outside production. */
     DUEPROOF_DEV_PAGES: bool.optional(),
   })
@@ -86,6 +112,13 @@ const Env = z
         code: "custom",
         path: ["BLOB_READ_WRITE_TOKEN"],
         message: "required for vercel-blob",
+      });
+    }
+    if (env.HEAVY_ENGINE_SNAPSHOT_ID && env.STORAGE_DRIVER === "local") {
+      ctx.addIssue({
+        code: "custom",
+        path: ["HEAVY_ENGINE_SNAPSHOT_ID"],
+        message: "engine-heavy needs object storage it can reach (STORAGE_DRIVER=s3)",
       });
     }
     const engineMode = env.ENGINE_MODE ?? (env.ENGINE_URL ? "http" : "fake");

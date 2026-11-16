@@ -1,8 +1,26 @@
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
 import { withWorkflow } from "workflow/next";
 
+const appDir = dirname(fileURLToPath(import.meta.url));
+const repoRoot = join(appDir, "..", "..");
+
+// Headers that don't depend on the runtime environment, on every response
+// (including build assets, which proxy.ts skips). proxy.ts adds the CSP, HSTS
+// and request id at run time.
+const staticSecurityHeaders = [
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "same-origin" },
+  { key: "X-Frame-Options", value: "DENY" },
+];
+
 const config: NextConfig = {
+  // Self-hosted image: `.next/standalone` holds a minimal server and the
+  // traced node_modules; the workspace root is the trace root (monorepo).
   output: "standalone",
+  outputFileTracingRoot: repoRoot,
+  turbopack: { root: repoRoot },
   transpilePackages: [
     "@dueproof/auth",
     "@dueproof/contracts",
@@ -19,10 +37,14 @@ const config: NextConfig = {
     "@electric-sql/pglite",
     "postgres",
     "@neondatabase/serverless",
+    "@vercel/sandbox",
   ],
   poweredByHeader: false,
   // The repo has its own AGENTS.md; don't let `next dev` write another one here.
   agentRules: false,
+  async headers() {
+    return [{ source: "/:path*", headers: staticSecurityHeaders }];
+  },
 };
 
 export default withWorkflow(config);
