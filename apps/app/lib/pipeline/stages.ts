@@ -408,15 +408,17 @@ export async function writeStage(
 export async function failStage(c: Container, ref: DocumentRef, reason: string): Promise<void> {
   // Reasons are short codes (needs_password, engine_error, …), never document text.
   const code = reason.replace(/[^a-z0-9_]/gi, "_").slice(0, 64);
+  // An encrypted PDF isn't a failure: it waits for its password (asked again on each read, 05 §4).
+  const status = code === "needs_password" ? "needs_password" : "failed";
   await withOrg(c.database, ref.orgId, async (tx, scope) => {
-    await writeStatus(tx, ref.orgId, ref.documentId, "failed", code);
+    await writeStatus(tx, ref.orgId, ref.documentId, status, code);
     await audit.write(tx, scope, {
       actor: null,
-      action: "document.failed",
+      action: status === "failed" ? "document.failed" : "document.needs_password",
       targetType: "document",
       targetId: ref.documentId,
       detail: { reason: code },
     });
   });
-  announce(ref.orgId, ref.documentId, "failed", code);
+  announce(ref.orgId, ref.documentId, status, code);
 }

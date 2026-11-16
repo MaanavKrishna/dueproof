@@ -67,7 +67,9 @@ export function DevHarness() {
         detail?: string;
       };
       add(`status: ${data.status}${data.detail ? ` (${data.detail})` : ""}`);
-      if (["ready", "needs_review", "failed", "quarantined"].includes(data.status)) {
+      if (
+        ["ready", "needs_review", "needs_password", "failed", "quarantined"].includes(data.status)
+      ) {
         events.close();
         const res = await fetch(`/api/v1/documents/${id}`);
         setDetail(JSON.stringify(await res.json(), null, 2));

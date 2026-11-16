@@ -46,6 +46,7 @@ export function subscribeDocumentStatus(
 export const TERMINAL_STATUSES: readonly DocumentStatus[] = [
   "ready",
   "needs_review",
+  "needs_password",
   "failed",
   "quarantined",
 ];

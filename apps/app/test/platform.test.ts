@@ -216,6 +216,25 @@ describe("sign-up, upload and processing", () => {
     ).toBeNull();
   });
 
+  it("parks a password-protected PDF as needs_password", async () => {
+    const locked = new Uint8Array(
+      await readFile(
+        new URL(
+          "../../../services/engine/tests/fixtures/edge-password-protected.pdf",
+          import.meta.url,
+        ),
+      ),
+    );
+    const init = await upload(owner, locked, "application/pdf", "locked.pdf");
+    await completeUpload(owner, init.documentId);
+    const detail = await getDocumentDetail(owner, init.documentId);
+    expect(detail.document).toMatchObject({
+      status: "needs_password",
+      statusDetail: "needs_password",
+    });
+    expect(detail.findings).toEqual([]);
+  });
+
   it("refuses types outside the allow-list and oversized files", async () => {
     await expect(
       initUpload(owner, { filename: "x.html", size: 10, mime: "text/html", sha256: sha }),

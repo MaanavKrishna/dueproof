@@ -90,6 +90,15 @@ export function createFakeEngine(options: FakeEngineOptions): EngineClient {
       const { recording, bytes } = await lookup(r.sourceUrl);
       if (recording) return recording.inspect;
       const isPdf = new TextDecoder().decode(bytes.slice(0, 5)) === "%PDF-";
+      if (isPdf && !r.password && Buffer.from(bytes).includes("/Encrypt")) {
+        return {
+          ok: false,
+          pageCount: 0,
+          encrypted: true,
+          textLayerPages: [],
+          reason: "encrypted",
+        };
+      }
       return { ok: true, pageCount: 1, encrypted: false, textLayerPages: isPdf ? [1] : [] };
     },
 
