@@ -1,34 +1,37 @@
-// Mirrors dueproof/languages.py. `scans`: Tesseract has an OCR pack, so
-// photographs and scans are read; otherwise only PDFs with a text layer.
-// `tested`: checked end to end with the real translation model.
-export type Language = { code: string; name: string; english: string; scans: boolean; tested: boolean };
+// The 22 languages of the Eighth Schedule, which Dueproof reads besides
+// English. Per-language OCR quality is measured in the v0.1 bake-off and is
+// not claimed here until it is published.
+export type Language = { code: string; name: string; english: string; script: string; rtl?: boolean };
 
-const L = (code: string, name: string, english: string, scans: boolean, tested = false): Language =>
-  ({ code, name, english, scans, tested });
+const L = (code: string, name: string, english: string, script: string, rtl = false): Language => ({
+  code,
+  name,
+  english,
+  script,
+  ...(rtl ? { rtl } : {}),
+});
 
 export const LANGUAGES: Language[] = [
-  L("hi", "हिन्दी", "Hindi", true, true),
-  L("bn", "বাংলা", "Bengali", true, true),
-  L("mr", "मराठी", "Marathi", true),
-  L("te", "తెలుగు", "Telugu", true, true),
-  L("ta", "தமிழ்", "Tamil", true, true),
-  L("gu", "ગુજરાતી", "Gujarati", true),
-  L("ur", "اردو", "Urdu", true, true),
-  L("kn", "ಕನ್ನಡ", "Kannada", true),
-  L("or", "ଓଡ଼ିଆ", "Odia", true),
-  L("ml", "മലയാളം", "Malayalam", true, true),
-  L("pa", "ਪੰਜਾਬੀ", "Punjabi", true),
-  L("as", "অসমীয়া", "Assamese", true),
-  L("mai", "मैथिली", "Maithili", false),
-  L("sat", "ᱥᱟᱱᱛᱟᱲᱤ", "Santali", false),
-  L("ks", "کٲشُر", "Kashmiri", false),
-  L("ne", "नेपाली", "Nepali", true),
-  L("sd", "سنڌي", "Sindhi", true),
-  L("kok", "कोंकणी", "Konkani", false),
-  L("doi", "डोगरी", "Dogri", false),
-  L("mni", "ꯃꯤꯇꯩꯂꯣꯟ", "Manipuri", false),
-  L("brx", "बड़ो", "Bodo", false),
-  L("sa", "संस्कृतम्", "Sanskrit", true),
+  L("as", "অসমীয়া", "Assamese", "Bengali–Assamese"),
+  L("bn", "বাংলা", "Bengali", "Bengali–Assamese"),
+  L("brx", "बड़ो", "Bodo", "Devanagari"),
+  L("doi", "डोगरी", "Dogri", "Devanagari"),
+  L("gu", "ગુજરાતી", "Gujarati", "Gujarati"),
+  L("hi", "हिन्दी", "Hindi", "Devanagari"),
+  L("kn", "ಕನ್ನಡ", "Kannada", "Kannada"),
+  L("ks", "کٲشُر", "Kashmiri", "Perso-Arabic", true),
+  L("kok", "कोंकणी", "Konkani", "Devanagari"),
+  L("mai", "मैथिली", "Maithili", "Devanagari"),
+  L("ml", "മലയാളം", "Malayalam", "Malayalam"),
+  L("mni", "ꯃꯤꯇꯩꯂꯣꯟ", "Manipuri", "Meetei Mayek"),
+  L("mr", "मराठी", "Marathi", "Devanagari"),
+  L("ne", "नेपाली", "Nepali", "Devanagari"),
+  L("or", "ଓଡ଼ିଆ", "Odia", "Odia"),
+  L("pa", "ਪੰਜਾਬੀ", "Punjabi", "Gurmukhi"),
+  L("sa", "संस्कृतम्", "Sanskrit", "Devanagari"),
+  L("sat", "ᱥᱟᱱᱛᱟᱲᱤ", "Santali", "Ol Chiki"),
+  L("sd", "سنڌي", "Sindhi", "Perso-Arabic", true),
+  L("ta", "தமிழ்", "Tamil", "Tamil"),
+  L("te", "తెలుగు", "Telugu", "Telugu"),
+  L("ur", "اردو", "Urdu", "Perso-Arabic", true),
 ];
-
-export const RTL = new Set(["ur", "ks", "sd"]);
