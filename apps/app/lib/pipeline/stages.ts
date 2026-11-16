@@ -380,7 +380,13 @@ export interface WriteResult {
 /** The source (rule first, then AI) whose located quote is the finding's proof. */
 function proofOf(f: ReconciledFinding): ProvenFinding | undefined {
   for (const s of [f.ruleSource, f.aiSource] as (ProvenFinding | undefined)[]) {
-    if (s && s.grade !== "unlocated" && s.page !== undefined && s.page === f.page && s.rects?.length)
+    if (
+      s &&
+      s.grade !== "unlocated" &&
+      s.page !== undefined &&
+      s.page === f.page &&
+      s.rects?.length
+    )
       return s;
   }
   return undefined;
