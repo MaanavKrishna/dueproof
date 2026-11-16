@@ -97,40 +97,40 @@ importers:
         specifier: 5.3.0
         version: 5.3.0
       '@fontsource/noto-naskh-arabic':
-        specifier: ^5.3.0
+        specifier: 5.3.0
         version: 5.3.0
       '@fontsource/noto-sans-bengali':
-        specifier: ^5.3.0
+        specifier: 5.3.0
         version: 5.3.0
       '@fontsource/noto-sans-devanagari':
-        specifier: ^5.3.0
+        specifier: 5.3.0
         version: 5.3.0
       '@fontsource/noto-sans-gujarati':
-        specifier: ^5.3.0
+        specifier: 5.3.0
         version: 5.3.0
       '@fontsource/noto-sans-gurmukhi':
-        specifier: ^5.3.0
+        specifier: 5.3.0
         version: 5.3.0
       '@fontsource/noto-sans-kannada':
-        specifier: ^5.3.0
+        specifier: 5.3.0
         version: 5.3.0
       '@fontsource/noto-sans-malayalam':
-        specifier: ^5.3.0
+        specifier: 5.3.0
         version: 5.3.0
       '@fontsource/noto-sans-meetei-mayek':
-        specifier: ^5.3.0
+        specifier: 5.3.0
         version: 5.3.0
       '@fontsource/noto-sans-ol-chiki':
-        specifier: ^5.3.0
+        specifier: 5.3.0
         version: 5.3.0
       '@fontsource/noto-sans-oriya':
-        specifier: ^5.3.0
+        specifier: 5.3.0
         version: 5.3.0
       '@fontsource/noto-sans-tamil':
-        specifier: ^5.3.0
+        specifier: 5.3.0
         version: 5.3.0
       '@fontsource/noto-sans-telugu':
-        specifier: ^5.3.0
+        specifier: 5.3.0
         version: 5.3.0
       marked:
         specifier: 18.1.1
