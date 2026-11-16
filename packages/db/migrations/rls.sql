@@ -46,7 +46,7 @@ DECLARE
   tenant_tables text[] := ARRAY[
     'org_settings', 'holidays', 'clients', 'registrations', 'contacts', 'cases',
     'documents', 'pages', 'document_events', 'findings', 'evidence', 'finding_edits',
-    'deadlines', 'demands', 'comments', 'notifications', 'saved_views', 'push_subscriptions',
+    'deadlines', 'demands', 'comments', 'notifications', 'saved_views', 'document_passwords', 'push_subscriptions',
     'ai_settings', 'ai_runs', 'audit'
   ];
 BEGIN

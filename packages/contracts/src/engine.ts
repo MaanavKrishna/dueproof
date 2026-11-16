@@ -131,7 +131,9 @@ export type AnalyzeResponse = z.infer<typeof AnalyzeResponse>;
 
 export const LinkRequest = z.object({
   pages: z.array(PageText),
-  quotes: z.array(z.object({ id: z.string(), text: z.string(), pageHint: z.number().int().optional() })),
+  quotes: z.array(
+    z.object({ id: z.string(), text: z.string(), pageHint: z.number().int().optional() }),
+  ),
 });
 export const LinkResponse = z.object({
   matches: z.array(

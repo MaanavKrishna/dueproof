@@ -81,6 +81,11 @@
   padding-top: var(--dp-space-16);
 }
 
+/* display: flex above would otherwise show the inactive panels (empty, but padded). */
+.tabPanel[hidden] {
+  display: none;
+}
+
 .unsaved {
   margin-inline-end: auto;
   color: var(--dp-fg-secondary);

@@ -39,6 +39,7 @@ import type { AnalyzeResponse, LinkResponse, PageText } from "@dueproof/engine-c
 import { orgKey } from "@dueproof/storage";
 import { loadOrgCalendar } from "../calendar";
 import type { DeadlineDetail } from "../deadline-detail";
+import { clearDocumentPassword, getDocumentPassword } from "../document-passwords";
 import type { Container } from "../server/container";
 import { announce, setStatus, writeStatus } from "./status";
 import type { DocumentRef } from "./types";
@@ -102,7 +103,13 @@ export async function inspectStage(c: Container, ref: DocumentRef): Promise<Insp
   await setStatus(c.database, ref.orgId, ref.documentId, "reading", "inspect");
   const doc = await loadDocument(c, ref);
   const source = await c.engineStorage.getSignedUrl(doc.storageKey);
-  const res = await c.engine.inspect({ sourceUrl: source.url, mime: engineMime(doc.mime) });
+  // A password entered for this document (never logged, never in a step result).
+  const password = await getDocumentPassword(c, ref);
+  const res = await c.engine.inspect({
+    sourceUrl: source.url,
+    mime: engineMime(doc.mime),
+    ...(password ? { password } : {}),
+  });
   if (!res.ok) {
     const reason = res.encrypted ? "needs_password" : (res.reason ?? "unreadable");
     return { ok: false, pageCount: res.pageCount, reason };
@@ -138,9 +145,11 @@ export async function readStage(
   const putUrls = await Promise.all(
     imageKeys.map((k) => c.engineStorage.putSignedUrl(k, { contentType: "image/webp" })),
   );
+  const password = await getDocumentPassword(c, ref);
   const res = await c.engine.read({
     sourceUrl: source.url,
     mime: engineMime(doc.mime),
+    ...(password ? { password } : {}),
     pageImagePutUrls: putUrls.map((u) => u.url),
     languages: ["en"],
     maxRung: c.env.ENGINE_MAX_RUNG,
@@ -205,9 +214,11 @@ export async function escalateStage(
   const putUrls = await Promise.all(
     imageKeys.map((k) => c.engineStorage.putSignedUrl(k, { contentType: "image/webp" })),
   );
+  const password = await getDocumentPassword(c, ref);
   const res = await c.heavyEngine.read({
     sourceUrl: source.url,
     mime: engineMime(doc.mime),
+    ...(password ? { password } : {}),
     pageImagePutUrls: putUrls.map((u) => u.url),
     languages: [...new Set(["en", ...read.languages])],
     maxRung: "tesseract",
@@ -632,6 +643,8 @@ export async function writeStage(
     });
     return { findings: items.length, deadlines: deadlineCount, skipped: false };
   });
+  // Processing is done: the password of a protected PDF isn't kept.
+  await clearDocumentPassword(c, ref);
   if (!result.skipped)
     announce(
       ref.orgId,
@@ -645,6 +658,8 @@ export async function writeStage(
 // ---------------------------------------------------------------- failure
 
 export async function failStage(c: Container, ref: DocumentRef, reason: string): Promise<void> {
+  // A wrong or stale password is asked for again; it is never kept past the run.
+  await clearDocumentPassword(c, ref);
   // Reasons are short codes (needs_password, engine_error, …), never document text.
   const code = reason.replace(/[^a-z0-9_]/gi, "_").slice(0, 64);
   // An encrypted PDF isn't a failure: it waits for its password (asked again on each read, 05 §4).

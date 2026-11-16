@@ -57,7 +57,14 @@ export const documentStatus = pgEnum("document_status", [
   "failed",
   "quarantined",
 ]);
-export const channel = pgEnum("channel", ["upload", "email", "whatsapp", "portal", "desktop", "import"]);
+export const channel = pgEnum("channel", [
+  "upload",
+  "email",
+  "whatsapp",
+  "portal",
+  "desktop",
+  "import",
+]);
 export const caseStage = pgEnum("case_stage", [
   "received",
   "gathering",
@@ -82,7 +89,13 @@ export const origin = pgEnum("origin", ["rule", "ai", "rule+ai", "human"]);
 export const verification = pgEnum("verification", ["exact", "strong", "approximate", "unlocated"]);
 export const workStatus = pgEnum("work_status", ["open", "done", "dismissed"]);
 export const deadlineSource = pgEnum("deadline_source", ["notice", "order", "statutory", "manual"]);
-export const registrationKind = pgEnum("registration_kind", ["gst", "tds", "income_tax", "roc", "other"]);
+export const registrationKind = pgEnum("registration_kind", [
+  "gst",
+  "tds",
+  "income_tax",
+  "roc",
+  "other",
+]);
 export const filingFrequency = pgEnum("filing_frequency", ["monthly", "quarterly", "annual"]);
 export const aiMode = pgEnum("ai_mode", ["off", "local", "byok", "plan"]);
 export const demandHead = pgEnum("demand_head", ["tax", "interest", "penalty", "fee"]);
@@ -99,7 +112,10 @@ export const orgSettings = pgTable("org_settings", {
   /** 4 = April (Indian FY). */
   fiscalYearStartMonth: integer("fiscal_year_start_month").notNull().default(4),
   region: text("region").notNull().default("in"),
-  workingDays: jsonb("working_days").$type<number[]>().notNull().default(sql`'[1,2,3,4,5,6]'::jsonb`),
+  workingDays: jsonb("working_days")
+    .$type<number[]>()
+    .notNull()
+    .default(sql`'[1,2,3,4,5,6]'::jsonb`),
   reportLogoKey: text("report_logo_key"),
   escalationDays: jsonb("escalation_days").$type<{ manager: number; partner: number }>(),
   createdAt: createdAt(),
@@ -128,7 +144,10 @@ export const clients = pgTable(
     createdAt: createdAt(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
   },
-  (t) => [index("clients_org_name").on(t.orgId, t.name), index("clients_org_pan").on(t.orgId, t.pan)],
+  (t) => [
+    index("clients_org_name").on(t.orgId, t.name),
+    index("clients_org_pan").on(t.orgId, t.pan),
+  ],
 );
 
 export const registrations = pgTable(
@@ -144,7 +163,10 @@ export const registrations = pgTable(
     /** e.g. "qrmp", "composition", "regular". */
     scheme: text("scheme"),
     /** Facts the statutory calendar needs: audit flag, company type, AGM date, … */
-    attributes: jsonb("attributes").$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+    attributes: jsonb("attributes")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     validFrom: date("valid_from"),
     validTo: date("valid_to"),
   },
@@ -163,7 +185,10 @@ export const contacts = pgTable(
     whatsapp: text("whatsapp"),
     role: text("role"),
   },
-  (t) => [index("contacts_org_client").on(t.orgId, t.clientId), index("contacts_org_whatsapp").on(t.orgId, t.whatsapp)],
+  (t) => [
+    index("contacts_org_client").on(t.orgId, t.clientId),
+    index("contacts_org_whatsapp").on(t.orgId, t.whatsapp),
+  ],
 );
 
 export const cases = pgTable(
@@ -185,7 +210,10 @@ export const cases = pgTable(
     openedAt: createdAt(),
     closedAt: timestamp("closed_at", { withTimezone: true }),
   },
-  (t) => [index("cases_org_stage").on(t.orgId, t.stage), index("cases_org_client").on(t.orgId, t.clientId)],
+  (t) => [
+    index("cases_org_stage").on(t.orgId, t.stage),
+    index("cases_org_client").on(t.orgId, t.clientId),
+  ],
 );
 
 export const documents = pgTable(
@@ -391,7 +419,10 @@ export const demands = pgTable(
     asOf: date("as_of"),
     createdAt: createdAt(),
   },
-  (t) => [index("demands_org_case").on(t.orgId, t.caseId), index("demands_org_client").on(t.orgId, t.clientId)],
+  (t) => [
+    index("demands_org_case").on(t.orgId, t.caseId),
+    index("demands_org_client").on(t.orgId, t.clientId),
+  ],
 );
 
 export const comments = pgTable(
@@ -438,6 +469,24 @@ export const savedViews = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("saved_views_org_screen").on(t.orgId, t.screen)],
+);
+
+/**
+ * The password of a protected PDF, for one processing run (01 §4, 05 §4).
+ * AES-256-GCM under a key derived from AUTH_SECRET, with the org and
+ * document bound in as AAD. Kept at most 15 minutes and deleted when the run
+ * finishes or fails. Shared table so any instance can run the pipeline.
+ */
+export const documentPasswords = pgTable(
+  "document_passwords",
+  {
+    orgId: orgId(),
+    documentId: text("document_id").notNull(),
+    ciphertext: text("ciphertext").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.orgId, t.documentId] })],
 );
 
 export const pushSubscriptions = pgTable("push_subscriptions", {
@@ -534,6 +583,7 @@ export const TENANT_TABLES = [
   "comments",
   "notifications",
   "saved_views",
+  "document_passwords",
   "push_subscriptions",
   "ai_settings",
   "ai_runs",

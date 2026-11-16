@@ -186,7 +186,6 @@
   color: var(--dp-fg-secondary);
 }
 
-
 @media (width < 40rem) {
   .holidayRow {
     grid-template-columns: 1fr auto;

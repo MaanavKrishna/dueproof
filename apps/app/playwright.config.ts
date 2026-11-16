@@ -6,7 +6,8 @@
  *
  * It runs a production build (the desktop edition, which allows the fake
  * engine): the dev server's hot reload can reload a page mid-test.
- * E2E_DEV=1 uses `next dev` instead, for quick local iteration.
+ * E2E_DEV=1 uses `next dev` instead, for quick local iteration;
+ * E2E_SKIP_BUILD=1 starts the existing build.
  */
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -17,6 +18,8 @@ const PORT = Number(process.env.E2E_PORT ?? 3100);
 const data = mkdtempSync(join(tmpdir(), "dueproof-e2e-"));
 const executablePath = process.env.PLAYWRIGHT_CHROME;
 const dev = process.env.E2E_DEV === "1";
+/** E2E_SKIP_BUILD=1 starts the last production build as it is (after `pnpm build` with DUEPROOF_EDITION=desktop). */
+const skipBuild = process.env.E2E_SKIP_BUILD === "1";
 
 export default defineConfig({
   testDir: "e2e",
@@ -37,7 +40,9 @@ export default defineConfig({
   webServer: {
     command: dev
       ? `pnpm exec next dev --turbopack -p ${PORT}`
-      : `pnpm exec next build --turbopack && pnpm exec next start -p ${PORT}`,
+      : skipBuild
+        ? `pnpm exec next start -p ${PORT}`
+        : `pnpm exec next build --turbopack && pnpm exec next start -p ${PORT}`,
     url: `http://localhost:${PORT}/api/health`,
     timeout: 900_000,
     reuseExistingServer: false,

@@ -228,7 +228,11 @@ describe("policyFromSettings", () => {
       { ...row, mode: "plan" },
       { usage, anthropicKey: "sk-ant-test", gatewayKey: "vck_test" },
     );
-    expect(p.provider).toMatchObject({ kind: "anthropic", name: "anthropic", serverFallbacks: true });
+    expect(p.provider).toMatchObject({
+      kind: "anthropic",
+      name: "anthropic",
+      serverFallbacks: true,
+    });
     expect(p.provider && "baseURL" in p.provider ? p.provider.baseURL : undefined).toBeUndefined();
     expect(p.models).toEqual({
       haiku: "claude-haiku-5-5",

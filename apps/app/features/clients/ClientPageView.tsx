@@ -73,6 +73,7 @@ const TAX_LABEL: Record<string, string> = {
   roc: "ROC",
 };
 const taxLabel = (t: string) => TAX_LABEL[t] ?? t;
+const openDemands = (n: number) => `${n} open ${n === 1 ? "demand" : "demands"}`;
 
 export function registrationSummary(r: RegistrationRow): string {
   const a = (r.attributes ?? {}) as Record<string, unknown>;
@@ -146,7 +147,9 @@ export function ClientPageView({ data }: { data: ClientPageData }) {
     ? Object.entries(data.exposure.exposure.clients[c.id]?.byTaxType ?? {}).map(([t, s]) => ({
         id: t,
         label: taxLabel(t),
-        sublabel: `${data.exposure?.demands.filter((d) => d.taxType === t && d.status === "open").length ?? 0} open demands`,
+        sublabel: openDemands(
+          data.exposure?.demands.filter((d) => d.taxType === t && d.status === "open").length ?? 0,
+        ),
         tax: s.openMinor,
         interest: s.computedInterestMinor,
         penalty: { min: s.penaltyLowMinor, max: s.penaltyHighMinor },

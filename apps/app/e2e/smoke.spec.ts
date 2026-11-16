@@ -64,7 +64,7 @@ test("Today → Inbox → case page → proof → search", async ({ page }) => {
     .click();
   const dialog = page.getByRole("dialog", { name: "Open a case" });
   await dialog.getByLabel("New client").fill("Harbour Valley Foods Pvt Ltd");
-  await dialog.getByLabel("GSTIN").fill("27AAACH1234F1Z5");
+  await dialog.getByLabel("GSTIN").fill("27AAACH1234F1Z3");
   await dialog.getByRole("button", { name: "Open case" }).click();
   await page.waitForURL(/\/cases\//);
 

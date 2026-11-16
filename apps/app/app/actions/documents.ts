@@ -5,11 +5,11 @@
  * Both start processDocument again; the original file is always kept.
  */
 import { Id } from "@dueproof/contracts";
-import { and, audit, documents, eq, withOrg } from "@dueproof/db";
+import { and, audit, documents, eq, type OrgTx, withOrg } from "@dueproof/db";
 import { z } from "zod";
 import { type ActionResult, runAction } from "@/lib/action";
 import { authorize } from "@/lib/authorize";
-import { putDocumentPassword } from "@/lib/document-passwords";
+import { storeDocumentPassword } from "@/lib/document-passwords";
 import { HttpError, notFound } from "@/lib/errors";
 import { announce, writeStatus } from "@/lib/pipeline/status";
 
@@ -22,7 +22,8 @@ async function restart(
   documentId: string,
   allowed: readonly string[],
   action: string,
-  before?: (orgId: string) => void,
+  /** Runs inside the status change's transaction, before the pipeline starts. */
+  before?: (tx: OrgTx, orgId: string, secret: string) => Promise<void>,
 ): Promise<{ documentId: string; runId: string }> {
   const ctx = await authorize("document.upload");
   const ok = await withOrg(ctx.container.database, ctx.orgId, async (tx, scope) => {
@@ -42,23 +43,26 @@ async function restart(
       targetId: documentId,
       requestId: ctx.requestId,
     });
+    await before?.(tx, ctx.orgId, ctx.container.env.AUTH_SECRET);
     return true;
   });
   if (!ok) throw notFound("That document");
-  before?.(ctx.orgId);
   announce(ctx.orgId, documentId, "stored", action);
   const runId = await ctx.container.startPipeline({ orgId: ctx.orgId, documentId });
   return { documentId, runId };
 }
 
-/** The password is held in memory for this read only, never stored or logged. */
+/** The password is kept encrypted for this run only (15 minutes at most), never logged. */
 export async function unlockDocument(
   input: z.input<typeof PasswordInput>,
 ): Promise<ActionResult<{ documentId: string; runId: string }>> {
   return runAction(async () => {
     const { documentId, password } = PasswordInput.parse(input);
-    return restart(documentId, ["needs_password"], "document.password_entered", (orgId) =>
-      putDocumentPassword(orgId, documentId, password),
+    return restart(
+      documentId,
+      ["needs_password"],
+      "document.password_entered",
+      (tx, orgId, secret) => storeDocumentPassword(tx, secret, { orgId, documentId }, password),
     );
   });
 }

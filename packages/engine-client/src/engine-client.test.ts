@@ -110,6 +110,38 @@ describe("fake engine", () => {
     expect(
       await engine.inspect({ sourceUrl: "https://storage.test/locked", mime: "application/pdf" }),
     ).toMatchObject({ ok: false, encrypted: true, reason: "encrypted" });
+    const read = {
+      sourceUrl: "https://storage.test/locked",
+      mime: "application/pdf" as const,
+      pageImagePutUrls: [],
+      languages: ["en"],
+    };
+    await expect(engine.read(read)).rejects.toThrow(/password/);
+  });
+
+  it("treats an encrypted PDF as unlocked when given a password", async () => {
+    const locked = new Uint8Array(
+      readFileSync(
+        new URL(
+          "../../../services/engine/tests/fixtures/edge-password-protected.pdf",
+          import.meta.url,
+        ),
+      ),
+    );
+    const engine = createFakeEngine({ fetchSource: async () => locked });
+    const source = { sourceUrl: "https://storage.test/locked", mime: "application/pdf" as const };
+    expect(await engine.inspect({ ...source, password: "secret" })).toMatchObject({
+      ok: true,
+      encrypted: false,
+      pageCount: 1,
+    });
+    const read = await engine.read({
+      ...source,
+      password: "secret",
+      pageImagePutUrls: [],
+      languages: ["en"],
+    });
+    expect(read.pages).toHaveLength(1);
   });
 
   it("links quotes to word boxes", async () => {

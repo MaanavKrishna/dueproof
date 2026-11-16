@@ -8,6 +8,7 @@ import {
   migrate,
   organization,
   orgSettings,
+  sql,
   uuidv7,
   withOrg,
 } from "@dueproof/db";
@@ -41,6 +42,17 @@ beforeAll(async () => {
 afterAll(async () => {
   await database.close();
 });
+
+/**
+ * One migrated PGlite per file (creating and migrating one is the slow part
+ * on a busy runner): suites that need a first run start from empty auth
+ * tables instead of a new database.
+ */
+async function resetAuthTables(): Promise<void> {
+  await unsafeRawDb(database).execute(
+    sql`TRUNCATE "user", "organization", "verification_token", "rate_limit" CASCADE`,
+  );
+}
 
 describe("passwords", () => {
   it("hashes with Argon2id and verifies", async () => {
@@ -124,8 +136,8 @@ describe("first run (self-hosted)", () => {
 
 describe("open sign-up (hosted)", () => {
   it("gives each new person their own organisation", async () => {
-    const db2 = await createDatabase({ driver: "pglite" });
-    await migrate(db2);
+    await resetAuthTables();
+    const db2 = database;
     const hosted = createAuth({
       database: db2,
       baseURL: "http://localhost:3000",
@@ -146,14 +158,13 @@ describe("open sign-up (hosted)", () => {
     expect(ma[0]?.role).toBe("owner");
     expect(mb[0]?.role).toBe("owner");
     expect(ma[0]?.organizationId).not.toBe(mb[0]?.organizationId);
-    await db2.close();
   });
 });
 
 describe("external sign-up (SSO from ee/, through AuthConfig.plugins)", () => {
   it("lets an identity provider vouch for someone, never a password sign-up", async () => {
-    const db3 = await createDatabase({ driver: "pglite" });
-    await migrate(db3);
+    await resetAuthTables();
+    const db3 = database;
     const calls: Array<string | undefined> = [];
     // Stands in for the SSO plugin: an endpoint under /sso/ that creates a user.
     const fakeSso = {
@@ -205,14 +216,13 @@ describe("external sign-up (SSO from ee/, through AuthConfig.plugins)", () => {
     expect(await raw.select().from(member).where(eq(member.userId, created.id))).toHaveLength(0);
     // Another domain through the same endpoint is refused.
     await expect(api.fakeSsoCreate({ body: { email: "a@elsewhere.test" } })).rejects.toThrow();
-    await db3.close();
-  }, 30_000);
+  });
 });
 
 describe("rate limits", () => {
   it("limits sign-in attempts per IP", async () => {
-    const db3 = await createDatabase({ driver: "pglite" });
-    await migrate(db3);
+    await resetAuthTables();
+    const db3 = database;
     const limited = createAuth({
       database: db3,
       baseURL: BASE,
@@ -236,6 +246,5 @@ describe("rate limits", () => {
     for (let i = 0; i < 22; i++) statuses.push((await attempt()).status);
     expect(statuses.slice(0, 20).every((s) => s === 401)).toBe(true);
     expect(statuses.at(-1)).toBe(429);
-    await db3.close();
   });
 });
