@@ -116,6 +116,19 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
 
+  infra/sandbox:
+    dependencies:
+      '@vercel/sandbox':
+        specifier: 4.0.0
+        version: 4.0.0
+    devDependencies:
+      '@types/node':
+        specifier: 26.6.5
+        version: 26.6.5
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+
   packages/ai:
     dependencies:
       '@dueproof/contracts':

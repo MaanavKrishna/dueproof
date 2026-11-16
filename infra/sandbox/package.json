@@ -1,0 +1,19 @@
+{
+  "name": "@dueproof/infra-sandbox",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Builds the engine-heavy Vercel Sandbox snapshot (03 §3a). See README.md.",
+  "engines": { "node": ">=22.18" },
+  "scripts": {
+    "build-snapshot": "node build-snapshot.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@vercel/sandbox": "4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.5",
+    "typescript": "7.0.2"
+  }
+}
