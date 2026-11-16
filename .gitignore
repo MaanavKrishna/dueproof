@@ -1,28 +1,45 @@
-/data/
-/models/
+# Dependencies and environments
+node_modules/
 .venv/
 __pycache__/
 *.pyc
-.DS_Store
-.playwright-mcp/
-dueproof/profiles/zz_*.py
 *.egg-info/
-build/
-dist/
-node_modules/
+
+# Build output and caches
 .next/
 .turbo/
 out/
+build/
+dist/
 storybook-static/
 *.tsbuildinfo
-.env
-.env.*
-!.env.example
+.swc/
+
+# Test output
 coverage/
 playwright-report/
 test-results/
+
+# Local data
 pgdata/
-.claude/worktrees/
+
+# Environment files: only the examples are committed
+.env
+.env.*
+!.env.example
+
+# Logs, editor and OS files
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Local agent state
+.claude/
+.playwright-mcp/
+
 # Licence signing keys (ee/licence): never commit a real private key. The
 # only private keys in the repository are the marked TEST keys.
 *.private.pem
