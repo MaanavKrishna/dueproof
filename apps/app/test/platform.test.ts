@@ -172,15 +172,28 @@ describe("sign-up, upload and processing", () => {
     });
     expect(detail.document).not.toHaveProperty("storageKey");
     expect(detail.findings).toHaveLength(5);
+    // Reconciled by core with no AI findings: every finding is the rules' own, located on the page.
     expect(
-      detail.findings.every((f) => f.verification === "exact" && f.evidence.length === 1),
-    ).toBe(true);
+      detail.findings.map((f) => [f.origin, f.verification, f.evidence.length]),
+    ).toEqual(Array.from({ length: 5 }, () => ["rule", "exact", 1]));
 
-    const due = detail.deadlines.map((d) => [d.dueOn, d.basis]);
+    // Dates come from core's date engine, with its basis and working kept on the row.
+    const due = detail.deadlines.map((d) => [d.source, d.dueOn, d.basis, d.windowEndOn]);
     expect(due).toEqual([
-      ["2026-11-18", "On 18 Nov 2026"],
-      ["2026-11-23", "30 days from receipt on 24 Oct 2026"],
+      ["notice", "2026-11-18", "On 18 Nov 2026, as stated", null],
+      ["notice", "2026-11-23", "30 days from receipt on 24 Oct 2026", null],
     ]);
+    for (const d of detail.deadlines) {
+      expect(d.detail).toMatchObject({
+        adjustments: [],
+        warnings: [],
+        origin: "rule",
+        verification: "exact",
+      });
+    }
+    expect(detail.deadlines[1]?.detail).toMatchObject({
+      inputs: expect.objectContaining({ anchorDate: "2026-10-24" }),
+    });
     expect(detail.events.map((e) => e.stage)).toEqual([
       "received",
       "stored",

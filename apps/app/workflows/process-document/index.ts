@@ -5,7 +5,8 @@
  *
  * Start it with `start(processDocument, [{ orgId, documentId }])` from
  * "workflow/api" (lib/server/container.ts does this after an upload).
- * The AI assist step (04) slots in after analyze when packages/ai lands.
+ * The AI assist step (04) slots in after analyze when packages/ai lands: its
+ * findings, graded by the linker, go to reconcileStage's `aiFindings`.
  */
 import type { DocumentRef } from "../../lib/pipeline/types";
 import {

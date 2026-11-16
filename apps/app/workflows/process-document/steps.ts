@@ -13,6 +13,7 @@ import type {
   DateOutcome,
   InspectResult,
   ReadResult,
+  ReconcileOutcome,
   WriteResult,
 } from "../../lib/pipeline/stages";
 import type { DocumentRef } from "../../lib/pipeline/types";
@@ -71,7 +72,7 @@ export async function linkQuotes(
   return stages.linkStage(c, ref, analysis).catch(classify);
 }
 
-type Items = Awaited<ReturnType<typeof import("../../lib/pipeline/stages").reconcileStage>>;
+type Items = ReconcileOutcome;
 
 export async function reconcileFindings(
   ref: DocumentRef,

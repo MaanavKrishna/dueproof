@@ -9,25 +9,36 @@
  * `pages` table, not in step results.
  */
 import "server-only";
-import type { DateRule, ResolvedDate } from "@dueproof/contracts";
+import {
+  type DateContext,
+  type DateError,
+  type GradedFinding,
+  isDateError,
+  type ReconciledFinding,
+  type ReconcileResult,
+  type ResolvedDateDetail,
+  reconcile,
+  resolveDate,
+} from "@dueproof/core";
 import {
   and,
   asc,
   audit,
+  count,
   deadlines,
   documents,
   eq,
   evidence,
   findings,
-  holidays,
-  orgSettings,
+  ne,
   pages,
   uuidv7,
   withOrg,
 } from "@dueproof/db";
 import type { AnalyzeResponse, LinkResponse, PageText } from "@dueproof/engine-client";
 import { orgKey } from "@dueproof/storage";
-import { type Reconciled, reconcile, resolveDate } from "../core-adapter";
+import { loadOrgCalendar } from "../calendar";
+import type { DeadlineDetail } from "../deadline-detail";
 import type { Container } from "../server/container";
 import { announce, setStatus, writeStatus } from "./status";
 import type { DocumentRef } from "./types";
@@ -238,57 +249,122 @@ export async function linkStage(
 
 // ---------------------------------------------------------------- reconcile
 
-type Finding = AnalyzeResponse["findings"][number];
+/** A graded finding plus where the linker found its quote, so evidence can be written. */
+export interface ProvenFinding extends GradedFinding {
+  rects: [number, number, number, number][];
+  score: number;
+}
 
+/**
+ * Rule findings from analyze, graded by the linker. Exact duplicates (same
+ * kind and quote) are dropped. A finding is located only when the linker
+ * placed it on a page with at least one box (AGENTS rule 3).
+ */
+export function gradeRuleFindings(analysis: AnalyzeResponse, link: LinkResponse): ProvenFinding[] {
+  const byId = new Map(link.matches.map((m) => [m.id, m]));
+  const seen = new Set<string>();
+  const out: ProvenFinding[] = [];
+  analysis.findings.forEach((finding, i) => {
+    const key = `${finding.kind}\u0000${finding.quote.trim().toLowerCase()}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    const id = quoteId(i);
+    const m = byId.get(id);
+    if (m && m.grade !== "unlocated" && m.page !== undefined && m.rects.length > 0) {
+      out.push({ id, finding, grade: m.grade, page: m.page, rects: m.rects, score: m.score });
+    } else {
+      out.push({ id, finding, grade: "unlocated", rects: [], score: m?.score ?? 0 });
+    }
+  });
+  return out;
+}
+
+export type ReconcileOutcome = ReconcileResult;
+
+/**
+ * Deterministic reconciliation (04 §4) through `@dueproof/core`.
+ *
+ * `aiFindings` is the AI lane's hook: when assisted extraction runs (04 §3),
+ * pass its findings here, already graded by the linker, with ids that don't
+ * clash with the rule findings' `q<n>` (e.g. `ai<n>`). Until then it is
+ * empty and every finding is origin `rule`.
+ */
 export async function reconcileStage(
   c: Container,
   ref: DocumentRef,
   analysis: AnalyzeResponse,
   link: LinkResponse,
-): Promise<Reconciled<Finding>[]> {
+  aiFindings: ProvenFinding[] = [],
+): Promise<ReconcileOutcome> {
   await setStatus(c.database, ref.orgId, ref.documentId, "reconciling");
-  return reconcile(analysis.findings, link.matches, quoteId);
+  const dateContext = await loadDateContext(c, ref, analysis.issuedOn);
+  const aiReviewedSoFar = aiFindings.length ? await aiReviewedCount(c, ref.orgId) : 0;
+  return reconcile(gradeRuleFindings(analysis, link), aiFindings, {
+    aiReviewedSoFar,
+    dateContext,
+  });
+}
+
+/**
+ * How many AI-only located findings the organisation has had so far. Core
+ * flags the first N of them for review; counting the rows written gives the
+ * same answer as a stored counter while it is below N, with no extra state
+ * to keep in step.
+ */
+async function aiReviewedCount(c: Container, orgId: string): Promise<number> {
+  const [row] = await withOrg(c.database, orgId, (tx) =>
+    tx
+      .select({ n: count() })
+      .from(findings)
+      .where(
+        and(
+          eq(findings.orgId, orgId),
+          eq(findings.origin, "ai"),
+          ne(findings.verification, "unlocated"),
+        ),
+      ),
+  );
+  return Number(row?.n ?? 0);
 }
 
 // ---------------------------------------------------------------- resolve dates
 
-export type DateOutcome =
-  | { index: number; resolved: ResolvedDate }
-  | { index: number; error: string };
+async function loadDateContext(
+  c: Container,
+  ref: DocumentRef,
+  issuedOn: string | undefined,
+): Promise<DateContext> {
+  const doc = await loadDocument(c, ref);
+  const cal = await loadOrgCalendar(c, ref.orgId);
+  return {
+    anchors: {
+      ...(doc.receivedOn ? { receipt: doc.receivedOn } : {}),
+      ...(issuedOn ? { issue: issuedOn } : {}),
+    },
+    holidays: cal.holidays,
+    workingDays: cal.workingDays,
+    locale: cal.locale,
+  };
+}
 
+export type DateOutcome =
+  | { id: string; resolved: ResolvedDateDetail }
+  | { id: string; error: DateError };
+
+/** Dates for the findings that may become deadlines now (`deadline: "auto"`). */
 export async function resolveDatesStage(
   c: Container,
   ref: DocumentRef,
-  items: Reconciled<Finding>[],
+  reconciled: ReconcileOutcome,
   issuedOn: string | undefined,
 ): Promise<DateOutcome[]> {
-  const doc = await loadDocument(c, ref);
-  const { days, workingDays } = await withOrg(c.database, ref.orgId, async (tx) => {
-    const [settings] = await tx
-      .select()
-      .from(orgSettings)
-      .where(eq(orgSettings.orgId, ref.orgId))
-      .limit(1);
-    const rows = await tx
-      .select({ day: holidays.day })
-      .from(holidays)
-      .where(eq(holidays.orgId, ref.orgId));
-    return {
-      days: rows.map((r) => r.day),
-      workingDays: settings?.workingDays ?? [1, 2, 3, 4, 5, 6],
-    };
-  });
-  const anchors = {
-    ...(doc.receivedOn ? { receipt: doc.receivedOn } : {}),
-    ...(issuedOn ? { issue: issuedOn } : {}),
-  };
+  const ctx = await loadDateContext(c, ref, issuedOn);
   const out: DateOutcome[] = [];
-  items.forEach((item, index) => {
-    const rule = item.finding.dueRule as DateRule | undefined;
-    if (!rule) return;
-    const r = resolveDate(rule, { anchors, holidays: days, workingDays });
-    out.push("error" in r ? { index, error: r.error } : { index, resolved: r });
-  });
+  for (const f of reconciled.findings) {
+    if (f.deadline !== "auto" || !f.dueRule) continue;
+    const r = resolveDate(f.dueRule, ctx);
+    out.push(isDateError(r) ? { id: f.id, error: r } : { id: f.id, resolved: r });
+  }
   return out;
 }
 
@@ -301,20 +377,31 @@ export interface WriteResult {
   skipped: boolean;
 }
 
+/** The source (rule first, then AI) whose located quote is the finding's proof. */
+function proofOf(f: ReconciledFinding): ProvenFinding | undefined {
+  for (const s of [f.ruleSource, f.aiSource] as (ProvenFinding | undefined)[]) {
+    if (s && s.grade !== "unlocated" && s.page !== undefined && s.page === f.page && s.rects?.length)
+      return s;
+  }
+  return undefined;
+}
+
 export async function writeStage(
   c: Container,
   ref: DocumentRef,
   analysis: AnalyzeResponse,
-  items: Reconciled<Finding>[],
+  reconciled: ReconcileOutcome,
   dates: DateOutcome[],
   needsEscalation: number[],
 ): Promise<WriteResult> {
   const doc = await loadDocument(c, ref);
-  const dateByIndex = new Map(dates.map((d) => [d.index, d]));
-  const unlocated = items.some((i) => i.verification === "unlocated");
+  const items = reconciled.findings;
+  const dateById = new Map(dates.map((d) => [d.id, d]));
+  // `after_review` means a proposed date waits for a person: the document needs review.
+  const review = items.some((f) => f.needsReview || f.deadline === "after_review");
   const dateErrors = dates.some((d) => "error" in d);
   const status: WriteResult["status"] =
-    analysis.confident && !unlocated && !dateErrors && !needsEscalation.length && items.length
+    analysis.confident && !review && !dateErrors && !needsEscalation.length && items.length
       ? "ready"
       : "needs_review";
 
@@ -330,8 +417,8 @@ export async function writeStage(
     }
 
     let deadlineCount = 0;
-    for (const [ord, item] of items.entries()) {
-      const f = item.finding;
+    for (const [ord, f] of items.entries()) {
+      const source = (f.ruleSource ?? f.aiSource)?.finding;
       const findingId = uuidv7();
       await tx.insert(findings).values({
         id: findingId,
@@ -344,28 +431,40 @@ export async function writeStage(
         textEn: f.textEn ?? null,
         quote: f.quote,
         quoteLang: f.quoteLang,
-        origin: "rule",
-        verification: item.verification,
+        origin: f.origin,
+        verification: f.grade,
         confidence: f.confidence,
         dueRule: f.dueRule ?? null,
         amountMinor: f.amountMinor ?? null,
-        desk: f.desk ?? null,
-        severity: f.severity ?? null,
+        desk: source?.desk ?? null,
+        severity: source?.severity ?? null,
       });
-      if (item.match?.page !== undefined) {
+      const proof = proofOf(f);
+      if (proof?.page !== undefined) {
         await tx.insert(evidence).values({
           id: uuidv7(),
           orgId: ref.orgId,
           findingId,
           documentId: ref.documentId,
-          page: item.match.page,
-          rects: item.match.rects,
-          score: item.match.score,
+          page: proof.page,
+          rects: proof.rects,
+          score: proof.score,
         });
       }
-      const date = dateByIndex.get(ord);
-      // The page is the proof: an unlocated finding never becomes a deadline unconfirmed.
-      if (date && "resolved" in date && item.verification !== "unlocated") {
+      // Only `auto` becomes a deadline now. `after_review` waits until a person
+      // confirms the finding; `never` (unverified AI suggestion) and `none` never do.
+      const date = dateById.get(f.id);
+      if (f.deadline === "auto" && date && "resolved" in date) {
+        const r = date.resolved;
+        const detail: DeadlineDetail = {
+          adjustments: r.adjustments,
+          warnings: r.warnings,
+          ...(r.windowBasis ? { windowBasis: r.windowBasis } : {}),
+          ...(r.originalDueOn ? { originalDueOn: r.originalDueOn } : {}),
+          inputs: r.inputs,
+          origin: f.origin,
+          verification: f.grade,
+        };
         await tx.insert(deadlines).values({
           id: uuidv7(),
           orgId: ref.orgId,
@@ -374,10 +473,11 @@ export async function writeStage(
           findingId,
           source: doc.role === "order" ? "order" : "notice",
           title: f.text.slice(0, 200),
-          dueOn: date.resolved.dueOn,
-          windowEndOn: date.resolved.windowEndOn ?? null,
-          rule: date.resolved.rule,
-          basis: date.resolved.basis,
+          dueOn: r.dueOn,
+          windowEndOn: r.windowEndOn ?? null,
+          rule: r.rule,
+          basis: r.basis,
+          detail: { ...detail },
         });
         deadlineCount += 1;
       }
@@ -389,7 +489,12 @@ export async function writeStage(
       action: "document.processed",
       targetType: "document",
       targetId: ref.documentId,
-      detail: { status, findings: items.length, deadlines: deadlineCount },
+      detail: {
+        status,
+        findings: items.length,
+        deadlines: deadlineCount,
+        aiFirstNUsed: reconciled.aiFirstNUsed,
+      },
     });
     return { findings: items.length, deadlines: deadlineCount, skipped: false };
   });
