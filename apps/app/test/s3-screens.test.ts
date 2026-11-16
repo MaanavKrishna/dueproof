@@ -25,6 +25,7 @@ import {
 import { unsafeRawDb } from "@dueproof/db/internal";
 import { handleLocalStorageRequest, LocalDiskStorage } from "@dueproof/storage";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { newNotifications } from "../app/actions/notifications";
 import { GET as cronRoute } from "../app/api/cron/daily/route";
 import { GET as feedRoute } from "../app/api/v1/calendar/[token]/route";
 import { GET as reportRoute } from "../app/api/v1/reports/[name]/route";
@@ -304,6 +305,16 @@ describe("deadlines", () => {
     expect(
       notes.find((n) => n.userId === owner.userId && n.kind === "deadline.assigned"),
     ).toBeTruthy();
+
+    // The desktop app's OS alerts: the owner's new ones, with the generic line only.
+    as(ownerCookie);
+    const alerts = ok(await newNotifications("2000-01-01T00:00:00Z"));
+    expect(alerts.find((a) => a.title === "Something was assigned to you")).toMatchObject({
+      href: expect.stringMatching(/^\//),
+    });
+    expect(JSON.stringify(alerts)).not.toContain("Call the range officer");
+    expect(ok(await newNotifications(new Date(Date.now() + 60_000).toISOString()))).toEqual([]);
+    expect(await newNotifications("yesterday")).toMatchObject({ ok: false });
 
     // A viewer-like outsider org can't touch it.
     const outsider = await signUp("nina@northline.test", "Nina");

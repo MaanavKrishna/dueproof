@@ -43,6 +43,7 @@ import NextLink from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { setPreferences } from "@/app/actions/settings";
+import { DesktopAlerts } from "@/components/DesktopAlerts";
 import { Wordmark } from "@/components/Wordmark";
 import { activeNavId, MOBILE_NAV, NAV, NAV_ITEMS } from "@/lib/nav";
 import { PREFS_STORAGE_KEY, type Preferences } from "@/lib/preferences";
@@ -59,6 +60,7 @@ export function renderLink({ href, className, children, onClick, ...aria }: Link
   return (
     <NextLink href={href} className={className} {...(onClick ? { onClick } : {})} {...aria}>
       {children}
+      <DesktopAlerts />
     </NextLink>
   );
 }
