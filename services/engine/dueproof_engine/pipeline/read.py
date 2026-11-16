@@ -150,13 +150,12 @@ def _page(pno: int, size: tuple[float, float], rotation: int, display: np.ndarra
         on_image(pno, display)
     if layer is not None and len(layer) >= NATIVE_WORD_FLOOR:
         words, conf, engine = layer, 1.0, "text_layer"
+    elif not layer and _blank(display):
+        words, conf, engine = [], 1.0, "none"   # nothing on the page to read
     else:
         words, conf, engine = _ocr(scan, max_rung, hints)
-        if engine == "none":
-            if layer:                           # a sparse but real text layer
-                words, conf, engine = layer, 1.0, "text_layer"
-            elif _blank(display):
-                conf = 1.0                      # nothing on the page to read
+        if engine == "none" and layer:          # a sparse but real text layer
+            words, conf, engine = layer, 1.0, "text_layer"
     words = merge_orphans(words)
     for wd in words:
         wd["page_num"], wd["text"] = pno, clean(wd["text"])
