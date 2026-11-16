@@ -99,7 +99,7 @@ export function UploadPanel({
           if (!o) setPasswordFor(null);
         }}
         title="This PDF needs a password"
-        description={`${passwordItem?.name ?? "The file"} is protected. The password is used in memory for this read and never stored.`}
+        description={`${passwordItem?.name ?? "The file"} is protected. The password is kept encrypted for this read only, then deleted.`}
         size="sm"
         dismissible={false}
       >

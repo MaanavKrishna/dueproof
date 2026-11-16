@@ -7,6 +7,9 @@
  *   plain one-page answer with no findings.
  * - read writes a placeholder image to every page-image PUT URL, as the real
  *   engine writes WebP renders.
+ * - an encrypted PDF (a recording whose inspect says so, or any PDF with an
+ *   /Encrypt dictionary) is refused without a password and treated as
+ *   unlocked with one: the fake doesn't check the password itself.
  * - link really searches the page words for each quote (spacing-insensitive,
  *   like the engine's linker), so proof works for any quote, AI ones included.
  *
@@ -77,6 +80,10 @@ const PLACEHOLDER_WEBP = Uint8Array.from(
   Buffer.from("UklGRiIAAABXRUJQVlA4IBYAAAAwAQCdASoBAAEADsD+JaQAA3AAAAAA", "base64"),
 );
 
+const isEncrypted = (bytes: Uint8Array) =>
+  new TextDecoder().decode(bytes.slice(0, 5)) === "%PDF-" &&
+  Buffer.from(bytes).includes("/Encrypt");
+
 function sha256(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
 }
@@ -100,9 +107,13 @@ export function createFakeEngine(options: FakeEngineOptions): EngineClient {
       options.onCall?.("inspect");
       const r = engine.InspectRequest.parse(req);
       const { recording, bytes } = await lookup(r.sourceUrl);
+      if (recording?.inspect.encrypted && r.password) {
+        // Unlocked: the recording stops at inspect, so answer as for a plain one-page PDF.
+        return { ok: true, pageCount: 1, encrypted: false, textLayerPages: [1] };
+      }
       if (recording) return recording.inspect;
       const isPdf = new TextDecoder().decode(bytes.slice(0, 5)) === "%PDF-";
-      if (isPdf && !r.password && Buffer.from(bytes).includes("/Encrypt")) {
+      if (!r.password && isEncrypted(bytes)) {
         return {
           ok: false,
           pageCount: 0,
@@ -117,7 +128,10 @@ export function createFakeEngine(options: FakeEngineOptions): EngineClient {
     async read(req) {
       options.onCall?.("read");
       const r = engine.ReadRequest.parse(req);
-      const { recording } = await lookup(r.sourceUrl);
+      const { recording, bytes } = await lookup(r.sourceUrl);
+      if (!r.password && (recording ? recording.inspect.encrypted : isEncrypted(bytes))) {
+        throw new Error("fake engine: this PDF is password-protected");
+      }
       const out: ReadResponse = recording?.read ?? {
         pages: [
           {

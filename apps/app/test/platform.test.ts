@@ -14,19 +14,29 @@ import {
   clients,
   createDatabase,
   type Database,
+  documentPasswords,
+  eq,
   invitation,
   migrate,
   organization,
   registrations,
   uuidv7,
+  withOrg,
 } from "@dueproof/db";
 import { unsafeRawDb } from "@dueproof/db/internal";
 import { handleLocalStorageRequest, LocalDiskStorage } from "@dueproof/storage";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { unlockDocument } from "../app/actions/documents";
 import { regenerateStatutory } from "../app/actions/statutory";
 import { GET as documentEvents } from "../app/api/v1/documents/[id]/events/route";
 import { POST as initRoute } from "../app/api/v1/uploads/route";
 import { type AuthContext, authorize } from "../lib/authorize";
+import {
+  getDocumentPassword,
+  openDocumentPassword,
+  sealDocumentPassword,
+  storeDocumentPassword,
+} from "../lib/document-passwords";
 import { getDocumentDetail } from "../lib/documents";
 import { parseEnv } from "../lib/env";
 import { type Container, createEngine, setContainer } from "../lib/server/container";
@@ -153,10 +163,12 @@ describe("environment", () => {
 
 describe("sign-up, upload and processing", () => {
   let owner: AuthContext;
+  let ownerHeaders: Headers;
   let documentId: string;
 
   it("the first user owns a new organisation", async () => {
     const headers = await signUp("owner@harbour.test", "Asha");
+    ownerHeaders = headers;
     owner = await authorize("document.upload", { headers });
     expect(owner.role).toBe("owner");
   });
@@ -236,7 +248,7 @@ describe("sign-up, upload and processing", () => {
     ).toBeNull();
   });
 
-  it("parks a password-protected PDF as needs_password", async () => {
+  it("parks a password-protected PDF as needs_password, then reads it once unlocked", async () => {
     const locked = new Uint8Array(
       await readFile(
         new URL(
@@ -253,6 +265,70 @@ describe("sign-up, upload and processing", () => {
       statusDetail: "needs_password",
     });
     expect(detail.findings).toEqual([]);
+
+    // The password reaches the engine's inspect and read through the shared store.
+    const seen: (string | undefined)[] = [];
+    const engine = container.engine;
+    container.engine = {
+      ...engine,
+      inspect: (req) => {
+        seen.push(req.password);
+        return engine.inspect(req);
+      },
+      read: (req) => {
+        seen.push(req.password);
+        return engine.read(req);
+      },
+    };
+    const log = vi.spyOn(console, "log");
+    const warn = vi.spyOn(console, "warn");
+    const error = vi.spyOn(console, "error");
+    request.headers = ownerHeaders;
+    try {
+      const res = await unlockDocument({ documentId: init.documentId, password: "open-sesame" });
+      expect(res).toMatchObject({ ok: true });
+    } finally {
+      container.engine = engine;
+    }
+    expect(seen).toEqual(["open-sesame", "open-sesame"]);
+    const after = await getDocumentDetail(owner, init.documentId);
+    expect(after.document.status).toBe("needs_review");
+    expect(after.document.pageCount).toBe(1);
+    // Never logged, and gone once processing finished.
+    for (const spy of [log, warn, error])
+      for (const call of spy.mock.calls) expect(JSON.stringify(call)).not.toContain("open-sesame");
+    log.mockRestore();
+    warn.mockRestore();
+    error.mockRestore();
+    const rows = await unsafeRawDb(database)
+      .select()
+      .from(documentPasswords)
+      .where(eq(documentPasswords.documentId, init.documentId));
+    expect(rows).toEqual([]);
+  });
+
+  it("stores the password encrypted, bound to its org and document, for 15 minutes", async () => {
+    const secret = container.env.AUTH_SECRET;
+    const sealed = sealDocumentPassword(secret, owner.orgId, "doc-1", "open-sesame");
+    expect(sealed).not.toContain("open-sesame");
+    expect(openDocumentPassword(secret, owner.orgId, "doc-1", sealed)).toBe("open-sesame");
+    expect(openDocumentPassword(secret, owner.orgId, "doc-2", sealed)).toBeUndefined();
+    expect(openDocumentPassword(secret, uuidv7(), "doc-1", sealed)).toBeUndefined();
+    expect(openDocumentPassword(`${secret}x`, owner.orgId, "doc-1", sealed)).toBeUndefined();
+
+    const ref = { orgId: owner.orgId, documentId: uuidv7() };
+    const now = new Date("2026-11-16T10:00:00Z");
+    await withOrg(database, ref.orgId, (tx) =>
+      storeDocumentPassword(tx, secret, ref, "open-sesame", now),
+    );
+    expect(await getDocumentPassword(container, ref, new Date(now.getTime() + 14 * 60_000))).toBe(
+      "open-sesame",
+    );
+    expect(
+      await getDocumentPassword(container, ref, new Date(now.getTime() + 16 * 60_000)),
+    ).toBeUndefined();
+    // The expired row was removed, not just ignored.
+    expect(await getDocumentPassword(container, ref, now)).toBeUndefined();
   });
 
   it("refuses types outside the allow-list and oversized files", async () => {

@@ -16,7 +16,9 @@
  *
  * Files never pass through here: the engine reads and writes storage with
  * the short-lived signed URLs in each request. The microVM holds no secret
- * of ours: the engine's bearer secret inside it is random per batch.
+ * of ours: the engine's bearer secret inside it is random per batch. A
+ * protected PDF's password travels in its read request and exists only
+ * inside the microVM, which is stopped after the batch.
  *
  * Self-hosted and desktop don't use this: their engine container or
  * sidecar already has the whole ladder.
