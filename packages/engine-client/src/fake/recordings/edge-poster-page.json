@@ -1,0 +1,38 @@
+{
+  "name": "edge-poster-page.pdf",
+  "source": "services/engine/tests/fixtures/edge-poster-page.pdf",
+  "note": "Recorded from the real engine; copied by scripts/sync-recordings.mjs. Do not edit.",
+  "sha256": "04149902826c2f0ee8a6a63b49b01e70632f42bf30852900d970b6e79dddaf06",
+  "mime": "application/pdf",
+  "inspect": {
+    "ok": true,
+    "pageCount": 1,
+    "encrypted": false,
+    "textLayerPages": []
+  },
+  "read": {
+    "pages": [
+      {
+        "page": 1,
+        "width": 14400,
+        "height": 14400,
+        "rotation": 0,
+        "text": "",
+        "words": [],
+        "engine": "paddleocr",
+        "confidence": 1,
+        "languages": ["en"]
+      }
+    ],
+    "needsEscalation": []
+  },
+  "analyze": {
+    "docType": "Notice",
+    "sections": [],
+    "findings": [],
+    "confident": false
+  },
+  "link": {
+    "matches": []
+  }
+}

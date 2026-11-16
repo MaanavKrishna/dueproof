@@ -2,13 +2,13 @@
  * A fake engine for tests and for running the app without the Python
  * service (ENGINE_MODE=fake). It implements EngineClient in-process:
  *
- * - inspect/read/analyze answer from recordings, keyed by the sha256 of the
- *   file behind the signed source URL. Unknown files get a plain one-page
- *   answer with no findings.
+ * - inspect/read/analyze answer from the real engine's recordings, keyed by
+ *   the sha256 of the file behind the signed source URL. Unknown files get a
+ *   plain one-page answer with no findings.
  * - read writes a placeholder image to every page-image PUT URL, as the real
  *   engine writes WebP renders.
- * - link really searches the page words for each quote, so proof works for
- *   any recording.
+ * - link really searches the page words for each quote (spacing-insensitive,
+ *   like the engine's linker), so proof works for any quote, AI ones included.
  *
  * `createFakeEngineHandler` serves the same fake over HTTP with the real
  * token check, to test the HTTP client end to end.
@@ -21,22 +21,27 @@ import type {
   InspectResponse,
   LinkRequest,
   LinkResponse,
+  PageText,
   ReadResponse,
 } from "./client";
-import asmt10 from "./fake/recordings/notice-gst-asmt10.json" with { type: "json" };
+import { RAW_RECORDINGS } from "./fake/recordings";
 import { verifyEngineToken } from "./token";
 
+/**
+ * The real engine's answers for one fixture file, keyed by the file's sha256.
+ * A file the engine refuses at inspect (an encrypted PDF) has no read,
+ * analyze or link. `link` is the engine's answer for the analyze findings'
+ * quotes (ids `f0`, `f1`, ...), kept to check the fake linker against.
+ */
 export interface Recording {
   name: string;
   sha256: string;
   mime: string;
   inspect: InspectResponse;
-  read: ReadResponse;
-  analyze: AnalyzeResponse;
+  read?: ReadResponse;
+  analyze?: AnalyzeResponse;
+  link?: LinkResponse;
 }
-
-/** Recordings that ship with the fake (see src/fake/recordings/). */
-export const BUILTIN_RECORDINGS: Recording[] = [parseRecording(asmt10)];
 
 export function parseRecording(raw: unknown): Recording {
   const r = raw as Record<string, unknown>;
@@ -45,10 +50,17 @@ export function parseRecording(raw: unknown): Recording {
     sha256: String(r.sha256),
     mime: String(r.mime),
     inspect: engine.InspectResponse.parse(r.inspect),
-    read: engine.ReadResponse.parse(r.read),
-    analyze: engine.AnalyzeResponse.parse(r.analyze),
+    ...(r.read ? { read: engine.ReadResponse.parse(r.read) } : {}),
+    ...(r.analyze ? { analyze: engine.AnalyzeResponse.parse(r.analyze) } : {}),
+    ...(r.link ? { link: engine.LinkResponse.parse(r.link) } : {}),
   };
 }
+
+/**
+ * Recordings that ship with the fake: the real engine's responses for every
+ * fixture in services/engine/tests/fixtures (scripts/sync-recordings.mjs).
+ */
+export const BUILTIN_RECORDINGS: Recording[] = RAW_RECORDINGS.map(parseRecording);
 
 export interface FakeEngineOptions {
   /** Fetch the bytes behind a signed GET URL (the app passes its storage's reader). */
@@ -145,7 +157,7 @@ export function createFakeEngine(options: FakeEngineOptions): EngineClient {
       const r = engine.AnalyzeRequest.parse(req);
       const text = r.pages.map((p) => p.text).join("\n");
       const recording = recordings.find(
-        (rec) => rec.read.pages.map((p) => p.text).join("\n") === text,
+        (rec) => rec.analyze && rec.read?.pages.map((p) => p.text).join("\n") === text,
       );
       return recording?.analyze ?? { sections: [], findings: [], confident: false };
     },
@@ -157,49 +169,97 @@ export function createFakeEngine(options: FakeEngineOptions): EngineClient {
   };
 }
 
-const norm = (s: string) =>
+/**
+ * Letters, combining marks and digits only, in any script, case-folded, as
+ * the engine's linker does (`services/engine/dueproof_engine/pipeline/link.py`,
+ * `_norm`). Vowel signs in Indic scripts are marks, so they are kept.
+ */
+const normWord = (s: string) =>
   s
-    .toLowerCase()
-    .normalize("NFKC")
-    .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
+    .normalize("NFC")
+    .replace(/[^\p{L}\p{M}\p{N}_]+/gu, "")
+    .toLowerCase();
 
-/** Find each quote's words on the pages; one rect per line the quote spans. */
+/** Below this many normalised characters a quote is too short to prove anything (link.py). */
+const MIN_QUOTE_CHARS = 6;
+
+interface PageIndex {
+  page: number;
+  /** Every word's normalised text, concatenated with no spaces. */
+  hay: string;
+  /** [start, end) in `hay` for each word that has any text, with its index. */
+  spans: { start: number; end: number; word: number }[];
+  words: PageText["words"];
+}
+
+function indexPage(page: PageText): PageIndex {
+  let hay = "";
+  const spans: PageIndex["spans"] = [];
+  page.words.forEach((w, word) => {
+    const n = normWord(w.text);
+    if (!n) return;
+    spans.push({ start: hay.length, end: hay.length + n.length, word });
+    hay += n;
+  });
+  return { page: page.page, hay, spans, words: page.words };
+}
+
+/** One rect per line of the matched words. */
+function rectsFor(words: PageText["words"], indices: number[]) {
+  const byLine = new Map<number, [number, number, number, number]>();
+  for (const i of indices) {
+    const w = words[i];
+    if (!w) continue;
+    const r = byLine.get(w.line);
+    byLine.set(
+      w.line,
+      r
+        ? [
+            Math.min(r[0], w.rect[0]),
+            Math.min(r[1], w.rect[1]),
+            Math.max(r[2], w.rect[2]),
+            Math.max(r[3], w.rect[3]),
+          ]
+        : [...w.rect],
+    );
+  }
+  return [...byLine.values()];
+}
+
+/**
+ * Find each quote on the pages; one rect per line the quote spans.
+ *
+ * Matching is spacing-insensitive, like the engine's linker: page words and
+ * the quote are normalised and joined with no spaces, so a quote still
+ * matches when the page's `text` and its `words` split a word differently
+ * (Malayalam "മെട്രോറെയിൽ" in the text layer, "മെട്രോ" + "റെയിൽ" as words) or
+ * OCR dropped a space. Verbatim matches only: the fake has no fuzzy fallback,
+ * so what it can't find exactly is `unlocated`.
+ */
 export function linkQuotes(req: LinkRequest): LinkResponse {
   const parsed = engine.LinkRequest.parse(req);
+  const index = parsed.pages.map(indexPage);
   return {
     matches: parsed.quotes.map((q) => {
-      const tokens = q.text.split(/\s+/).map(norm).filter(Boolean);
-      const pages = [...parsed.pages].sort(
-        (a, b) => Number(b.page === q.pageHint) - Number(a.page === q.pageHint),
-      );
-      for (const page of pages) {
-        const words = page.words.map((w) => ({ ...w, n: norm(w.text) })).filter((w) => w.n);
-        for (let i = 0; tokens.length && i + tokens.length <= words.length; i++) {
-          if (tokens.every((t, j) => words[i + j]?.n === t)) {
-            const hit = words.slice(i, i + tokens.length);
-            const byLine = new Map<number, [number, number, number, number]>();
-            for (const w of hit) {
-              const r = byLine.get(w.line);
-              byLine.set(
-                w.line,
-                r
-                  ? [
-                      Math.min(r[0], w.rect[0]),
-                      Math.min(r[1], w.rect[1]),
-                      Math.max(r[2], w.rect[2]),
-                      Math.max(r[3], w.rect[3]),
-                    ]
-                  : [...w.rect],
-              );
-            }
-            return {
-              id: q.id,
-              page: page.page,
-              rects: [...byLine.values()],
-              score: 1,
-              grade: "exact" as const,
-            };
-          }
+      const needle = q.text.split(/\s+/).map(normWord).join("");
+      if (needle.length >= MIN_QUOTE_CHARS) {
+        const pages = [...index].sort(
+          (a, b) =>
+            Number(b.page === q.pageHint) - Number(a.page === q.pageHint) || a.page - b.page,
+        );
+        for (const p of pages) {
+          const start = p.hay.indexOf(needle);
+          if (start < 0) continue;
+          const end = start + needle.length;
+          const hit = p.spans.filter((s) => s.start < end && s.end > start).map((s) => s.word);
+          if (!hit.length) continue;
+          return {
+            id: q.id,
+            page: p.page,
+            rects: rectsFor(p.words, hit),
+            score: 1,
+            grade: "exact" as const,
+          };
         }
       }
       return { id: q.id, rects: [], score: 0, grade: "unlocated" as const };

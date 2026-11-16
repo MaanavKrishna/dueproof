@@ -1,0 +1,1287 @@
+{
+  "name": "Scan-circular-photo.pdf",
+  "source": "services/engine/tests/fixtures/Scan-circular-photo.pdf",
+  "note": "Recorded from the real engine; copied by scripts/sync-recordings.mjs. Do not edit.",
+  "sha256": "05c60909cdc4468bb55e259db2cff9c8837514b80fd12649f0c36086d2b6f42c",
+  "mime": "application/pdf",
+  "inspect": {
+    "ok": true,
+    "pageCount": 3,
+    "encrypted": false,
+    "textLayerPages": []
+  },
+  "read": {
+    "pages": [
+      {
+        "page": 1,
+        "width": 595,
+        "height": 842,
+        "rotation": 0,
+        "text": "NORTHLINE METRORAILCORPORATION\nSafety Department ·NMR/SAF/2026/041·Dated: 6 August 2026\nSubject: Fire safety audit of all elevated stations and compliance reporting\n1. Background\nThe annual fire safety audit of the elevated corridor found expired portable extinguishers at eleven stations and two partially functional smoke detection loops. This circular sets out what each department must do and by when.\n2. Fire extinguishing equipment\nEvery Station Controller shall replace all expired portable extinguishers and certify the replacement to the Safety Department on or before 21 August 2026.",
+        "words": [
+          {
+            "text": "NORTHLINE",
+            "rect": [49.8, 76.22, 121.24, 88.48],
+            "line": 0
+          },
+          {
+            "text": "METRORAILCORPORATION",
+            "rect": [128.33, 71.5, 297.92, 86.38],
+            "line": 0
+          },
+          {
+            "text": "Safety",
+            "rect": [48.21, 102.64, 76.52, 113.26],
+            "line": 1
+          },
+          {
+            "text": "Department",
+            "rect": [78.59, 101.17, 130.26, 112.43],
+            "line": 1
+          },
+          {
+            "text": "·NMR/SAF/2026/041·Dated:",
+            "rect": [130, 97.66, 258.8, 111.03],
+            "line": 1
+          },
+          {
+            "text": "6",
+            "rect": [258.53, 97.54, 263.47, 107.52],
+            "line": 1
+          },
+          {
+            "text": "August",
+            "rect": [267.88, 96.58, 298.52, 107.26],
+            "line": 1
+          },
+          {
+            "text": "2026",
+            "rect": [300.6, 95.94, 321.89, 106.37],
+            "line": 1
+          },
+          {
+            "text": "Subject:",
+            "rect": [51.24, 123.85, 90.76, 135.16],
+            "line": 2
+          },
+          {
+            "text": "Fire",
+            "rect": [92.94, 123.32, 110.39, 134.03],
+            "line": 2
+          },
+          {
+            "text": "safety",
+            "rect": [115.02, 122.39, 144.73, 133.44],
+            "line": 2
+          },
+          {
+            "text": "audit",
+            "rect": [149.37, 121.6, 174.17, 132.51],
+            "line": 2
+          },
+          {
+            "text": "of",
+            "rect": [176.35, 121.27, 186.44, 131.79],
+            "line": 2
+          },
+          {
+            "text": "all",
+            "rect": [188.62, 120.87, 201.16, 131.46],
+            "line": 2
+          },
+          {
+            "text": "elevated",
+            "rect": [203.34, 119.75, 242.86, 131.06],
+            "line": 2
+          },
+          {
+            "text": "stations",
+            "rect": [247.5, 118.63, 284.57, 129.87],
+            "line": 2
+          },
+          {
+            "text": "and",
+            "rect": [289.21, 118.03, 306.65, 128.75],
+            "line": 2
+          },
+          {
+            "text": "compliance",
+            "rect": [311.28, 116.45, 365.53, 128.15],
+            "line": 2
+          },
+          {
+            "text": "reporting",
+            "rect": [370.16, 115.13, 414.59, 126.57],
+            "line": 2
+          },
+          {
+            "text": "1.",
+            "rect": [49.15, 152.68, 59.44, 163.59],
+            "line": 3
+          },
+          {
+            "text": "Background",
+            "rect": [61.7, 151.15, 122.18, 163.29],
+            "line": 3
+          },
+          {
+            "text": "The",
+            "rect": [52.42, 175.62, 69.86, 186.28],
+            "line": 4
+          },
+          {
+            "text": "annual",
+            "rect": [74.5, 174.65, 106.67, 185.7],
+            "line": 4
+          },
+          {
+            "text": "fire",
+            "rect": [108.86, 174.19, 123.84, 184.79],
+            "line": 4
+          },
+          {
+            "text": "safety",
+            "rect": [128.48, 173.28, 158.19, 184.27],
+            "line": 4
+          },
+          {
+            "text": "audit",
+            "rect": [162.84, 172.5, 187.64, 183.36],
+            "line": 4
+          },
+          {
+            "text": "of",
+            "rect": [189.83, 172.18, 199.91, 182.64],
+            "line": 4
+          },
+          {
+            "text": "the",
+            "rect": [202.09, 171.73, 217.08, 182.32],
+            "line": 4
+          },
+          {
+            "text": "elevated",
+            "rect": [221.72, 170.56, 261.25, 181.8],
+            "line": 4
+          },
+          {
+            "text": "corridor",
+            "rect": [265.89, 169.39, 305.41, 180.63],
+            "line": 4
+          },
+          {
+            "text": "found",
+            "rect": [307.6, 168.61, 334.86, 179.53],
+            "line": 4
+          },
+          {
+            "text": "expired",
+            "rect": [339.5, 167.51, 376.57, 178.68],
+            "line": 4
+          },
+          {
+            "text": "portable",
+            "rect": [381.21, 166.34, 420.73, 177.58],
+            "line": 4
+          },
+          {
+            "text": "extinguishers",
+            "rect": [422.92, 164.52, 489.44, 176.48],
+            "line": 4
+          },
+          {
+            "text": "at",
+            "rect": [494.08, 164.13, 504.14, 174.59],
+            "line": 4
+          },
+          {
+            "text": "eleven",
+            "rect": [52.63, 190.81, 82.35, 202.02],
+            "line": 5
+          },
+          {
+            "text": "stations",
+            "rect": [86.97, 189.64, 124.05, 201.06],
+            "line": 5
+          },
+          {
+            "text": "and",
+            "rect": [128.67, 189.03, 146.13, 199.9],
+            "line": 5
+          },
+          {
+            "text": "two",
+            "rect": [150.75, 188.41, 168.21, 199.28],
+            "line": 5
+          },
+          {
+            "text": "partially",
+            "rect": [172.83, 187.25, 209.91, 198.67],
+            "line": 5
+          },
+          {
+            "text": "functional",
+            "rect": [212.08, 185.74, 263.87, 197.57],
+            "line": 5
+          },
+          {
+            "text": "smoke",
+            "rect": [266.04, 184.78, 298.21, 196.07],
+            "line": 5
+          },
+          {
+            "text": "detection",
+            "rect": [302.83, 183.41, 347.27, 195.04],
+            "line": 5
+          },
+          {
+            "text": "loops.",
+            "rect": [349.44, 182.45, 381.62, 193.74],
+            "line": 5
+          },
+          {
+            "text": "This",
+            "rect": [383.78, 181.84, 403.69, 192.78],
+            "line": 5
+          },
+          {
+            "text": "circular",
+            "rect": [408.31, 180.67, 445.39, 192.09],
+            "line": 5
+          },
+          {
+            "text": "sets",
+            "rect": [447.56, 180.06, 467.47, 191],
+            "line": 5
+          },
+          {
+            "text": "out",
+            "rect": [472.09, 179.51, 487.09, 190.31],
+            "line": 5
+          },
+          {
+            "text": "what",
+            "rect": [491.71, 178.76, 514.08, 189.77],
+            "line": 5
+          },
+          {
+            "text": "each",
+            "rect": [50.98, 206.53, 75.83, 217.44],
+            "line": 6
+          },
+          {
+            "text": "department",
+            "rect": [80.48, 204.94, 137.28, 216.67],
+            "line": 6
+          },
+          {
+            "text": "must",
+            "rect": [139.47, 204.23, 164.31, 215.14],
+            "line": 6
+          },
+          {
+            "text": "do",
+            "rect": [166.51, 203.85, 179.06, 214.44],
+            "line": 6
+          },
+          {
+            "text": "and",
+            "rect": [183.71, 203.28, 201.18, 213.99],
+            "line": 6
+          },
+          {
+            "text": "by",
+            "rect": [203.38, 202.89, 215.93, 213.48],
+            "line": 6
+          },
+          {
+            "text": "when.",
+            "rect": [220.58, 202.01, 249.9, 213.03],
+            "line": 6
+          },
+          {
+            "text": "2.",
+            "rect": [55.15, 272.36, 64.98, 282.8],
+            "line": 7
+          },
+          {
+            "text": "Fire",
+            "rect": [67.12, 271.86, 84.13, 282.49],
+            "line": 7
+          },
+          {
+            "text": "extinguishing",
+            "rect": [91.05, 269.94, 158.31, 281.87],
+            "line": 7
+          },
+          {
+            "text": "equipment",
+            "rect": [162.83, 268.4, 217.68, 280.01],
+            "line": 7
+          },
+          {
+            "text": "Every",
+            "rect": [55.51, 295.21, 82.14, 306.97],
+            "line": 8
+          },
+          {
+            "text": "Station",
+            "rect": [87.11, 294.2, 119, 306.11],
+            "line": 8
+          },
+          {
+            "text": "Controller",
+            "rect": [123.97, 292.76, 171.66, 305.1],
+            "line": 8
+          },
+          {
+            "text": "shall",
+            "rect": [173.99, 291.97, 200.62, 303.73],
+            "line": 8
+          },
+          {
+            "text": "replace",
+            "rect": [200.32, 291.03, 234.85, 303],
+            "line": 8
+          },
+          {
+            "text": "all",
+            "rect": [239.82, 290.52, 253.28, 301.92],
+            "line": 8
+          },
+          {
+            "text": "expired",
+            "rect": [252.98, 289.51, 290.14, 301.56],
+            "line": 8
+          },
+          {
+            "text": "portable",
+            "rect": [295.11, 288.29, 334.9, 300.41],
+            "line": 8
+          },
+          {
+            "text": "extinguishers",
+            "rect": [337.24, 286.41, 403.36, 299.25],
+            "line": 8
+          },
+          {
+            "text": "and",
+            "rect": [408.33, 285.83, 424.42, 297.31],
+            "line": 8
+          },
+          {
+            "text": "certify",
+            "rect": [429.39, 284.89, 458.65, 296.73],
+            "line": 8
+          },
+          {
+            "text": "the",
+            "rect": [463.62, 284.39, 477.08, 295.79],
+            "line": 8
+          },
+          {
+            "text": "replacement",
+            "rect": [53.26, 309.67, 116.78, 322.53],
+            "line": 9
+          },
+          {
+            "text": "to",
+            "rect": [119.1, 309.3, 129.95, 320.65],
+            "line": 9
+          },
+          {
+            "text": "the",
+            "rect": [132.27, 308.77, 148.38, 320.27],
+            "line": 9
+          },
+          {
+            "text": "Safety",
+            "rect": [150.7, 307.8, 182.61, 319.75],
+            "line": 9
+          },
+          {
+            "text": "Department",
+            "rect": [187.57, 305.99, 245.82, 318.69],
+            "line": 9
+          },
+          {
+            "text": "on",
+            "rect": [248.14, 305.62, 258.99, 316.97],
+            "line": 9
+          },
+          {
+            "text": "or",
+            "rect": [263.94, 305.24, 272.15, 316.52],
+            "line": 9
+          },
+          {
+            "text": "before",
+            "rect": [277.11, 304.26, 306.39, 316.14],
+            "line": 9
+          },
+          {
+            "text": "21",
+            "rect": [311.35, 303.81, 322.19, 315.16],
+            "line": 9
+          },
+          {
+            "text": "August",
+            "rect": [324.51, 302.76, 359.06, 314.79],
+            "line": 9
+          },
+          {
+            "text": "2026.",
+            "rect": [364.02, 301.79, 392.93, 313.66],
+            "line": 9
+          }
+        ],
+        "engine": "paddleocr",
+        "confidence": 0.6044,
+        "languages": ["en"]
+      },
+      {
+        "page": 2,
+        "width": 595,
+        "height": 842,
+        "rotation": 0,
+        "text": "3. Evacuation drills\nQuarterly evacuation drills are mandatory at every station. The Operations Control Centre must complete the pending drills and report to the Chief Safety Officer not later than 31 August 2026.\n4.Smoke detection\nThe Signalling and Telecom department is responsible for restoring both faulty smoke detection loops. Until restoration, a fire watch is required at the affected platforms during all service hours. Station staff were retrained on extinguisher handling in July, and attendance records are held by HumanResources for inspection.",
+        "words": [
+          {
+            "text": "3.",
+            "rect": [49.63, 77.08, 58.73, 86.52],
+            "line": 0
+          },
+          {
+            "text": "Evacuation",
+            "rect": [62.94, 75.6, 116.4, 86.18],
+            "line": 0
+          },
+          {
+            "text": "drills",
+            "rect": [122.82, 74.87, 145.23, 84.65],
+            "line": 0
+          },
+          {
+            "text": "Quarterly",
+            "rect": [50.53, 99.98, 94.07, 111.37],
+            "line": 1
+          },
+          {
+            "text": "evacuation",
+            "rect": [98.6, 98.35, 151.76, 110.02],
+            "line": 1
+          },
+          {
+            "text": "drills",
+            "rect": [156.28, 97.61, 178.19, 108.39],
+            "line": 1
+          },
+          {
+            "text": "are",
+            "rect": [182.72, 97.07, 197.42, 107.64],
+            "line": 1
+          },
+          {
+            "text": "mandatory",
+            "rect": [201.95, 95.51, 252.7, 107.1],
+            "line": 1
+          },
+          {
+            "text": "at",
+            "rect": [257.23, 95.1, 267.12, 105.54],
+            "line": 1
+          },
+          {
+            "text": "every",
+            "rect": [269.24, 94.28, 295.96, 105.2],
+            "line": 1
+          },
+          {
+            "text": "station.",
+            "rect": [300.49, 93.13, 336.82, 104.32],
+            "line": 1
+          },
+          {
+            "text": "The",
+            "rect": [341.35, 92.52, 358.45, 103.16],
+            "line": 1
+          },
+          {
+            "text": "Operations",
+            "rect": [362.98, 90.89, 416.13, 102.55],
+            "line": 1
+          },
+          {
+            "text": "Control",
+            "rect": [420.66, 89.74, 456.99, 100.93],
+            "line": 1
+          },
+          {
+            "text": "Centre",
+            "rect": [459.11, 88.79, 490.64, 99.84],
+            "line": 1
+          },
+          {
+            "text": "must",
+            "rect": [495.17, 87.98, 519.48, 98.82],
+            "line": 1
+          },
+          {
+            "text": "complete",
+            "rect": [50.85, 114.94, 95.38, 126.57],
+            "line": 2
+          },
+          {
+            "text": "the",
+            "rect": [97.55, 114.45, 112.59, 125.24],
+            "line": 2
+          },
+          {
+            "text": "pending",
+            "rect": [117.21, 113.18, 156.83, 124.67],
+            "line": 2
+          },
+          {
+            "text": "drills",
+            "rect": [161.46, 112.41, 183.87, 123.41],
+            "line": 2
+          },
+          {
+            "text": "and",
+            "rect": [186.04, 111.85, 203.54, 122.71],
+            "line": 2
+          },
+          {
+            "text": "report",
+            "rect": [208.16, 110.87, 237.95, 122.08],
+            "line": 2
+          },
+          {
+            "text": "to",
+            "rect": [240.12, 110.52, 250.24, 121.17],
+            "line": 2
+          },
+          {
+            "text": "the",
+            "rect": [252.41, 109.96, 269.9, 120.82],
+            "line": 2
+          },
+          {
+            "text": "Chief",
+            "rect": [274.53, 109.11, 299.4, 120.19],
+            "line": 2
+          },
+          {
+            "text": "Safety",
+            "rect": [304.03, 108.13, 333.81, 119.34],
+            "line": 2
+          },
+          {
+            "text": "Officer",
+            "rect": [338.44, 107.08, 370.68, 118.36],
+            "line": 2
+          },
+          {
+            "text": "not",
+            "rect": [375.31, 106.52, 390.35, 117.31],
+            "line": 2
+          },
+          {
+            "text": "later",
+            "rect": [392.52, 105.82, 414.93, 116.82],
+            "line": 2
+          },
+          {
+            "text": "than",
+            "rect": [417.1, 105.19, 437.05, 116.12],
+            "line": 2
+          },
+          {
+            "text": "31",
+            "rect": [441.68, 104.7, 454.26, 115.42],
+            "line": 2
+          },
+          {
+            "text": "August",
+            "rect": [456.42, 103.64, 491.13, 114.99],
+            "line": 2
+          },
+          {
+            "text": "2026.",
+            "rect": [493.3, 102.74, 522.78, 113.94],
+            "line": 2
+          },
+          {
+            "text": "4.Smoke",
+            "rect": [52.77, 181.06, 99.51, 191.65],
+            "line": 3
+          },
+          {
+            "text": "detection",
+            "rect": [103.7, 179.73, 150.45, 190.32],
+            "line": 3
+          },
+          {
+            "text": "The",
+            "rect": [53.4, 205.31, 70.89, 216.07],
+            "line": 4
+          },
+          {
+            "text": "Signalling",
+            "rect": [75.52, 203.86, 122.48, 215.45],
+            "line": 4
+          },
+          {
+            "text": "and",
+            "rect": [124.65, 203.3, 142.14, 214.07],
+            "line": 4
+          },
+          {
+            "text": "Telecom",
+            "rect": [146.77, 202.06, 186.36, 213.45],
+            "line": 4
+          },
+          {
+            "text": "department",
+            "rect": [193.45, 200.26, 250.24, 212.13],
+            "line": 4
+          },
+          {
+            "text": "is",
+            "rect": [249.96, 199.98, 260.07, 210.54],
+            "line": 4
+          },
+          {
+            "text": "responsible",
+            "rect": [262.24, 198.33, 319.04, 210.2],
+            "line": 4
+          },
+          {
+            "text": "for",
+            "rect": [323.66, 197.84, 336.23, 208.47],
+            "line": 4
+          },
+          {
+            "text": "restoring",
+            "rect": [340.86, 196.53, 382.92, 207.98],
+            "line": 4
+          },
+          {
+            "text": "both",
+            "rect": [387.55, 195.84, 407.49, 206.67],
+            "line": 4
+          },
+          {
+            "text": "faulty",
+            "rect": [412.11, 194.94, 439.43, 205.98],
+            "line": 4
+          },
+          {
+            "text": "smoke",
+            "rect": [444.05, 193.9, 476.28, 205.08],
+            "line": 4
+          },
+          {
+            "text": "detection",
+            "rect": [480.91, 192.52, 525.42, 204.04],
+            "line": 4
+          },
+          {
+            "text": "loops.",
+            "rect": [50.61, 220.12, 84.52, 231.21],
+            "line": 5
+          },
+          {
+            "text": "Until",
+            "rect": [86.65, 219.46, 108.55, 230.22],
+            "line": 5
+          },
+          {
+            "text": "restoration,",
+            "rect": [110.68, 217.81, 168.62, 229.56],
+            "line": 5
+          },
+          {
+            "text": "a",
+            "rect": [170.74, 217.61, 175.82, 227.9],
+            "line": 5
+          },
+          {
+            "text": "fire",
+            "rect": [177.95, 217.08, 195.04, 227.71],
+            "line": 5
+          },
+          {
+            "text": "watch",
+            "rect": [199.57, 216.22, 226.28, 227.11],
+            "line": 5
+          },
+          {
+            "text": "is",
+            "rect": [230.81, 215.89, 238.29, 226.25],
+            "line": 5
+          },
+          {
+            "text": "required",
+            "rect": [242.82, 214.64, 283.94, 225.92],
+            "line": 5
+          },
+          {
+            "text": "at",
+            "rect": [288.47, 214.31, 295.96, 224.66],
+            "line": 5
+          },
+          {
+            "text": "the",
+            "rect": [298.09, 213.78, 315.18, 224.4],
+            "line": 5
+          },
+          {
+            "text": "affected",
+            "rect": [317.31, 212.59, 358.43, 223.87],
+            "line": 5
+          },
+          {
+            "text": "platforms",
+            "rect": [362.96, 211.2, 408.88, 222.62],
+            "line": 5
+          },
+          {
+            "text": "during",
+            "rect": [413.41, 210.27, 442.52, 221.23],
+            "line": 5
+          },
+          {
+            "text": "all",
+            "rect": [447.05, 209.81, 459.34, 220.3],
+            "line": 5
+          },
+          {
+            "text": "service",
+            "rect": [461.47, 208.82, 495.38, 219.9],
+            "line": 5
+          },
+          {
+            "text": "hours.",
+            "rect": [499.91, 207.86, 530.22, 218.85],
+            "line": 5
+          },
+          {
+            "text": "Station",
+            "rect": [53.81, 243.08, 86.02, 254.16],
+            "line": 6
+          },
+          {
+            "text": "staff",
+            "rect": [90.66, 242.36, 113.04, 253.18],
+            "line": 6
+          },
+          {
+            "text": "were",
+            "rect": [117.69, 241.64, 140.07, 252.46],
+            "line": 6
+          },
+          {
+            "text": "retrained",
+            "rect": [142.26, 240.39, 186.76, 251.81],
+            "line": 6
+          },
+          {
+            "text": "on",
+            "rect": [191.4, 240, 201.5, 250.5],
+            "line": 6
+          },
+          {
+            "text": "extinguisher",
+            "rect": [206.14, 238.23, 267.84, 250.1],
+            "line": 6
+          },
+          {
+            "text": "handling",
+            "rect": [270.03, 237.05, 312.06, 248.4],
+            "line": 6
+          },
+          {
+            "text": "in",
+            "rect": [314.25, 236.73, 324.35, 247.22],
+            "line": 6
+          },
+          {
+            "text": "July,",
+            "rect": [326.54, 236.01, 351.38, 246.9],
+            "line": 6
+          },
+          {
+            "text": "and",
+            "rect": [353.57, 235.48, 371.03, 246.18],
+            "line": 6
+          },
+          {
+            "text": "attendance",
+            "rect": [375.68, 233.91, 430, 245.59],
+            "line": 6
+          },
+          {
+            "text": "records",
+            "rect": [432.19, 232.86, 469.32, 244.08],
+            "line": 6
+          },
+          {
+            "text": "are",
+            "rect": [473.96, 232.34, 488.97, 242.97],
+            "line": 6
+          },
+          {
+            "text": "held",
+            "rect": [493.62, 231.69, 513.54, 242.45],
+            "line": 6
+          },
+          {
+            "text": "by",
+            "rect": [518.19, 231.29, 528.28, 241.79],
+            "line": 6
+          },
+          {
+            "text": "HumanResources",
+            "rect": [54.24, 257.24, 143.22, 268.85],
+            "line": 7
+          },
+          {
+            "text": "for",
+            "rect": [147.55, 256.8, 161.43, 266.6],
+            "line": 7
+          },
+          {
+            "text": "inspection.",
+            "rect": [163.48, 255.43, 218.04, 266.22],
+            "line": 7
+          }
+        ],
+        "engine": "paddleocr",
+        "confidence": 0.7649,
+        "languages": ["en"]
+      },
+      {
+        "page": 3,
+        "width": 595,
+        "height": 842,
+        "rotation": 0,
+        "text": "5. Reporting to the regulator\nNon-compliance with this statutory reporting requirement attracts a penalty under the Metro Railways Act, and the audit findings will be reviewed by the Board. Sd/-Chief Safety Officer · Copy to: all Heads of Department",
+        "words": [
+          {
+            "text": "5.",
+            "rect": [47.35, 76.98, 57.45, 87.63],
+            "line": 0
+          },
+          {
+            "text": "Reporting",
+            "rect": [62.1, 75.58, 111.52, 87.25],
+            "line": 0
+          },
+          {
+            "text": "to",
+            "rect": [113.71, 75.26, 123.81, 85.91],
+            "line": 0
+          },
+          {
+            "text": "the",
+            "rect": [126, 74.75, 143.47, 85.59],
+            "line": 0
+          },
+          {
+            "text": "regulator",
+            "rect": [148.12, 73.43, 194.15, 85.02],
+            "line": 0
+          },
+          {
+            "text": "Non-compliance",
+            "rect": [52.62, 190.7, 133.7, 203.57],
+            "line": 1
+          },
+          {
+            "text": "with",
+            "rect": [138.46, 190.07, 156.42, 201.17],
+            "line": 1
+          },
+          {
+            "text": "this",
+            "rect": [161.18, 189.43, 179.14, 200.53],
+            "line": 1
+          },
+          {
+            "text": "statutory",
+            "rect": [181.37, 188.16, 224.58, 199.97],
+            "line": 1
+          },
+          {
+            "text": "reporting",
+            "rect": [229.34, 186.82, 272.55, 198.62],
+            "line": 1
+          },
+          {
+            "text": "requirement",
+            "rect": [277.3, 184.98, 338.18, 197.28],
+            "line": 1
+          },
+          {
+            "text": "attracts",
+            "rect": [340.42, 183.85, 378.58, 195.51],
+            "line": 1
+          },
+          {
+            "text": "a",
+            "rect": [380.81, 183.63, 386.15, 194.38],
+            "line": 1
+          },
+          {
+            "text": "penalty",
+            "rect": [390.91, 182.5, 426.54, 194.1],
+            "line": 1
+          },
+          {
+            "text": "under",
+            "rect": [428.77, 181.58, 459.36, 193.04],
+            "line": 1
+          },
+          {
+            "text": "the",
+            "rect": [461.59, 181.09, 477.03, 192.12],
+            "line": 1
+          },
+          {
+            "text": "Metro",
+            "rect": [481.79, 180.24, 507.32, 191.55],
+            "line": 1
+          },
+          {
+            "text": "Railways",
+            "rect": [53.06, 207.07, 94.19, 218.25],
+            "line": 2
+          },
+          {
+            "text": "Act,",
+            "rect": [98.73, 206.41, 118.22, 217.01],
+            "line": 2
+          },
+          {
+            "text": "and",
+            "rect": [120.36, 205.89, 137.45, 216.41],
+            "line": 2
+          },
+          {
+            "text": "the",
+            "rect": [141.99, 205.36, 156.68, 215.82],
+            "line": 2
+          },
+          {
+            "text": "audit",
+            "rect": [161.22, 204.57, 185.52, 215.29],
+            "line": 2
+          },
+          {
+            "text": "findings",
+            "rect": [187.65, 203.39, 228.79, 214.57],
+            "line": 2
+          },
+          {
+            "text": "will",
+            "rect": [233.32, 202.8, 250.42, 213.32],
+            "line": 2
+          },
+          {
+            "text": "be",
+            "rect": [252.55, 202.47, 262.43, 212.8],
+            "line": 2
+          },
+          {
+            "text": "reviewed",
+            "rect": [266.97, 201.15, 310.5, 212.4],
+            "line": 2
+          },
+          {
+            "text": "by",
+            "rect": [315.04, 200.76, 324.92, 211.09],
+            "line": 2
+          },
+          {
+            "text": "the",
+            "rect": [329.46, 200.23, 344.15, 210.69],
+            "line": 2
+          },
+          {
+            "text": "Board.",
+            "rect": [348.69, 199.23, 380.68, 210.16],
+            "line": 2
+          },
+          {
+            "text": "Sd/-Chief",
+            "rect": [53.45, 229.06, 97.07, 239.77],
+            "line": 3
+          },
+          {
+            "text": "Safety",
+            "rect": [99.11, 228.29, 126.75, 238.59],
+            "line": 3
+          },
+          {
+            "text": "Officer",
+            "rect": [128.79, 227.46, 158.71, 237.81],
+            "line": 3
+          },
+          {
+            "text": "·",
+            "rect": [158.47, 227.34, 163.28, 237.04],
+            "line": 3
+          },
+          {
+            "text": "Copy",
+            "rect": [167.6, 226.69, 188.39, 236.81],
+            "line": 3
+          },
+          {
+            "text": "to:",
+            "rect": [190.43, 226.33, 202.09, 236.21],
+            "line": 3
+          },
+          {
+            "text": "all",
+            "rect": [204.13, 225.98, 215.78, 235.86],
+            "line": 3
+          },
+          {
+            "text": "Heads",
+            "rect": [217.82, 225.27, 243.18, 235.5],
+            "line": 3
+          },
+          {
+            "text": "of",
+            "rect": [245.22, 224.97, 254.59, 234.79],
+            "line": 3
+          },
+          {
+            "text": "Department",
+            "rect": [258.92, 223.58, 308.25, 234.44],
+            "line": 3
+          }
+        ],
+        "engine": "paddleocr",
+        "confidence": 0.3668,
+        "languages": ["en"]
+      }
+    ],
+    "needsEscalation": [1, 2, 3]
+  },
+  "analyze": {
+    "docType": "Regulatory circular",
+    "title": "Fire safety audit of all elevated stations and compliance reporting",
+    "issuingOffice": "Safety Department ·NMR/SAF/2026/041·Dated: 6 August 2026",
+    "issuedOn": "2026-08-06",
+    "sections": [],
+    "findings": [
+      {
+        "kind": "deadline",
+        "text": "The Operations Control Centre must complete the pending drills and report to the Chief Safety Officer not later than 31 August 2026.",
+        "textEn": "The Operations Control Centre must complete the pending drills and report to the Chief Safety Officer not later than 31 August 2026.",
+        "quote": "The Operations Control Centre must complete the pending drills and report to the Chief Safety Officer not later than 31 August 2026.",
+        "quoteLang": "en",
+        "pageHint": 2,
+        "confidence": 0.9,
+        "dueRule": {
+          "type": "fixed",
+          "date": "2026-08-31"
+        },
+        "engineDueOn": "2026-08-31",
+        "desk": "Regulatory",
+        "severity": "medium"
+      },
+      {
+        "kind": "deadline",
+        "text": "Every Station Controller shall replace all expired portable extinguishers and certify the replacement to the Safety Department on or before 21 August 2026.",
+        "textEn": "Every Station Controller shall replace all expired portable extinguishers and certify the replacement to the Safety Department on or before 21 August 2026.",
+        "quote": "Every Station Controller shall replace all expired portable extinguishers and certify the replacement to the Safety Department on or before 21 August 2026.",
+        "quoteLang": "en",
+        "pageHint": 1,
+        "confidence": 0.9,
+        "dueRule": {
+          "type": "fixed",
+          "date": "2026-08-21"
+        },
+        "engineDueOn": "2026-08-21",
+        "desk": "Regulatory",
+        "severity": "medium"
+      },
+      {
+        "kind": "obligation",
+        "text": "This circular sets out what each department must do and by when.",
+        "textEn": "This circular sets out what each department must do and by when.",
+        "quote": "This circular sets out what each department must do and by when.",
+        "quoteLang": "en",
+        "pageHint": 1,
+        "confidence": 0.75,
+        "desk": "Regulatory",
+        "severity": "medium"
+      },
+      {
+        "kind": "summary",
+        "text": "Non-compliance with this statutory reporting requirement attracts a penalty under the Metro Railways Act, and the audit findings will be reviewed by the Board.",
+        "textEn": "Non-compliance with this statutory reporting requirement attracts a penalty under the Metro Railways Act, and the audit findings will be reviewed by the Board.",
+        "quote": "Non-compliance with this statutory reporting requirement attracts a penalty under the Metro Railways Act, and the audit findings will be reviewed by the Board.",
+        "quoteLang": "en",
+        "pageHint": 3,
+        "confidence": 0.6,
+        "desk": "Regulatory"
+      },
+      {
+        "kind": "summary",
+        "text": "The annual fire safety audit of the elevated corridor found expired portable extinguishers at eleven stations and two partially functional smoke detection loops.",
+        "textEn": "The annual fire safety audit of the elevated corridor found expired portable extinguishers at eleven stations and two partially functional smoke detection loops.",
+        "quote": "The annual fire safety audit of the elevated corridor found expired portable extinguishers at eleven stations and two partially functional smoke detection loops.",
+        "quoteLang": "en",
+        "pageHint": 1,
+        "confidence": 0.6,
+        "desk": "Regulatory"
+      },
+      {
+        "kind": "summary",
+        "text": "Station staff were retrained on extinguisher handling in July, and attendance records are held by HumanResources for inspection.",
+        "textEn": "Station staff were retrained on extinguisher handling in July, and attendance records are held by HumanResources for inspection.",
+        "quote": "Station staff were retrained on extinguisher handling in July, and attendance records are held by HumanResources for inspection.",
+        "quoteLang": "en",
+        "pageHint": 2,
+        "confidence": 0.6,
+        "desk": "Regulatory"
+      },
+      {
+        "kind": "summary",
+        "text": "The Signalling and Telecom department is responsible for restoring both faulty smoke detection loops.",
+        "textEn": "The Signalling and Telecom department is responsible for restoring both faulty smoke detection loops.",
+        "quote": "The Signalling and Telecom department is responsible for restoring both faulty smoke detection loops.",
+        "quoteLang": "en",
+        "pageHint": 2,
+        "confidence": 0.6,
+        "desk": "Regulatory"
+      },
+      {
+        "kind": "summary",
+        "text": "Until restoration, a fire watch is required at the affected platforms during all service hours.",
+        "textEn": "Until restoration, a fire watch is required at the affected platforms during all service hours.",
+        "quote": "Until restoration, a fire watch is required at the affected platforms during all service hours.",
+        "quoteLang": "en",
+        "pageHint": 2,
+        "confidence": 0.6,
+        "desk": "Regulatory"
+      },
+      {
+        "kind": "office",
+        "text": "Safety Department ·NMR/SAF/2026/041·Dated: 6 August 2026",
+        "quote": "Safety Department ·NMR/SAF/2026/041·Dated: 6 August 2026",
+        "quoteLang": "en",
+        "pageHint": 1,
+        "confidence": 0.85
+      }
+    ],
+    "confident": false
+  },
+  "link": {
+    "matches": [
+      {
+        "id": "f0",
+        "page": 2,
+        "rects": [
+          [338.97, 85.03, 521.86, 106.11],
+          [490.92, 99.79, 525.16, 116.89],
+          [272.15, 100.69, 493.51, 123.13],
+          [48.47, 107.01, 272.28, 129.52]
+        ],
+        "score": 1,
+        "grade": "exact"
+      },
+      {
+        "id": "f1",
+        "page": 1,
+        "rects": [
+          [292.73, 281.45, 479.46, 303.36],
+          [53.13, 286.57, 292.52, 309.91],
+          [308.97, 298.84, 395.31, 318.11],
+          [50.88, 301.31, 308.77, 325.48]
+        ],
+        "score": 1,
+        "grade": "exact"
+      },
+      {
+        "id": "f2",
+        "page": 1,
+        "rects": [[381.4, 175.81, 516.46, 195.72], [48.6, 199.07, 252.28, 220.39]],
+        "score": 1,
+        "grade": "exact"
+      },
+      {
+        "id": "f3",
+        "page": 3,
+        "rects": [
+          [338.04, 177.29, 509.7, 198.46],
+          [50.24, 182.03, 340.56, 206.52],
+          [264.59, 196.29, 383.06, 215.35],
+          [50.68, 199.52, 264.81, 221.19]
+        ],
+        "score": 1,
+        "grade": "exact"
+      },
+      {
+        "id": "f4",
+        "page": 1,
+        "rects": [
+          [491.7, 161.18, 506.52, 177.54],
+          [263.51, 161.57, 491.82, 183.57],
+          [50.04, 167.62, 263.63, 189.23],
+          [263.66, 179.51, 384, 199.02],
+          [50.25, 182.79, 266.25, 204.97]
+        ],
+        "score": 1,
+        "grade": "exact"
+      },
+      {
+        "id": "f5",
+        "page": 2,
+        "rects": [
+          [515.81, 228.34, 530.66, 244.74],
+          [267.65, 228.75, 515.92, 251.35],
+          [51.43, 235.28, 270.22, 257.1],
+          [51.86, 252.48, 220.42, 271.8]
+        ],
+        "score": 1,
+        "grade": "exact"
+      },
+      {
+        "id": "f6",
+        "page": 2,
+        "rects": [
+          [441.67, 189.58, 527.8, 208.02],
+          [247.58, 191.99, 441.81, 213.49],
+          [51.02, 197.31, 252.62, 219.02],
+          [48.23, 217.18, 86.9, 234.16]
+        ],
+        "score": 1,
+        "grade": "exact"
+      },
+      {
+        "id": "f7",
+        "page": 2,
+        "rects": [
+          [497.53, 204.91, 532.6, 221.8],
+          [295.71, 205.87, 497.76, 227.35],
+          [84.27, 211.36, 298.34, 233.17]
+        ],
+        "score": 1,
+        "grade": "exact"
+      },
+      {
+        "id": "f8",
+        "page": 1,
+        "rects": [[256.15, 92.99, 324.27, 110.47], [45.83, 94.72, 261.18, 116.2]],
+        "score": 1,
+        "grade": "exact"
+      }
+    ]
+  }
+}

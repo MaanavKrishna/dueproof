@@ -1,8 +1,8 @@
-import { createHmac } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { createHash, createHmac } from "node:crypto";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { createEngineClient, EngineError } from "./client";
-import { BUILTIN_RECORDINGS, createFakeEngine, createFakeEngineHandler } from "./fake";
+import { BUILTIN_RECORDINGS, createFakeEngine, createFakeEngineHandler, linkQuotes } from "./fake";
 import { signEngineToken, verifyEngineToken } from "./token";
 
 const SECRET = "engine-shared-secret-0123456789abcdef";
@@ -57,8 +57,23 @@ describe("fake engine", () => {
       images.push(url);
     },
   });
+  const asmt10 = () => {
+    const r = BUILTIN_RECORDINGS.find((rec) => rec.name === "notice-gst-asmt10.pdf");
+    if (!r?.read || !r.analyze) throw new Error("ASMT-10 recording missing");
+    return { ...r, read: r.read, analyze: r.analyze };
+  };
 
-  it("serves the ASMT-10 recording by content hash", async () => {
+  it("ships the real engine's recordings, keyed by each fixture's sha256", () => {
+    const dir = new URL("../../../services/engine/tests/fixtures/", import.meta.url);
+    const fixtures = readdirSync(dir).filter((f) => f.endsWith(".pdf"));
+    expect(BUILTIN_RECORDINGS.map((r) => r.name).sort()).toEqual(fixtures.sort());
+    for (const r of BUILTIN_RECORDINGS) {
+      const bytes = readFileSync(new URL(r.name, dir));
+      expect(createHash("sha256").update(bytes).digest("hex"), r.name).toBe(r.sha256);
+    }
+  });
+
+  it("serves the ASMT-10 recording by content hash, as the real engine answered", async () => {
     const inspect = await fake.inspect({
       sourceUrl: "https://storage.test/src",
       mime: "application/pdf",
@@ -72,24 +87,113 @@ describe("fake engine", () => {
     expect(read.pages[0]?.text).toContain("ASMT-10");
     expect(images).toEqual(["https://storage.test/p1"]);
     const analyze = await fake.analyze({ pages: read.pages });
-    expect(analyze.confident).toBe(true);
+    expect(analyze).toMatchObject({
+      docType: "GST notice",
+      reference: "ZD2910260012345",
+      issuedOn: "2026-10-20",
+      confident: true,
+    });
+    expect(analyze.findings).toHaveLength(7);
     expect(analyze.findings.map((f) => f.kind)).toContain("hearing");
   });
 
+  it("answers an encrypted PDF the way the engine did", async () => {
+    const locked = new Uint8Array(
+      readFileSync(
+        new URL(
+          "../../../services/engine/tests/fixtures/edge-password-protected.pdf",
+          import.meta.url,
+        ),
+      ),
+    );
+    const engine = createFakeEngine({ fetchSource: async () => locked });
+    expect(
+      await engine.inspect({ sourceUrl: "https://storage.test/locked", mime: "application/pdf" }),
+    ).toMatchObject({ ok: false, encrypted: true, reason: "encrypted" });
+  });
+
   it("links quotes to word boxes", async () => {
-    const pages = BUILTIN_RECORDINGS[0]?.read.pages ?? [];
+    const pages = asmt10().read.pages;
     const res = await fake.link({
       pages,
       quotes: [
         { id: "a", text: "A personal hearing is fixed on 18 November 2026", pageHint: 1 },
         { id: "b", text: "You are hereby directed to explain the discrepancies and pay the tax" },
         { id: "c", text: "not on the page at all" },
+        { id: "d", text: "Rs." },
       ],
     });
     expect(res.matches[0]).toMatchObject({ id: "a", page: 1, grade: "exact" });
     expect(res.matches[0]?.rects).toHaveLength(1);
     expect(res.matches[1]?.grade).toBe("exact");
     expect(res.matches[2]).toMatchObject({ id: "c", grade: "unlocated", rects: [] });
+    // Too short to prove anything, as in the engine's linker.
+    expect(res.matches[3]).toMatchObject({ id: "d", grade: "unlocated" });
+  });
+
+  it("places every recorded finding where the real linker did", () => {
+    for (const r of BUILTIN_RECORDINGS) {
+      if (!r.read || !r.analyze || !r.link) continue;
+      const quotes = r.analyze.findings.map((f, i) => ({
+        id: `f${i}`,
+        text: f.quote,
+        ...(f.pageHint ? { pageHint: f.pageHint } : {}),
+      }));
+      const ours = linkQuotes({ pages: r.read.pages, quotes });
+      const located = (m: { grade: string }) => m.grade !== "unlocated";
+      for (const real of r.link.matches) {
+        const mine = ours.matches.find((m) => m.id === real.id);
+        // The fake has no fuzzy fallback, so it may miss what the engine scored as approximate.
+        if (real.grade !== "exact") continue;
+        expect(mine && located(mine), `${r.name} ${real.id}`).toBe(true);
+        expect(mine?.page, `${r.name} ${real.id}`).toBe(real.page);
+      }
+    }
+  });
+
+  it("matches across word splits that differ between text and words (Malayalam)", () => {
+    // The text layer has "മെട്രോറെയിൽ"; the words are "മെട്രോ" + "റെയിൽ".
+    const circular = BUILTIN_RECORDINGS.find((r) => r.name === "circular-NMR-SAF-2026-041.pdf");
+    const page = circular?.read?.pages.find((p) => p.text.includes("മെട്രോറെയിൽ"));
+    expect(page).toBeDefined();
+    expect(page?.words.map((w) => w.text)).toContain("മെട്രോ");
+    const res = linkQuotes({
+      pages: page ? [page] : [],
+      quotes: [
+        { id: "joined", text: "കമ്മീഷണർ ഓഫ് മെട്രോറെയിൽ സേഫ്റ്റിക്ക്" },
+        { id: "split", text: "കമ്മീഷണർ ഓഫ് മെട്രോ റെയിൽ സേഫ്റ്റിക്ക്" },
+      ],
+    });
+    for (const m of res.matches) {
+      expect(m, m.id).toMatchObject({ page: page?.page, grade: "exact" });
+      expect(m.rects.length).toBeGreaterThan(0);
+    }
+
+    // A minimal page built the same way: text joined, words split.
+    const synthetic = {
+      page: 1,
+      width: 595,
+      height: 842,
+      rotation: 0,
+      text: "കമ്മീഷണർ ഓഫ് മെട്രോറെയിൽ സേഫ്റ്റി",
+      words: ["കമ്മീഷണർ", "ഓഫ്", "മെട്രോ", "റെയിൽ", "സേഫ്റ്റി"].map((text, i) => ({
+        text,
+        rect: [50 + i * 60, 100, 100 + i * 60, 112] as [number, number, number, number],
+        line: 0,
+      })),
+      engine: "text_layer" as const,
+      confidence: 1,
+      languages: ["ml"],
+    };
+    const one = linkQuotes({
+      pages: [synthetic],
+      quotes: [{ id: "q", text: "ഓഫ് മെട്രോറെയിൽ" }],
+    });
+    expect(one.matches[0]).toMatchObject({
+      page: 1,
+      grade: "exact",
+      rects: [[110, 100, 280, 112]],
+    });
   });
 });
 
