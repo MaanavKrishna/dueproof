@@ -3,7 +3,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { Marked, type Token, type Tokens } from "marked";
-import { asset, REPO } from "./site";
+import { REPO } from "./site";
 
 const DOCS = path.join(process.cwd(), "..", "..", "docs");
 
@@ -31,10 +31,10 @@ function rewrite(href: string): string {
   if (/^(https?:|mailto:|#)/.test(href)) return href;
   const [file, hash] = href.split("#");
   const anchor = hash ? `#${hash}` : "";
-  if (file.startsWith("images/")) return asset(`/docs-images/${file.slice(7)}`);
+  if (file.startsWith("images/")) return `/docs-images/${file.slice(7)}`;
   const doc = file.match(/^(?:\.\/)?([\w-]+)\.md$/);
   if (doc && SLUGS.includes(doc[1]))
-    return `${asset(doc[1] === "index" ? "/docs/" : `/docs/${doc[1]}/`)}${anchor}`;
+    return `${doc[1] === "index" ? "/docs/" : `/docs/${doc[1]}/`}${anchor}`;
   // Anything else lives in the repository: ../README.md, ../dueproof/...
   const inRepo = path.posix.normalize(path.posix.join("docs", file));
   return `${REPO}/blob/main/${inRepo}${anchor}`;
