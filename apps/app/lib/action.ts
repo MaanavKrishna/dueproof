@@ -32,7 +32,8 @@ export async function runAction<T>(
         error: "bad_request",
         message: e.issues[0]?.message ?? "Some of the details aren't valid.",
       };
-    if (e instanceof MoneyInputError) return { ok: false, error: "bad_request", message: e.message };
+    if (e instanceof MoneyInputError)
+      return { ok: false, error: "bad_request", message: e.message };
     console.error(`${name} failed`, e instanceof Error ? e.name : typeof e);
     return { ok: false, error: "internal", message: "Something went wrong." };
   }

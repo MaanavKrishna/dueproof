@@ -9,6 +9,7 @@ import {
   DocumentIcon,
   EditIcon,
   FiledAckIcon,
+  HearingPackIcon,
   MoreIcon,
   NoticeIcon,
   OrderIcon,
@@ -760,6 +761,12 @@ export function CaseView({
                   onSelect={() => router.push(`/reports/evidence?case=${data.id}`)}
                 >
                   Print evidence report
+                </MenuItem>
+                <MenuItem
+                  icon={HearingPackIcon}
+                  onSelect={() => router.push(`/reports/hearing-pack?case=${data.id}`)}
+                >
+                  Hearing pack
                 </MenuItem>
                 {data.can.editDeadlines ? (
                   <MenuItem icon={AddIcon} onSelect={() => setManualOpen(true)}>

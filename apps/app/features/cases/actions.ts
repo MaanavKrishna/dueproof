@@ -28,6 +28,7 @@ import { type Action, type AuthContext, authorize } from "@/lib/authorize";
 import { loadOrgCalendar, type OrgCalendar } from "@/lib/calendar";
 import { computeDemand, INTEREST_RULES } from "@/lib/demands";
 import { badRequest, notFound } from "@/lib/errors";
+import { notifyMentions } from "@/lib/notify";
 import { addOrderWindow } from "@/lib/orders";
 import { loadPeople, type Person } from "@/lib/org";
 import { todayIn } from "@/lib/pipeline/status";
@@ -394,7 +395,7 @@ const CommentInput = z.object({
 export async function addComment(input: z.input<typeof CommentInput>) {
   return runAction(async () => {
     const v = CommentInput.parse(input);
-    return withCase(v.caseId, "case.comment", async (tx, ctx, scope, c, org) => {
+    const done = await withCase(v.caseId, "case.comment", async (tx, ctx, scope, c, org) => {
       const people = new Set(org.people.map((p) => p.id));
       const mentions = [...new Set(v.mentionIds)].filter((m) => people.has(m));
       const id = uuidv7();
@@ -406,15 +407,6 @@ export async function addComment(input: z.input<typeof CommentInput>) {
         body: v.text,
         mentions,
       });
-      for (const userId of mentions.filter((m) => m !== ctx.userId)) {
-        await tx.insert(notifications).values({
-          id: uuidv7(),
-          orgId: ctx.orgId,
-          userId,
-          kind: "comment.mention",
-          payload: { caseId: c.id, commentId: id, by: ctx.userId },
-        });
-      }
       await audit.write(tx, scope, {
         actor: ctx.userId,
         action: "case.comment",
@@ -423,8 +415,17 @@ export async function addComment(input: z.input<typeof CommentInput>) {
         requestId: ctx.requestId,
         detail: { commentId: id, mentions: mentions.length },
       });
-      return { commentId: id };
+      return { commentId: id, ctx, caseTitle: c.reference ?? c.title, mentions };
     });
+    // After the commit: notify() opens its own org-scoped transaction (and may send a push).
+    const notified = await notifyMentions(done.ctx.container, done.ctx.orgId, {
+      id: done.commentId,
+      caseId: v.caseId,
+      caseTitle: done.caseTitle,
+      mentions: done.mentions,
+      authorUserId: done.ctx.userId,
+    });
+    return { commentId: done.commentId, notified };
   });
 }
 
