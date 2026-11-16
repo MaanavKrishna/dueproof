@@ -1,0 +1,313 @@
+/**
+ * Token build: turns the W3C-style token source into
+ *   - tokens.css   (CSS custom properties; themes, brands, contrast, density)
+ *   - vars.ts      (a typed map of `var(--dp-…)` references)
+ * and resolves colours for a given brand and mode (used by the contrast check).
+ *
+ * Pure functions only; scripts/build.ts writes the files.
+ */
+import { cssVarName, isToken, MODES_KEY, type Token, type TokenGroup } from "./format";
+import * as base from "./source/base";
+import {
+  type BrandName,
+  brands,
+  defaultBrand,
+  neutral,
+  neutralDark,
+  semantic,
+} from "./source/color";
+
+export type Mode = "light" | "dark" | "lightHC" | "darkHC";
+export const MODES: readonly Mode[] = ["light", "dark", "lightHC", "darkHC"];
+export const BRANDS = Object.keys(brands) as BrandName[];
+
+/** Everything except brand colours and density. */
+export const rootTree: TokenGroup = {
+  neutral,
+  neutralDark,
+  ...semantic,
+  font: base.font,
+  text: base.text,
+  space: base.space,
+  radius: base.radius,
+  border: base.border,
+  shadow: base.shadow,
+  blur: base.blur,
+  focus: base.focus,
+  duration: base.duration,
+  ease: base.ease,
+  z: base.z,
+  layout: base.layout,
+};
+
+interface Flat {
+  path: string[];
+  token: Token;
+}
+
+export function flatten(tree: TokenGroup, prefix: string[] = []): Flat[] {
+  const out: Flat[] = [];
+  for (const [key, node] of Object.entries(tree)) {
+    const path = [...prefix, key];
+    if (isToken(node)) out.push({ path, token: node });
+    else out.push(...flatten(node, path));
+  }
+  return out;
+}
+
+function deepMerge(a: TokenGroup, b: TokenGroup): TokenGroup {
+  const out: TokenGroup = { ...a };
+  for (const [k, v] of Object.entries(b)) {
+    const existing = out[k];
+    out[k] = existing && !isToken(existing) && !isToken(v) ? deepMerge(existing, v) : v;
+  }
+  return out;
+}
+
+/** The full tree as seen under a brand. */
+export function treeFor(brand: BrandName): TokenGroup {
+  return deepMerge(rootTree, brands[brand]);
+}
+
+function lookup(tree: TokenGroup, path: string): Token {
+  let node: Token | TokenGroup | undefined = tree;
+  for (const seg of path.split(".")) {
+    if (!node || isToken(node)) break;
+    node = (node as TokenGroup)[seg];
+  }
+  if (!node || !isToken(node)) throw new Error(`Unknown token alias {${path}}`);
+  return node;
+}
+
+function rawFor(token: Token, mode: Mode): string {
+  const modes = token.$extensions?.[MODES_KEY];
+  const light = String(token.$value);
+  const dark = modes?.dark ?? light;
+  switch (mode) {
+    case "light":
+      return light;
+    case "dark":
+      return dark;
+    case "lightHC":
+      return modes?.lightHC ?? light;
+    case "darkHC":
+      return modes?.darkHC ?? dark;
+  }
+}
+
+const ALIAS = /\{([^}]+)\}/g;
+
+/** Resolve a colour token's value for a mode, following aliases to concrete values. */
+export function resolveValue(tree: TokenGroup, token: Token, mode: Mode): string {
+  return rawFor(token, mode).replace(ALIAS, (_, ref: string) =>
+    resolveValue(tree, lookup(tree, ref), mode),
+  );
+}
+
+/** Resolve a colour by dotted path (e.g. "fg.primary") under a brand and mode. */
+export function resolveColor(
+  path: string,
+  brand: BrandName = defaultBrand,
+  mode: Mode = "light",
+): string {
+  const tree = treeFor(brand);
+  return resolveValue(tree, lookup(tree, path), mode);
+}
+
+function hasModes(token: Token): boolean {
+  return token.$type === "color" && !!token.$extensions?.[MODES_KEY];
+}
+
+function hasHC(token: Token): boolean {
+  const m = token.$extensions?.[MODES_KEY];
+  return !!(m?.lightHC || m?.darkHC);
+}
+
+/** A CSS value for a token: colours become light-dark(), other aliases become var() references. */
+function cssValue(tree: TokenGroup, token: Token, kind: "auto" | "hc" | Mode = "auto"): string {
+  if (token.$type === "color") {
+    if (kind === "light" || kind === "dark" || kind === "lightHC" || kind === "darkHC") {
+      return resolveValue(tree, token, kind);
+    }
+    const [l, d] = kind === "hc" ? (["lightHC", "darkHC"] as const) : (["light", "dark"] as const);
+    const light = resolveValue(tree, token, l);
+    const dark = resolveValue(tree, token, d);
+    return light === dark ? light : `light-dark(${light}, ${dark})`;
+  }
+  return String(token.$value).replace(
+    ALIAS,
+    (_, ref: string) => `var(${cssVarName(ref.split("."))})`,
+  );
+}
+
+function block(selector: string, decls: string[], indent = ""): string {
+  if (decls.length === 0) return "";
+  return `${indent}${selector} {\n${decls.map((d) => `${indent}  ${d}`).join("\n")}\n${indent}}\n`;
+}
+
+function decl(path: string[], value: string): string {
+  return `${cssVarName(path)}: ${value};`;
+}
+
+function densityDecls(name: "comfortable" | "compact"): string[] {
+  return flatten(base.density[name]).map(({ path, token }) =>
+    decl(["size", ...path], String(token.$value)),
+  );
+}
+
+const HEADER = `/*
+ * Dueproof design tokens: generated by packages/tokens (pnpm --filter @dueproof/tokens build:css).
+ * Do not edit by hand. Source: packages/tokens/src/source.
+ *
+ * Theme:     data-theme="light | dark | system"   (default light; sets color-scheme)
+ * Brand:     data-brand="ink-saffron | graphite-electric | forest-paper"   (default ink-saffron)
+ * Contrast:  prefers-contrast: more, or data-contrast="more"
+ * Density:   data-density="comfortable | compact"   (default comfortable)
+ * Put them on <html> (or any wrapper: every attribute also works on a nested element).
+ */
+`;
+
+export function buildCss(): string {
+  const rootFlat = flatten(rootTree);
+  let css = HEADER;
+
+  // :root — every token, default brand, comfortable density.
+  const rootDecls = [
+    "color-scheme: light;",
+    ...rootFlat.map(({ path, token }) => decl(path, cssValue(rootTree, token))),
+    ...brandDecls(defaultBrand, "auto"),
+    ...densityDecls("comfortable"),
+    `--dp-size-target: ${base.target.fine}px;`,
+  ];
+  css += block(":root", rootDecls);
+
+  css += "\n/* Themes: colours are light-dark() pairs, so the theme only sets color-scheme. */\n";
+  css += block('[data-theme="light"]', ["color-scheme: light;"]);
+  css += block('[data-theme="dark"]', ["color-scheme: dark;"]);
+  css += block('[data-theme="system"]', ["color-scheme: light dark;"]);
+
+  css += "\n/* Brand directions (02 §4). */\n";
+  for (const b of BRANDS) css += block(`[data-brand="${b}"]`, brandDecls(b, "auto"));
+
+  css += "\n/* Density. Coarse pointers always get 44px targets. */\n";
+  css += block('[data-density="comfortable"]', densityDecls("comfortable"));
+  css += block('[data-density="compact"]', densityDecls("compact"));
+  css += `@media (pointer: coarse) {\n${block(":root", [`--dp-size-target: ${base.target.coarse}px;`], "  ")}}\n`;
+
+  // High contrast.
+  const hcRoot = [
+    ...rootFlat
+      .filter(({ token }) => hasHC(token))
+      .map(({ path, token }) => decl(path, cssValue(rootTree, token, "hc"))),
+    ...brandDecls(defaultBrand, "hc"),
+    "--dp-blur-material: none;",
+    "--dp-focus-width: 3px;",
+    "--dp-border-hairline: 1.5px;",
+  ];
+  css +=
+    "\n/* High contrast: stronger labels and separators, solid materials, thicker focus ring. */\n";
+  let media = block(":root", hcRoot, "  ");
+  for (const b of BRANDS) media += block(`[data-brand="${b}"]`, brandDecls(b, "hc"), "  ");
+  css += `@media (prefers-contrast: more) {\n${media}}\n`;
+  css += block('[data-contrast="more"]', hcRoot);
+  for (const b of BRANDS) {
+    css += block(
+      `[data-contrast="more"][data-brand="${b}"],\n[data-contrast="more"] [data-brand="${b}"]`,
+      brandDecls(b, "hc"),
+    );
+  }
+
+  // Materials fall back to solid where backdrop blur is unsupported.
+  css += "\n/* No backdrop blur (some WebKitGTK and older mobile browsers): solid materials. */\n";
+  css += `@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {\n${block(
+    ":root",
+    [
+      ...["thin", "regular", "thick", "chrome"].map(
+        (m) => `--dp-material-${m}: var(--dp-material-solid);`,
+      ),
+      "--dp-blur-material: none;",
+    ],
+    "  ",
+  )}}\n`;
+
+  // Browsers without light-dark(): explicit light and dark blocks.
+  css += "\n/* Browsers without light-dark(): resolve each theme explicitly. */\n";
+  const colourFlat = rootFlat.filter(({ token }) => hasModes(token));
+  const fixedBlock = (mode: Mode) => [
+    ...colourFlat.map(({ path, token }) => decl(path, cssValue(rootTree, token, mode))),
+    ...brandDecls(defaultBrand, mode),
+  ];
+  let fb = block(":root", fixedBlock("light"), "  ");
+  fb += block('[data-theme="dark"]', fixedBlock("dark"), "  ");
+  fb += `  @media (prefers-color-scheme: dark) {\n${block('[data-theme="system"]', fixedBlock("dark"), "    ")}  }\n`;
+  for (const b of BRANDS) {
+    fb += block(`[data-brand="${b}"]`, brandDecls(b, "light"), "  ");
+    fb += block(
+      `[data-theme="dark"][data-brand="${b}"],\n  [data-theme="dark"] [data-brand="${b}"]`,
+      brandDecls(b, "dark"),
+      "  ",
+    );
+  }
+  css += `@supports not (color: light-dark(#000, #fff)) {\n${fb}}\n`;
+  return css;
+}
+
+function brandDecls(brand: BrandName, kind: "auto" | "hc" | Mode): string[] {
+  const tree = treeFor(brand);
+  return flatten(brands[brand])
+    .filter(({ token }) =>
+      kind === "hc" ? hasHC(token) : kind === "auto" ? true : token.$type === "color",
+    )
+    .map(({ path, token }) => decl(path, cssValue(tree, token, kind)));
+}
+
+/* ------------------------------------------------------------------ vars.ts */
+
+type VarTree = { [k: string]: string | VarTree };
+
+function setPath(tree: VarTree, path: string[], value: string) {
+  let node = tree;
+  for (const seg of path.slice(0, -1)) {
+    const next = node[seg];
+    if (typeof next === "object") node = next;
+    else {
+      const created: VarTree = {};
+      node[seg] = created;
+      node = created;
+    }
+  }
+  const last = path[path.length - 1];
+  if (last !== undefined) node[last] = value;
+}
+
+/** Every variable name, as a nested object of `var(--dp-…)` strings. */
+export function buildVarTree(): VarTree {
+  const tree: VarTree = {};
+  const add = (path: string[]) => setPath(tree, path, `var(${cssVarName(path)})`);
+  for (const { path } of flatten(rootTree)) add(path);
+  for (const b of BRANDS) for (const { path } of flatten(brands[b])) add(path);
+  for (const { path } of flatten(base.density.comfortable)) add(["size", ...path]);
+  add(["size", "target"]);
+  return tree;
+}
+
+function serialise(tree: VarTree, indent = "  "): string {
+  const lines = Object.entries(tree).map(([k, v]) => {
+    const key = /^[A-Za-z_$][\w$]*$/.test(k) ? k : JSON.stringify(k);
+    return typeof v === "string"
+      ? `${indent}${key}: ${JSON.stringify(v)},`
+      : `${indent}${key}: {\n${serialise(v, `${indent}  `)}\n${indent}},`;
+  });
+  return lines.join("\n");
+}
+
+export function buildVarsTs(): string {
+  return `// Generated by packages/tokens (pnpm --filter @dueproof/tokens build:css). Do not edit.
+/** Typed references to every token CSS variable, e.g. \`vars.fg.primary\` → "var(--dp-fg-primary)". */
+export const vars = {
+${serialise(buildVarTree())}
+} as const;
+
+export type Vars = typeof vars;
+`;
+}
