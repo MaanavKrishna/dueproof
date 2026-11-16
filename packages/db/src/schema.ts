@@ -331,6 +331,13 @@ export const deadlines = pgTable(
     windowEndOn: date("window_end_on"),
     rule: jsonb("rule").notNull(),
     basis: text("basis").notNull(),
+    /**
+     * The date engine's working beyond `basis`: adjustments (what moved the
+     * date), warnings (what a person should look at), window basis, original
+     * due date, inputs; for statutory items also the source, verified flag
+     * and pack version. Shape: `DeadlineDetail` in the app.
+     */
+    detail: jsonb("detail").$type<Record<string, unknown>>(),
     /** For statutory items: e.g. "in.gst.gstr3b.monthly:2026-10". Unique per client. */
     statutoryKey: text("statutory_key"),
     status: workStatus("status").notNull().default("open"),

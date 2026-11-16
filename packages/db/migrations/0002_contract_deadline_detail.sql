@@ -1,0 +1,1 @@
+ALTER TABLE "deadlines" ADD COLUMN "detail" jsonb;

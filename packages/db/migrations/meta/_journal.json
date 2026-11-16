@@ -15,6 +15,13 @@
       "when": 1794829171941,
       "tag": "0001_contract_attributes_demand_head_needs_password",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794829940929,
+      "tag": "0002_contract_deadline_detail",
+      "breakpoints": true
     }
   ]
 }

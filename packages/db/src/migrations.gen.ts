@@ -116,6 +116,13 @@ export const MIGRATIONS: EmbeddedMigration[] = [
       '\nALTER TABLE "registrations" ADD COLUMN "attributes" jsonb DEFAULT \'{}\'::jsonb NOT NULL;',
     ],
   },
+  {
+    tag: "0002_contract_deadline_detail",
+    folderMillis: 1794829940929,
+    hash: "4f759f69d0307d770f21cf22986ad2551372beb417d8dffff09a8d12100b6e14",
+    bps: true,
+    sql: ['ALTER TABLE "deadlines" ADD COLUMN "detail" jsonb;'],
+  },
 ];
 
 export const RLS_SQL: string[] = [
