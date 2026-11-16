@@ -53,7 +53,7 @@ export class PermanentError extends Error {
   }
 }
 
-async function loadDocument(c: Container, ref: DocumentRef) {
+export async function loadDocument(c: Container, ref: DocumentRef) {
   const doc = await withOrg(c.database, ref.orgId, async (tx) => {
     const [row] = await tx
       .select()
@@ -66,7 +66,7 @@ async function loadDocument(c: Container, ref: DocumentRef) {
   return doc;
 }
 
-async function loadPages(c: Container, ref: DocumentRef): Promise<PageText[]> {
+export async function loadPages(c: Container, ref: DocumentRef): Promise<PageText[]> {
   const rows = await withOrg(c.database, ref.orgId, (tx) =>
     tx
       .select()
@@ -365,10 +365,10 @@ export type ReconcileOutcome = ReconcileResult;
 /**
  * Deterministic reconciliation (04 §4) through `@dueproof/core`.
  *
- * `aiFindings` is the AI lane's hook: when assisted extraction runs (04 §3),
- * pass its findings here, already graded by the linker, with ids that don't
- * clash with the rule findings' `q<n>` (e.g. `ai<n>`). Until then it is
- * empty and every finding is origin `rule`.
+ * `aiFindings` come from the ai_assist step (lib/pipeline/ai-assist.ts),
+ * already graded by the linker, with ids that don't clash with the rule
+ * findings' `q<n>` (`ai-<level>-<n>`). Empty when AI is off or skipped: then
+ * every finding is origin `rule`.
  */
 export async function reconcileStage(
   c: Container,
@@ -410,7 +410,7 @@ async function aiReviewedCount(c: Container, orgId: string): Promise<number> {
 
 // ---------------------------------------------------------------- resolve dates
 
-async function loadDateContext(
+export async function loadDateContext(
   c: Container,
   ref: DocumentRef,
   issuedOn: string | undefined,
@@ -451,6 +451,44 @@ export async function resolveDatesStage(
 
 // ---------------------------------------------------------------- write
 
+/** What the ai_assist step adds to the write. */
+export interface WriteAiInput {
+  /** The model's reading was kept and needs no review of its own. */
+  accepted: boolean;
+  /** Budget, Opus cap, refusal, error or an unresolved conflict: the document goes to review. */
+  needsReview: boolean;
+  /** The `ai_runs` row whose findings were kept. */
+  runId?: string;
+}
+
+/**
+ * The other reading when rules and AI disagree (04 §4: "needs review, both
+ * shown"), for `findings.conflict`. The finding row keeps the rules' value;
+ * this keeps the AI's value, its proof and why the finding was flagged.
+ */
+export function conflictOf(f: ReconciledFinding): Record<string, unknown> | null {
+  if (!f.conflicts.length) return null;
+  const ai = f.aiSource as ProvenFinding | undefined;
+  return {
+    source: "ai",
+    reasons: f.reasons.filter((r) => r.startsWith("conflict_")),
+    conflicts: f.conflicts,
+    ...(ai
+      ? {
+          ai: {
+            quote: ai.finding.quote,
+            grade: ai.grade,
+            ...(ai.page !== undefined ? { page: ai.page } : {}),
+            ...(ai.finding.dueRule ? { dueRule: ai.finding.dueRule } : {}),
+            ...(ai.finding.amountMinor !== undefined
+              ? { amountMinor: ai.finding.amountMinor }
+              : {}),
+          },
+        }
+      : {}),
+  };
+}
+
 export interface WriteResult {
   status: "ready" | "needs_review";
   findings: number;
@@ -480,15 +518,19 @@ export async function writeStage(
   reconciled: ReconcileOutcome,
   dates: DateOutcome[],
   needsEscalation: number[],
+  ai?: WriteAiInput,
 ): Promise<WriteResult> {
   const doc = await loadDocument(c, ref);
   const items = reconciled.findings;
   const dateById = new Map(dates.map((d) => [d.id, d]));
   // `after_review` means a proposed date waits for a person: the document needs review.
-  const review = items.some((f) => f.needsReview || f.deadline === "after_review");
+  const review =
+    items.some((f) => f.needsReview || f.deadline === "after_review") || Boolean(ai?.needsReview);
   const dateErrors = dates.some((d) => "error" in d);
+  // Rules that weren't confident are covered when the model's reading was kept without review.
+  const confident = analysis.confident || Boolean(ai?.accepted);
   const status: WriteResult["status"] =
-    analysis.confident && !review && !dateErrors && !needsEscalation.length && items.length
+    confident && !review && !dateErrors && !needsEscalation.length && items.length
       ? "ready"
       : "needs_review";
 
@@ -525,6 +567,8 @@ export async function writeStage(
         amountMinor: f.amountMinor ?? null,
         desk: source?.desk ?? null,
         severity: source?.severity ?? null,
+        aiRunId: f.aiSource && ai?.runId ? ai.runId : null,
+        conflict: conflictOf(f),
       });
       const proof = proofOf(f);
       if (proof?.page !== undefined) {
@@ -581,6 +625,9 @@ export async function writeStage(
         findings: items.length,
         deadlines: deadlineCount,
         aiFirstNUsed: reconciled.aiFirstNUsed,
+        conflicts: items.filter((f) => f.conflicts.length).length,
+        ...(needsEscalation.length ? { reviewPages: needsEscalation } : {}),
+        ...(ai ? { aiAccepted: ai.accepted, aiNeedsReview: ai.needsReview } : {}),
       },
     });
     return { findings: items.length, deadlines: deadlineCount, skipped: false };
