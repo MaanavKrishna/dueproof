@@ -28,6 +28,8 @@ const config: NextConfig = {
     "@dueproof/core",
     "@dueproof/db",
     "@dueproof/engine-client",
+    "@dueproof/i18n",
+    "@dueproof/icons",
     "@dueproof/storage",
     "@dueproof/tokens",
     "@dueproof/ui",
