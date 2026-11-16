@@ -214,7 +214,10 @@ describe("rate limits on Postgres", () => {
   });
 
   it("counts per key and window, and refuses with Retry-After past the limit", async () => {
-    const now = Date.UTC(2026, 10, 16, 10, 0, 0);
+    // The start of the next hour: on a window boundary, and in the future, so the
+    // store's occasional clean-up (which uses the database's real clock) never
+    // deletes these windows mid-test.
+    const now = Math.ceil(Date.now() / 3_600_000) * 3_600_000;
     for (let i = 0; i < 3; i++) await enforce(c, "upload.user", "user-1", { now });
     const err = await enforce(c, "upload.user", "user-1", { now }).catch((e) => e);
     expect(err).toBeInstanceOf(RateLimitedError);
