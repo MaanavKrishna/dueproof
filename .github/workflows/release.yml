@@ -48,7 +48,10 @@ jobs:
             exit 1
           fi
           prerelease=false
-          if [[ "$TAG" == *-* ]] || grep -qi 'beta' <<< "$heading"; then
+          # Only a suffixed tag (v0.2.0-rc.1) is a pre-release. A plain version is
+          # published as Latest, so it shows in the repository sidebar; a beta
+          # says so in its notes.
+          if [[ "$TAG" == *-* ]]; then
             prerelease=true
           fi
           echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
@@ -60,7 +63,7 @@ jobs:
           PRERELEASE: ${{ steps.notes.outputs.prerelease }}
         run: |
           flags=()
-          if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
+          if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); else flags+=(--latest); fi
           if [ "${{ github.event_name }}" = "push" ]; then
             flags+=(--verify-tag)
           else
