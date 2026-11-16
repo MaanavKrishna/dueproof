@@ -32,6 +32,7 @@ import { inScope } from "@/lib/can";
 import { type DeadlineRow, queryDeadlines } from "@/lib/deadline-rows";
 import { badRequest, notFound } from "@/lib/errors";
 import { type ExposureView, loadExposure } from "@/lib/exposure";
+import { whiteLabelReports } from "@/lib/licence";
 import { todayIn } from "@/lib/pipeline/status";
 
 const auditLog = schema.audit;
@@ -39,7 +40,7 @@ const auditLog = schema.audit;
 export interface ReportOrg {
   name: string;
   logoUrl: string | null;
-  /** Licensed to hide "Prepared with Dueproof" (a flag for now; the licence check comes later). */
+  /** Hide "Prepared with Dueproof": the Business licence's white-label feature (lib/licence.ts). */
   whiteLabel: boolean;
 }
 
@@ -61,7 +62,7 @@ async function reportOrg(ctx: AuthContext): Promise<ReportOrg> {
   return {
     name: org?.name ?? "Your organisation",
     logoUrl,
-    whiteLabel: ctx.container.env.REPORT_WHITE_LABEL,
+    whiteLabel: await whiteLabelReports(ctx.container),
   };
 }
 

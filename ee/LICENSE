@@ -1,0 +1,47 @@
+DRAFT — to be reviewed by a lawyer before release.
+
+Dueproof Business Licence
+
+Copyright (c) 2026 Maanav Krishna. All rights reserved.
+
+1. Scope. This licence applies to every file in the `ee/` directory of the
+   Dueproof repository and its subdirectories (the "Business Code"). It does
+   not apply to any file outside `ee/`, which is licensed under the terms in
+   the repository's root LICENSE file.
+
+2. Proprietary. The Business Code is proprietary. It is published so that
+   customers can read and audit it; publication grants no licence.
+
+3. Use. You may use, copy and modify the Business Code only:
+   (a) in production, while you hold a valid Dueproof Business licence for
+       the organisation using it, and only for the features and term that
+       licence lists; or
+   (b) to develop and test Dueproof itself, without production use.
+
+4. Restrictions. You may not:
+   (a) remove, disable or circumvent the licence check, or alter it so that
+       a feature works without a valid licence that lists it;
+   (b) sell, sublicense, rent, host for others or otherwise distribute the
+       Business Code, alone or as part of another product or service;
+   (c) use the Business Code to build a product or service that competes
+       with Dueproof.
+
+5. Licence keys. Licence files are issued by Dueproof and signed with
+   Dueproof's key. A licence file is personal to the licensee named in it
+   and may not be shared.
+
+6. Contributions. Contributions to the Business Code are accepted only
+   under a contributor licence agreement.
+
+7. No warranty. THE BUSINESS CODE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+   ANY KIND, EXPRESS OR IMPLIED, INCLUDING THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
+   IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+   CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM THE BUSINESS CODE OR ITS
+   USE, EXCEPT AS A SEPARATE WRITTEN AGREEMENT SAYS OTHERWISE.
+
+8. Termination. This licence ends automatically if you break it, and when
+   your Dueproof Business licence ends (after any grace period it states).
+
+Third-party components used by the Business Code keep their own licences;
+see the root NOTICE file.

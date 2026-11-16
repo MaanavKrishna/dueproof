@@ -33,7 +33,7 @@ import {
   withOrg,
 } from "@dueproof/db";
 import { type AnyPgDatabase, unsafeRawDb } from "@dueproof/db/internal";
-import { betterAuth } from "better-auth";
+import { type BetterAuthPlugin, betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError } from "better-auth/api";
 import { organization as organizationPlugin } from "better-auth/plugins/organization";
@@ -62,6 +62,19 @@ export interface AuthConfig {
   ipAddressHeaders?: string[];
   /** Called after an organisation is created for a new owner. */
   onOrganisationCreated?: (orgId: string, userId: string) => Promise<void>;
+  /**
+   * Extra Better Auth plugins, added after ours. The app passes the Business
+   * plugins from `ee/` here (SAML SSO) when that directory is present; this
+   * package never imports `ee/` (AGENTS rule 12).
+   */
+  plugins?: readonly BetterAuthPlugin[];
+  /**
+   * Whether someone may sign up without an invitation because an identity
+   * provider vouches for them (SSO). `path` is the auth endpoint creating the
+   * user, so a password sign-up never qualifies. Their organisation comes
+   * from the provider, so no organisation is created for them.
+   */
+  externalSignUp?: (email: string, path: string | undefined) => Promise<boolean>;
 }
 
 const ORG_NAME_FALLBACK = "My organisation";
@@ -146,12 +159,15 @@ export function createAuth(config: AuthConfig) {
         rpName: config.passkey?.rpName ?? "Dueproof",
         origin: url.origin,
       }),
+      ...(config.plugins ?? []),
     ],
     databaseHooks: {
       user: {
         create: {
-          before: async (user) => {
-            const allowed = await maySignUp(raw, config.signupPolicy, user.email);
+          before: async (user, ctx) => {
+            const allowed =
+              (await maySignUp(raw, config.signupPolicy, user.email)) ||
+              ((await config.externalSignUp?.(user.email, ctx?.path)) ?? false);
             if (!allowed) {
               throw new APIError("FORBIDDEN", {
                 message:
@@ -160,8 +176,13 @@ export function createAuth(config: AuthConfig) {
             }
             return { data: user };
           },
-          after: async (user) => {
-            await placeNewUser(config, raw, { id: user.id, email: user.email, name: user.name });
+          after: async (user, ctx) => {
+            await placeNewUser(
+              config,
+              raw,
+              { id: user.id, email: user.email, name: user.name },
+              ctx?.path,
+            );
           },
         },
       },
@@ -218,8 +239,10 @@ async function placeNewUser(
   config: AuthConfig,
   raw: AnyPgDatabase,
   user: { id: string; email: string; name: string },
+  path: string | undefined,
 ): Promise<void> {
   const invite = await pendingInvitation(raw, user.email);
+  if (!invite && (await config.externalSignUp?.(user.email, path))) return;
   if (invite) {
     const role = (invite.role ?? "member") as Role;
     await raw.transaction(async (tx) => {

@@ -178,6 +178,31 @@ export const rateLimit = pgTable("rate_limit", {
   lastRequest: bigint("last_request", { mode: "number" }).notNull(),
 });
 
+/**
+ * SAML identity providers (Better Auth's SSO plugin, 08 §1 Business). The
+ * table exists in every build so the schema is one; only `ee/sso` reads or
+ * writes it, and only while the licence includes SSO. `defaultRole` is ours:
+ * the role someone gets when they first sign in through this provider.
+ */
+export const ssoProvider = pgTable(
+  "sso_provider",
+  {
+    id: text("id").primaryKey(),
+    issuer: text("issuer").notNull(),
+    oidcConfig: text("oidc_config"),
+    samlConfig: text("saml_config"),
+    userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+    providerId: text("provider_id").notNull().unique(),
+    organizationId: text("organization_id").references(() => organization.id, {
+      onDelete: "cascade",
+    }),
+    /** Comma-separated email domains, lower case. */
+    domain: text("domain").notNull(),
+    defaultRole: text("default_role").notNull().default("member"),
+  },
+  (t) => [index("sso_provider_organization_id").on(t.organizationId)],
+);
+
 export const authSchema = {
   user,
   session,
@@ -189,4 +214,5 @@ export const authSchema = {
   twoFactor,
   passkey,
   rateLimit,
+  ssoProvider,
 } as const;

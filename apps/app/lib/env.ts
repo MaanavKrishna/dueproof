@@ -131,7 +131,10 @@ const Env = z
     RESEND_API_KEY: z.string().optional(),
     MAIL_FROM: z.string().default("Dueproof <no-reply@dueproof.local>"),
 
-    /** Reports without "Prepared with Dueproof" (white-label, licensed). A flag until licence checks land. */
+    /**
+     * Reports without "Prepared with Dueproof". Normally the Business licence
+     * switches this on (white-label feature); the flag is a development override.
+     */
     REPORT_WHITE_LABEL: bool.default(false),
 
     /** Bearer secret for GET /api/cron/daily (Vercel Cron sends it as CRON_SECRET). */

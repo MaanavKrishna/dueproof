@@ -191,3 +191,10 @@ self-host it for free, but not offer it as a competing product or service.
 Each version becomes Apache 2.0 two years after its release. The demo
 (0.0.1) and earlier commits stay under Apache 2.0. Third-party components are
 listed in [NOTICE](NOTICE).
+
+The exception is the [`ee/`](ee/) directory: the Business features (SAML
+single sign-on, audit export, white-label reports and the offline licence
+check) are proprietary, under a [commercial licence](ee/LICENSE), and work
+only with a valid Dueproof Business licence. Nothing outside `ee/` depends on
+it: delete the directory and you have Self-hosted Free, which builds and runs
+on its own.

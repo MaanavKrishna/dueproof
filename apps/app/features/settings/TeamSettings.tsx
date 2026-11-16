@@ -41,6 +41,7 @@ import {
 } from "@/app/actions/team";
 import { ROLE_LABELS, ROLE_OPTIONS } from "@/lib/form-options";
 import { type SettingsChrome, SettingsFrame } from "./SettingsFrame";
+import { type SsoData, SsoSection } from "./SsoSection";
 import styles from "./settings.module.css";
 
 export interface TeamMemberData {
@@ -62,6 +63,8 @@ export interface TeamData {
   canManage: boolean;
   viewerRole: string;
   appUrl: string;
+  /** Single sign-on (Business); present only while the licence includes it. */
+  sso?: SsoData;
 }
 
 const dateFmt = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short" });
@@ -301,6 +304,7 @@ export function TeamSettings({ chrome, data }: { chrome: SettingsChrome; data: T
           )}
         </SettingsSection>
       ) : null}
+      {data.sso ? <SsoSection data={data.sso} /> : null}
     </SettingsFrame>
   );
 }

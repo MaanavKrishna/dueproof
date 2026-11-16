@@ -1,6 +1,7 @@
 import { can } from "@dueproof/core";
 import type { Metadata } from "next";
 import { TeamSettings } from "@/features/settings/TeamSettings";
+import { ssoSettingsFor } from "@/lib/business";
 import { pageAccess, requireViewer, settingsChrome } from "@/lib/server/page";
 import { getTeamFor } from "@/lib/team";
 
@@ -12,7 +13,7 @@ export default async function TeamSettingsPage() {
   if (!access.ok) throw new Error("no membership");
   const { ctx } = access;
   const canManage = can({ userId: ctx.userId, role: ctx.role }, "team.manage");
-  const team = await getTeamFor(ctx, canManage);
+  const [team, sso] = await Promise.all([getTeamFor(ctx, canManage), ssoSettingsFor(ctx)]);
   return (
     <TeamSettings
       chrome={chrome}
@@ -38,6 +39,15 @@ export default async function TeamSettingsPage() {
         canManage,
         viewerRole: ctx.role,
         appUrl: ctx.container.env.APP_URL,
+        ...(sso.licensed && sso.serviceProvider
+          ? {
+              sso: {
+                providers: sso.providers,
+                serviceProvider: sso.serviceProvider,
+                canManage,
+              },
+            }
+          : {}),
       }}
     />
   );

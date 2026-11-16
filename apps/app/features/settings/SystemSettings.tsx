@@ -20,6 +20,8 @@ import {
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { loadAuditPage, verifyAuditChain } from "@/app/actions/system";
+import { AuditExportSection } from "./AuditExportSection";
+import { type LicenceData, LicenceSection, licenceBanner } from "./LicenceSection";
 import { type SettingsChrome, SettingsFrame } from "./SettingsFrame";
 import styles from "./settings.module.css";
 
@@ -41,6 +43,10 @@ export interface SystemData {
     rows: AuditRowData[];
     verify: { ok: boolean; count: number; brokenAt?: number };
   };
+  /** Business licence (Self-hosted); absent on hosted. */
+  licence?: LicenceData;
+  /** The licence includes audit export. */
+  auditExport?: boolean;
 }
 
 export interface AuditRowData {
@@ -77,6 +83,11 @@ const ACTIONS: Record<string, string> = {
   "org.setup.completed": "Finished setup",
   "org.setup.dismissed": "Left setup",
   "user.update": "Updated their profile",
+  "licence.install": "Installed the Business licence",
+  "licence.remove": "Removed the Business licence",
+  "sso.configure": "Set up single sign-on",
+  "sso.remove": "Turned off single sign-on",
+  "audit.export": "Exported the audit trail",
 };
 
 function describe(action: string): string {
@@ -148,6 +159,8 @@ export function SystemSettings({ chrome, data }: { chrome: SettingsChrome; data:
               ? "The last backup failed."
               : "The last good backup is more than 48 hours old."}
           </Banner>
+        ) : data.licence ? (
+          (licenceBanner(data.licence.status) ?? undefined)
         ) : undefined
       }
     >
@@ -313,6 +326,8 @@ export function SystemSettings({ chrome, data }: { chrome: SettingsChrome; data:
         ) : null}
       </SettingsSection>
 
+      {data.auditExport ? <AuditExportSection /> : null}
+
       <SettingsSection
         title="Network"
         description="Every host this install connects to. Nothing else: no telemetry, no update checks."
@@ -336,6 +351,8 @@ export function SystemSettings({ chrome, data }: { chrome: SettingsChrome; data:
           </InsetGroupedList>
         )}
       </SettingsSection>
+
+      {data.licence ? <LicenceSection data={data.licence} /> : null}
 
       <SettingsSection title="About">
         <SettingsRow label="Version">

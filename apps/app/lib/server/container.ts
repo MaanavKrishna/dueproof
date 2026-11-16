@@ -8,7 +8,7 @@ import "server-only";
 import { resolve } from "node:path";
 import type { Provider } from "@dueproof/ai";
 import { type Auth, createAuth } from "@dueproof/auth";
-import { createDatabase, type Database, migrate } from "@dueproof/db";
+import { audit, createDatabase, type Database, migrate, withOrg } from "@dueproof/db";
 import { createEngineClient, createFakeEngine, type EngineClient } from "@dueproof/engine-client";
 import {
   createStorage,
@@ -16,8 +16,10 @@ import {
   MemoryStorage,
   type StoragePort,
 } from "@dueproof/storage";
+import { loadEe } from "../ee";
 import { type Env, getEnv } from "../env";
 import { createHeavyEngine, type HeavyEngine } from "../heavy-engine";
+import { hasFeature } from "../licence";
 import type { DocumentRef } from "../pipeline/types";
 import { storageHosts } from "../security/headers";
 
@@ -160,6 +162,34 @@ function storagePair(env: Env): { storage: StoragePort; engineStorage: StoragePo
   }
 }
 
+/**
+ * Business sign-in (SAML SSO) from ee/, when present. Its endpoints check the
+ * licence on every request, so a licence installed or expired later takes
+ * effect without a restart.
+ */
+export function businessAuth(env: Env, database: Database) {
+  const sso = loadEe()?.sso;
+  if (!sso) return {};
+  return {
+    plugins: sso.authPlugins({
+      appUrl: env.APP_URL,
+      isLicensed: () => hasFeature(database, "sso"),
+      onJoin: (e) =>
+        withOrg(database, e.orgId, (tx, ctx) =>
+          audit.write(tx, ctx, {
+            actor: e.userId,
+            action: "member.join",
+            targetType: "user",
+            targetId: e.userId,
+            detail: { role: e.role, via: "sso" },
+          }),
+        ).then(() => undefined),
+    }) as NonNullable<Parameters<typeof createAuth>[0]["plugins"]>,
+    externalSignUp: (email: string, path: string | undefined) =>
+      sso.allowsSignUp(database, email, path),
+  };
+}
+
 async function build(env: Env): Promise<Container> {
   const database = await createDatabase(
     env.DATABASE_DRIVER === "pglite"
@@ -169,6 +199,7 @@ async function build(env: Env): Promise<Container> {
   if (env.DB_MIGRATE_ON_START) await migrate(database);
 
   const auth = createAuth({
+    ...businessAuth(env, database),
     database,
     baseURL: env.APP_URL,
     secret: env.AUTH_SECRET,

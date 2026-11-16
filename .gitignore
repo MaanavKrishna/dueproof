@@ -23,3 +23,10 @@ playwright-report/
 test-results/
 pgdata/
 .claude/worktrees/
+# Licence signing keys (ee/licence): never commit a real private key. The
+# only private keys in the repository are the marked TEST keys.
+*.private.pem
+*.pkcs8
+licence-keys/
+!ee/licence/test-keys/*.private.pem
+!ee/sso/test-idp/*.private.pem

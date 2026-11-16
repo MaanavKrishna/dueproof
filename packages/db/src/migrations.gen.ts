@@ -142,6 +142,18 @@ export const MIGRATIONS: EmbeddedMigration[] = [
       '\nCREATE INDEX "pages_text_fts" ON "pages" USING gin (to_tsvector(\'simple\', "text"));',
     ],
   },
+  {
+    tag: "0005_contract_sso_provider",
+    folderMillis: 1794845863322,
+    hash: "59e3ec22749f303ee3f4c5aa1947396bc883289b2b189d38cc5e6f9c9aa777d9",
+    bps: true,
+    sql: [
+      'CREATE TABLE "sso_provider" (\n\t"id" text PRIMARY KEY NOT NULL,\n\t"issuer" text NOT NULL,\n\t"oidc_config" text,\n\t"saml_config" text,\n\t"user_id" text,\n\t"provider_id" text NOT NULL,\n\t"organization_id" text,\n\t"domain" text NOT NULL,\n\t"default_role" text DEFAULT \'member\' NOT NULL,\n\tCONSTRAINT "sso_provider_provider_id_unique" UNIQUE("provider_id")\n);\n',
+      '\nALTER TABLE "sso_provider" ADD CONSTRAINT "sso_provider_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;',
+      '\nALTER TABLE "sso_provider" ADD CONSTRAINT "sso_provider_organization_id_organization_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organization"("id") ON DELETE cascade ON UPDATE no action;',
+      '\nCREATE INDEX "sso_provider_organization_id" ON "sso_provider" USING btree ("organization_id");',
+    ],
+  },
 ];
 
 export const RLS_SQL: string[] = [
