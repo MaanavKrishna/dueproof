@@ -9,20 +9,19 @@ the Apache License, Version 2.0.
 
 It bundles third-party work under its own licences:
 
-dueproof/pipeline/indictrans2/
+services/engine/dueproof_engine/pipeline/indictrans2/
     IndicTrans2 model code, copied verbatim from
     https://huggingface.co/ai4bharat/indictrans2-indic-en-dist-200M at revision
     eb9e49d81077cfc5311e82ff36d8c1fc11557b5d.
     Copyright 2023 The IndicTrans2 Authors and AI4Bharat team.
     Licensed under the Apache License, Version 2.0 (headers retained in each file).
     The model weights are not included; they are licence-gated and fetched
-    separately by `dueproof fetch-model`.
+    separately (see services/engine/README.md).
 
-dueproof/static/fonts/Inter.ttf
-    Inter, Copyright The Inter Project Authors. SIL Open Font License 1.1.
+PaddleOCR detection and recognition models (ONNX), fetched at build time by
+services/engine/scripts/fetch_ocr_models.py from the rapidocr wheel.
+    Copyright PaddlePaddle Authors. Licensed under the Apache License, Version 2.0.
+    See services/engine/NOTICE and the copied MODEL_LICENSES.md.
 
-dueproof/static/fonts/NotoSansMalayalam.ttf
-    Noto Sans Malayalam, Copyright The Noto Project Authors. SIL Open Font License 1.1.
-
-Dependencies installed by pip keep their own licences; none is copyleft.
+Dependencies installed by pip/uv and pnpm keep their own licences; none is copyleft.
 PDF reading uses PDFium through pypdfium2 (Apache-2.0 / BSD-3-Clause).
