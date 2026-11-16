@@ -1,0 +1,192 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--dp-bg-canvas);
+  color: var(--dp-fg-primary);
+}
+
+.skip {
+  position: absolute;
+  top: var(--dp-space-8);
+  left: var(--dp-space-8);
+  z-index: var(--dp-z-tooltip);
+  padding: var(--dp-space-8) var(--dp-space-12);
+  border-radius: var(--dp-radius-md);
+  background: var(--dp-accent-solid);
+  color: var(--dp-accent-on-solid);
+  font: var(--dp-text-headline-font);
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+
+.skip:focus-visible {
+  transform: none;
+}
+
+.banner {
+  flex: none;
+  z-index: var(--dp-z-banner);
+}
+
+.frame {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.sidebar {
+  position: relative;
+  z-index: var(--dp-z-sidebar);
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: var(--dp-layout-sidebar);
+  min-height: 0;
+  background: var(--dp-material-chrome);
+  -webkit-backdrop-filter: var(--dp-blur-material);
+  backdrop-filter: var(--dp-blur-material);
+  box-shadow: inset calc(var(--dp-border-hairline) * -1) 0 0 var(--dp-separator-subtle);
+  transition: width var(--dp-duration-sheet) var(--dp-ease-spring);
+}
+
+.shell[data-sidebar="collapsed"] .sidebar {
+  width: var(--dp-layout-sidebar-collapsed);
+}
+
+.main {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  outline: none;
+}
+
+.scrim {
+  display: none;
+}
+
+.mobileNav {
+  display: none;
+}
+
+/* Phones: the sidebar becomes a drawer and a tab bar sits at the bottom. */
+@media (width < 40rem) {
+  .sidebar,
+  .shell[data-sidebar="collapsed"] .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: var(--dp-z-modal);
+    width: min(var(--dp-layout-sidebar), 85vw);
+    background: var(--dp-material-thick);
+    box-shadow: var(--dp-shadow-3);
+    transform: translateX(-105%);
+    transition: transform var(--dp-duration-sheet) var(--dp-ease-spring);
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .shell[data-drawer="open"] .sidebar {
+    transform: none;
+  }
+
+  .scrim {
+    position: fixed;
+    inset: 0;
+    z-index: var(--dp-z-overlay);
+    display: block;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: var(--dp-bg-scrim);
+    animation: dp-scrim-in var(--dp-duration-standard) var(--dp-ease-out);
+  }
+
+  .mobileNav {
+    display: block;
+    flex: none;
+    z-index: var(--dp-z-sticky);
+    background: var(--dp-material-chrome);
+    -webkit-backdrop-filter: var(--dp-blur-material);
+    backdrop-filter: var(--dp-blur-material);
+    box-shadow: inset 0 var(--dp-border-hairline) 0 var(--dp-separator-subtle);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@keyframes dp-scrim-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.mobileList {
+  display: grid;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mobileItem {
+  composes: focusRing from "../../styles/shared.module.css";
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--dp-space-2);
+  width: 100%;
+  min-height: calc(var(--dp-space-48) + var(--dp-space-4));
+  margin: 0;
+  padding: var(--dp-space-4) 0;
+  border: 0;
+  background: none;
+  color: var(--dp-fg-tertiary);
+  font: var(--dp-text-caption-font);
+  font-weight: var(--dp-font-weight-medium);
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobileItem[aria-current="page"] {
+  color: var(--dp-accent-text);
+}
+
+.mobileIcon {
+  position: relative;
+  display: inline-flex;
+}
+
+.mobileBadge {
+  position: absolute;
+  top: calc(var(--dp-space-4) * -1);
+  left: 60%;
+  min-width: var(--dp-space-16);
+  padding: 0 var(--dp-space-4);
+  border-radius: var(--dp-radius-pill);
+  background: var(--dp-feedback-danger-solid);
+  color: var(--dp-feedback-danger-on-solid);
+  font: var(--dp-text-caption-font);
+  font-weight: var(--dp-font-weight-semibold);
+  line-height: var(--dp-space-16);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.mobileLabel {
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .shell[data-sidebar="collapsed"] .sidebar {
+    transition: none;
+  }
+}

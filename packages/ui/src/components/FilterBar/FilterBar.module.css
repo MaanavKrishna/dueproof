@@ -1,0 +1,108 @@
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--dp-space-8);
+  min-height: var(--dp-size-control-md);
+  padding: var(--dp-space-8) 0;
+}
+
+.search {
+  flex: 0 1 calc(var(--dp-space-96) * 2.75);
+  min-width: calc(var(--dp-space-96) * 1.5);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dp-space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: stretch;
+  height: var(--dp-size-control-sm);
+  overflow: hidden;
+  border-radius: var(--dp-radius-pill);
+  background: var(--dp-accent-subtle);
+  color: var(--dp-accent-subtle-fg);
+  font: var(--dp-text-subhead-font);
+  animation: dp-chip-in var(--dp-duration-standard) var(--dp-ease-spring);
+}
+
+.chipButton,
+.chipRemove {
+  composes: focusRing from "../../styles/shared.module.css";
+  display: inline-flex;
+  align-items: center;
+  gap: var(--dp-space-4);
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  outline-offset: calc(var(--dp-focus-width) * -1);
+}
+
+.chipButton {
+  padding: 0 var(--dp-space-4) 0 var(--dp-space-12);
+  border-radius: var(--dp-radius-pill) 0 0 var(--dp-radius-pill);
+}
+
+.chipRemove {
+  justify-content: center;
+  width: var(--dp-size-control-sm);
+  border-radius: 0 var(--dp-radius-pill) var(--dp-radius-pill) 0;
+}
+
+.chipButton:hover,
+.chipRemove:hover {
+  background: var(--dp-bg-hover);
+}
+
+.chipLabel {
+  color: inherit;
+  opacity: 0.8;
+}
+
+.chipLabel::after {
+  content: ":";
+}
+
+.chipValue {
+  max-width: calc(var(--dp-space-96) * 1.75);
+  overflow: hidden;
+  font-weight: var(--dp-font-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trailing {
+  display: flex;
+  align-items: center;
+  gap: var(--dp-space-4);
+  margin-inline-start: auto;
+}
+
+@keyframes dp-chip-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip {
+    animation-name: dp-chip-fade;
+  }
+}
+
+@keyframes dp-chip-fade {
+  from {
+    opacity: 0;
+  }
+}

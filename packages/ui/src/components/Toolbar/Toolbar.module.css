@@ -1,0 +1,115 @@
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: var(--dp-z-sticky);
+  display: flex;
+  align-items: center;
+  gap: var(--dp-space-8);
+  min-height: var(--dp-layout-toolbar);
+  padding: 0 var(--dp-space-16);
+  background: transparent;
+  transition:
+    background-color var(--dp-duration-fade) var(--dp-ease-out),
+    box-shadow var(--dp-duration-fade) var(--dp-ease-out);
+}
+
+.bar[data-collapsed] {
+  background: var(--dp-material-chrome);
+  -webkit-backdrop-filter: var(--dp-blur-material);
+  backdrop-filter: var(--dp-blur-material);
+  box-shadow: inset 0 calc(var(--dp-border-hairline) * -1) 0 var(--dp-separator-subtle);
+}
+
+.leading {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--dp-space-4);
+}
+
+.inlineTitle {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--dp-fg-primary);
+  font: var(--dp-text-headline-font);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(var(--dp-space-4));
+  transition:
+    opacity var(--dp-duration-fade) var(--dp-ease-out),
+    transform var(--dp-duration-standard) var(--dp-ease-spring);
+}
+
+.bar[data-collapsed] .inlineTitle {
+  opacity: 1;
+  transform: none;
+}
+
+.inlineHeading {
+  font: var(--dp-text-title3-font);
+}
+
+.actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--dp-space-8);
+  margin-inline-start: auto;
+}
+
+.large {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-4);
+  padding: var(--dp-space-4) var(--dp-space-24) var(--dp-space-12);
+}
+
+.breadcrumbs {
+  margin-bottom: var(--dp-space-4);
+}
+
+.largeTitle {
+  margin: 0;
+  color: var(--dp-fg-primary);
+  font: var(--dp-text-large-title-font);
+  letter-spacing: var(--dp-text-large-title-tracking);
+  text-wrap: balance;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--dp-fg-secondary);
+  font: var(--dp-text-callout-font);
+}
+
+.compactMeta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-4);
+  padding: var(--dp-space-4) var(--dp-space-24) var(--dp-space-8);
+}
+
+.accessory {
+  padding: 0 var(--dp-space-24);
+}
+
+@media (width < 40rem) {
+  .bar {
+    padding: 0 var(--dp-space-8);
+  }
+  .large,
+  .compactMeta,
+  .accessory {
+    padding-inline: var(--dp-space-16);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inlineTitle {
+    transform: none;
+    transition: opacity var(--dp-duration-fade) var(--dp-ease-out);
+  }
+}
