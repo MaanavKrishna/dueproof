@@ -34,6 +34,8 @@ The first account goes straight to **Set up Dueproof**, six steps:
 4. **AI**: off by default. Rules read every notice either way. See
    [Configuration](configuration.md#ai).
 5. **Invite your team**: email addresses and a role. You can skip this.
+   No email is sent: copy each person's sign-up link from **Settings →
+   Team & access → Invitations** and send it yourself.
 6. **First notice**: **Go to Inbox** takes you to the upload area.
 
 Close the wizard with **×** to finish later. Everything in it can be changed
