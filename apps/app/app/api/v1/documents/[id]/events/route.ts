@@ -26,7 +26,7 @@ export async function GET(
   let ctx: Awaited<ReturnType<typeof authorizeRequest>>;
   let id: string;
   try {
-    ctx = await authorizeRequest(request, "document.read");
+    ctx = await authorizeRequest(request, "case.view");
     id = (await params).id;
     await getDocumentStatus(ctx, id); // 404 before opening the stream
   } catch (e) {

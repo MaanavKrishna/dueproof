@@ -295,7 +295,7 @@ describe("sign-up, upload and processing", () => {
       inviterId: owner.userId,
     });
     const headers = await signUp("viewer@harbour.test", "Vik");
-    const viewer = await authorize("document.read", { headers });
+    const viewer = await authorize("case.view", { headers });
     expect(viewer.orgId).toBe(owner.orgId);
     expect((await getDocumentDetail(viewer, documentId)).findings).toHaveLength(5);
     await expect(authorize("document.upload", { headers })).rejects.toMatchObject({ status: 403 });
@@ -303,7 +303,7 @@ describe("sign-up, upload and processing", () => {
 
   it("another organisation can't see the document, its findings or its events", async () => {
     const headers = await signUp("someone@northline.test", "Nina");
-    const other = await authorize("document.read", { headers });
+    const other = await authorize("case.view", { headers });
     expect(other.orgId).not.toBe(owner.orgId);
     await expect(getDocumentDetail(other, documentId)).rejects.toMatchObject({ status: 404 });
     const res = await documentEvents(

@@ -1,17 +1,24 @@
 /**
  * `authorize()` opens every server action and route handler (AGENTS rule 4).
  * It resolves the session, the active organisation and the member's role,
- * asks the policy (`can`) and returns the context every query needs. Data is
- * then read with `withOrg(database, ctx.orgId, …)`.
+ * asks the one policy module (`@dueproof/core`'s `authorize`, deny by
+ * default) and returns the context every query needs. Data is then read with
+ * `withOrg(database, ctx.orgId, …)`. Action names are core's `ACTIONS`.
  *
- *   const ctx = await authorize("document.upload");                 // server action
- *   const ctx = await authorizeRequest(request, "document.read");   // route handler
+ *   const ctx = await authorize("document.upload");              // server action
+ *   const ctx = await authorizeRequest(request, "case.view");    // route handler
  */
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { firstMembershipOrg, getMembership } from "@dueproof/auth";
 import type { Role } from "@dueproof/contracts";
-import { type Action, can, type Resource } from "./core-adapter";
+import {
+  type Action,
+  authorize as checkPolicy,
+  PolicyDenied,
+  type Resource,
+  type Subject,
+} from "@dueproof/core";
 import { forbidden, HttpError, unauthorised } from "./errors";
 import { type Container, getContainer } from "./server/container";
 
@@ -23,6 +30,8 @@ export interface AuthContext {
   requestId: string;
   container: Container;
 }
+
+export type { Action, Resource } from "@dueproof/core";
 
 export interface AuthorizeOptions {
   headers?: Headers;
@@ -51,8 +60,13 @@ export async function authorize(
     userId: session.user.id,
     role: membership.role,
     mayApproveReplies: membership.mayApproveReplies,
-  };
-  if (!can(subject, action, options.resource)) throw forbidden();
+  } satisfies Subject;
+  try {
+    checkPolicy(subject, action, options.resource);
+  } catch (e) {
+    if (e instanceof PolicyDenied) throw forbidden();
+    throw e;
+  }
 
   return {
     ...subject,

@@ -11,7 +11,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
   try {
-    const ctx = await authorizeRequest(request, "document.read");
+    const ctx = await authorizeRequest(request, "case.view");
     const { id } = await params;
     return Response.json(await getDocumentDetail(ctx, id), {
       headers: { "cache-control": "private, no-store" },
