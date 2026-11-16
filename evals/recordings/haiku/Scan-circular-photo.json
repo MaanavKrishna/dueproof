@@ -1,0 +1,42 @@
+{
+  "note": "Hand-written stand-in for a model response, authored from the engine's recorded page text on 2026-11-16. Replace with a real recording from `pnpm --filter @dueproof/ai eval --mode live --record`.",
+  "source": "synthetic",
+  "latencyMs": 1700,
+  "stop": "end",
+  "json": {
+    "findings": [
+      {
+        "kind": "deadline",
+        "text": "Replace expired extinguishers",
+        "textEn": null,
+        "quote": "Station Controllers must replace expired extinguishers by 21 August 2026",
+        "quoteLang": "en",
+        "pageHint": 1,
+        "confidence": 0.7,
+        "dueRule": {
+          "type": "fixed",
+          "date": "2026-08-21"
+        },
+        "amountMinor": null,
+        "desk": null,
+        "severity": "high"
+      },
+      {
+        "kind": "deadline",
+        "text": "Complete evacuation drills",
+        "textEn": null,
+        "quote": "OCC to finish drills and report by 31 August 2026",
+        "quoteLang": "en",
+        "pageHint": 2,
+        "confidence": 0.7,
+        "dueRule": {
+          "type": "fixed",
+          "date": "2026-08-31"
+        },
+        "amountMinor": null,
+        "desk": null,
+        "severity": "high"
+      }
+    ]
+  }
+}

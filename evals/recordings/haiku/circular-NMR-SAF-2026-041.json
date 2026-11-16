@@ -1,0 +1,58 @@
+{
+  "note": "Hand-written stand-in for a model response, authored from the engine's recorded page text on 2026-11-16. Replace with a real recording from `pnpm --filter @dueproof/ai eval --mode live --record`.",
+  "source": "synthetic",
+  "latencyMs": 2600,
+  "stop": "end",
+  "json": {
+    "findings": [
+      {
+        "kind": "deadline",
+        "text": "Station Controllers to replace expired portable extinguishers and certify to the Safety Department",
+        "textEn": null,
+        "quote": "Every Station Controller shall replace all expired portable extinguishers and certify the replacement to the Safety Department on or before 21 August 2026.",
+        "quoteLang": "en",
+        "pageHint": 1,
+        "confidence": 0.9,
+        "dueRule": {
+          "type": "fixed",
+          "date": "2026-08-21"
+        },
+        "amountMinor": null,
+        "desk": "Station Controller",
+        "severity": "high"
+      },
+      {
+        "kind": "deadline",
+        "text": "Inspect portable extinguishers at all elevated stations and certify to the Safety Department",
+        "textEn": "Portable fire extinguishers at all elevated stations must be inspected before 21 August 2026 and a certificate given to the Safety Department.",
+        "quote": "എല്ലാ എലിവേറ്റഡ് സ്റ്റേഷനുകളിലെയും പോർട്ടബിൾ അഗ്നിശമന ഉപകരണങ്ങൾ 2026 ഓഗസ്റ്റ് 21-ന് മുമ്പ് പരിശോധിച്ച് സാക്ഷ്യപത്രം സഹിതം സുരക്ഷാ വിഭാഗത്തിന് നൽകണം.",
+        "quoteLang": "ml",
+        "pageHint": 1,
+        "confidence": 0.9,
+        "dueRule": {
+          "type": "fixed",
+          "date": "2026-08-21"
+        },
+        "amountMinor": null,
+        "desk": "Station Controller",
+        "severity": "high"
+      },
+      {
+        "kind": "deadline",
+        "text": "Operations Control Centre to complete pending evacuation drills and report",
+        "textEn": null,
+        "quote": "The Operations Control Centre must complete the pending drills and report to the Chief Safety Officer not later than 31 August 2026.",
+        "quoteLang": "en",
+        "pageHint": 2,
+        "confidence": 0.9,
+        "dueRule": {
+          "type": "fixed",
+          "date": "2026-08-31"
+        },
+        "amountMinor": null,
+        "desk": "Operations Control Centre",
+        "severity": "high"
+      }
+    ]
+  }
+}

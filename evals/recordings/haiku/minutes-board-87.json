@@ -1,0 +1,39 @@
+{
+  "note": "Hand-written stand-in for a model response, authored from the engine's recorded page text on 2026-11-16. Replace with a real recording from `pnpm --filter @dueproof/ai eval --mode live --record`.",
+  "source": "synthetic",
+  "latencyMs": 1400,
+  "stop": "end",
+  "json": {
+    "findings": [
+      {
+        "kind": "deadline",
+        "text": "Director (Projects) to submit a recovery schedule for the Phase II viaduct to the Board",
+        "textEn": null,
+        "quote": "the Director (Projects) shall submit a recovery schedule to the Board by 30 September 2026",
+        "quoteLang": "en",
+        "pageHint": 1,
+        "confidence": 0.9,
+        "dueRule": {
+          "type": "fixed",
+          "date": "2026-09-30"
+        },
+        "amountMinor": null,
+        "desk": "Civil & Infrastructure",
+        "severity": "high"
+      },
+      {
+        "kind": "obligation",
+        "text": "Board meeting to be convened in October",
+        "textEn": null,
+        "quote": "The next meeting of the Board will be convened in October at a date to be notified by the Company Secretary.",
+        "quoteLang": "en",
+        "pageHint": 1,
+        "confidence": 0.6,
+        "dueRule": null,
+        "amountMinor": null,
+        "desk": null,
+        "severity": "medium"
+      }
+    ]
+  }
+}

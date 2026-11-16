@@ -1,0 +1,39 @@
+{
+  "note": "Hand-written stand-in for a model response, authored from the engine's recorded page text on 2026-11-16. Replace with a real recording from `pnpm --filter @dueproof/ai eval --mode live --record`.",
+  "source": "synthetic",
+  "latencyMs": 8300,
+  "stop": "end",
+  "json": {
+    "findings": [
+      {
+        "kind": "deadline",
+        "text": "Clear the invoice on or before 15 September 2026 to keep the 1.5% early-settlement discount",
+        "textEn": null,
+        "quote": "Finance must clear this invoice on or before 15 September 2026",
+        "quoteLang": "en",
+        "pageHint": 1,
+        "confidence": 0.9,
+        "dueRule": {
+          "type": "fixed",
+          "date": "2026-09-15"
+        },
+        "amountMinor": null,
+        "desk": "Finance",
+        "severity": "high"
+      },
+      {
+        "kind": "reference",
+        "text": "Invoice HVC/INV/2026/1183",
+        "textEn": null,
+        "quote": "Invoice No: HVC/INV/2026/1183",
+        "quoteLang": "en",
+        "pageHint": 1,
+        "confidence": 0.95,
+        "dueRule": null,
+        "amountMinor": null,
+        "desk": null,
+        "severity": "low"
+      }
+    ]
+  }
+}

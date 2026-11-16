@@ -1,0 +1,6 @@
+{
+  "name": "dueproof-evals",
+  "private": true,
+  "type": "module",
+  "description": "AI eval harness; run with pnpm --filter @dueproof/ai eval"
+}
