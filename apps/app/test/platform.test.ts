@@ -172,16 +172,16 @@ describe("sign-up, upload and processing", () => {
     expect(detail.document).toMatchObject({
       status: "ready",
       pageCount: 1,
-      docType: "in.gst.asmt10",
+      docType: "GST notice",
       reference: "ZD2910260012345",
       issuedOn: "2026-10-20",
       receivedOn: "2026-10-24",
     });
     expect(detail.document).not.toHaveProperty("storageKey");
-    expect(detail.findings).toHaveLength(5);
+    expect(detail.findings).toHaveLength(7);
     // Reconciled by core with no AI findings: every finding is the rules' own, located on the page.
     expect(detail.findings.map((f) => [f.origin, f.verification, f.evidence.length])).toEqual(
-      Array.from({ length: 5 }, () => ["rule", "exact", 1]),
+      Array.from({ length: 7 }, () => ["rule", "exact", 1]),
     );
 
     // Dates come from core's date engine, with its basis and working kept on the row.
@@ -317,7 +317,7 @@ describe("sign-up, upload and processing", () => {
     const headers = await signUp("viewer@harbour.test", "Vik");
     const viewer = await authorize("case.view", { headers });
     expect(viewer.orgId).toBe(owner.orgId);
-    expect((await getDocumentDetail(viewer, documentId)).findings).toHaveLength(5);
+    expect((await getDocumentDetail(viewer, documentId)).findings).toHaveLength(7);
     await expect(authorize("document.upload", { headers })).rejects.toMatchObject({ status: 403 });
   });
 
