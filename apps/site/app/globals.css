@@ -1336,7 +1336,7 @@ kbd,
 
 .story-canvas.narrow {
   width: 25rem;
-  height: 35rem;
+  height: 40rem;
 }
 
 .narrow .story-paper {
@@ -1346,7 +1346,7 @@ kbd,
 
 .narrow .story-chips {
   left: 8.5rem;
-  top: 21.75rem;
+  top: 26.5rem;
   gap: var(--dp-space-8);
 }
 

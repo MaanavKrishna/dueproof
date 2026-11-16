@@ -1,35 +1,46 @@
 # Dueproof website
 
-The project website: Next.js and TypeScript, exported as static files. It is
-not part of the product; the app's own interface lives in `dueproof/web/static/`.
+The project website (`@dueproof/site`): Next.js and TypeScript, exported as
+static files. It describes v0.1; the product itself lives in `apps/app`.
 
 ```bash
-npm install
-```
-
-```bash
-npm run dev        # http://localhost:8090
-```
-
-```bash
-npm run build      # static site in out/
+pnpm install
+pnpm --filter @dueproof/site dev     # http://localhost:8090
+pnpm --filter @dueproof/site build   # static site in apps/site/out
 ```
 
 The documentation pages are rendered at build time from the Markdown in
-`../docs`, and its screenshots are copied in, so edit the docs there. For a
-GitHub Pages project site, build with `PAGES_BASE_PATH=/dueproof`.
+`../../docs`, and its images are copied in, so edit the docs there.
 
 ## Design
 
-Indian offices log incoming letters in an inward register, stamp each one
-RECEIVED in violet stamp-pad ink, and mark what matters with a highlighter.
-The site borrows that: a fountain-pen ink-navy frame (`--cloth`), white ruled
-paper with a red margin, highlighter yellow (`--gilt`) for proof and the main
-action, violet (`--stamp`) for stamps, and coral red (`--due`) for dates that
-are due. Tokens are at the top of `app/globals.css`. Type is Archivo, using its
-width axis for headings; Noto fonts render the 22 scripts.
+Built on Ledger: colours, type, spacing, radii, shadows and motion come from
+`@dueproof/tokens` (`--dp-*`, brand `ink-saffron`), components from
+`@dueproof/ui`, icons from `@dueproof/icons`. `app/globals.css` adds only the
+editorial layer: display type, page bands and the home page story. The proof
+colour (saffron) is used for evidence only.
 
-The home page's sample register is `lib/register.ts`. The GST notice in it is
-`tests/fixtures/notice-gst-asmt10.pdf` word for word, and every field shown for
-it is checked by `tests/test_notices.py`. The language list in
-`lib/languages.ts` mirrors `dueproof/languages.py`.
+- **Fonts** are self-hosted from `@fontsource` (Inter, and Noto per Indian
+  script with `unicode-range`, so a script downloads only when shown). No
+  calls to Google Fonts.
+- **Motion:** the home page story (`components/ScrollStory.tsx`) is
+  scroll-linked with `useScroll` / `useTransform`. With reduced motion it is
+  replaced, in CSS, by four still frames of the same scene. Components and
+  presets come from `@dueproof/ui/motion`; the scroll hooks are re-exported in
+  `lib/motion.ts` until the UI package exports them.
+- **CSS targets** are modern (`browserslist` in `package.json`) so the
+  tokens' `light-dark()` isn't lowered.
+- **No cookies, no analytics, no third-party requests.**
+
+The sample notice (`lib/sample.ts`) is fictional.
+
+## Deploying
+
+**GitHub Pages:** a project site is served under `/<repo>/`, so build with
+`PAGES_BASE_PATH=/dueproof pnpm --filter @dueproof/site build` and publish
+`apps/site/out`.
+
+**Vercel:** create a project with Root Directory `apps/site` and the Next.js
+framework preset; Vercel installs the pnpm workspace from the repository root
+and serves the static export. Leave `PAGES_BASE_PATH` unset. No environment
+variables are needed.

@@ -169,7 +169,7 @@ function Viewport({
     const measure = () => {
       const { width, height } = el.getBoundingClientRect();
       const narrow = width < 560;
-      const [w, h] = narrow ? [400, 560] : [672, 544];
+      const [w, h] = narrow ? [400, 640] : [672, 544];
       setFit({ scale: Math.min(width / w, height / h, 1.2), narrow });
     };
     measure();
