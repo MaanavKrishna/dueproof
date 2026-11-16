@@ -18,7 +18,7 @@ import { addDays } from "@dueproof/core";
 import { and, audit, cases, clients, eq, orgSettings, schema, withOrg } from "@dueproof/db";
 import { loadOrgCalendar } from "@/lib/calendar";
 import { type DeadlineRow, queryDeadlines } from "@/lib/deadline-rows";
-import { createMailer, type Mailer } from "@/lib/mail";
+import { type Mailer, mailerFor } from "@/lib/mail";
 import { notify } from "@/lib/notify";
 import { todayIn } from "@/lib/pipeline/status";
 import type { Container } from "@/lib/server/container";
@@ -39,10 +39,10 @@ function daysBetween(from: string, to: string): number {
 }
 
 export async function runDaily(
-  c: Pick<Container, "database" | "env">,
+  c: Pick<Container, "database" | "env" | "mailer">,
   options: { today?: string; mailer?: Mailer } = {},
 ): Promise<DailyResult> {
-  const mailer = options.mailer ?? createMailer(c.env);
+  const mailer = options.mailer ?? mailerFor(c);
   const result: DailyResult = { orgs: 0, notifications: 0, escalations: 0, digests: 0 };
   for (const org of await listOrganisations(c.database)) {
     result.orgs += 1;
@@ -198,12 +198,15 @@ async function runForOrg(
     });
     if (digest.empty) continue;
     try {
-      await mailer.send({
+      const sent = await mailer.send({
         to: p.email,
         subject: digest.subject,
         html: digest.html,
         text: digest.text,
       });
+      // The log driver only records the message: nothing left the install, so
+      // the digest isn't marked sent (it goes out once mail is set up).
+      if (!sent.delivered) continue;
     } catch {
       // A mail failure is retried on the next run; the digest isn't marked sent.
       continue;

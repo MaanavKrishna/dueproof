@@ -25,6 +25,7 @@ import {
   type HolidayRow,
   type OrganisationView,
   saveHolidaysFor,
+  saveLanguagesFor,
   saveOrganisationFor,
   saveProfilesFor,
   setOnboardingFor,
@@ -95,6 +96,12 @@ export async function removeReportLogo(): Promise<ActionResult<{ hasReportLogo: 
 export async function saveProfiles(profiles: unknown): Promise<ActionResult<ProfileId[]>> {
   return runAction("profiles", async () =>
     saveProfilesFor(await authorize("org.manage_settings"), profiles),
+  );
+}
+
+export async function saveLanguages(languages: unknown): Promise<ActionResult<string[]>> {
+  return runAction("languages", async () =>
+    saveLanguagesFor(await authorize("org.manage_settings"), languages),
   );
 }
 

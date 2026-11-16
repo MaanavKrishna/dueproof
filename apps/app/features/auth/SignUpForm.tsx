@@ -31,7 +31,7 @@ export function SignUpForm({ mode }: { mode: SignUpMode }) {
     return (
       <AuthCard
         title="Sign-up is by invitation"
-        lede="Ask an administrator of your firm to invite you. You'll get a link that opens this page with your email filled in."
+        lede="To join, ask an administrator of your firm for an invite link. It opens this page with your email filled in."
         foot={
           <>
             Already have an account? <Link href="/sign-in">Sign in</Link>

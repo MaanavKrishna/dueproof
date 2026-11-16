@@ -67,6 +67,7 @@ export async function authorize(
       : clientIdsFor(
           (await getOrg(container.database, orgId))?.metadata ?? {
             profiles: [],
+            languages: [],
             onboarding: {},
             clientAccess: {},
           },

@@ -40,7 +40,9 @@ import { orgKey } from "@dueproof/storage";
 import { loadOrgCalendar } from "../calendar";
 import type { DeadlineDetail } from "../deadline-detail";
 import { clearDocumentPassword, getDocumentPassword } from "../document-passwords";
+import { lineLanguageDetector, ocrLanguages } from "../languages";
 import type { Container } from "../server/container";
+import { getOrg } from "../server/directory";
 import { announce, setStatus, writeStatus } from "./status";
 import type { DocumentRef } from "./types";
 
@@ -86,6 +88,11 @@ export async function loadPages(c: Container, ref: DocumentRef): Promise<PageTex
     confidence: p.confidence ?? 0,
     languages: [],
   }));
+}
+
+/** The languages the organisation's notices come in (Settings → Profiles), beside English. */
+export async function orgLanguages(c: Container, orgId: string): Promise<string[]> {
+  return (await getOrg(c.database, orgId))?.metadata.languages ?? [];
 }
 
 const engineMime = (mime: string) =>
@@ -146,12 +153,14 @@ export async function readStage(
     imageKeys.map((k) => c.engineStorage.putSignedUrl(k, { contentType: "image/webp" })),
   );
   const password = await getDocumentPassword(c, ref);
+  // OCR hints: the organisation's languages plus English, so a scan in an
+  // Indian language is read with that language's Tesseract pack.
   const res = await c.engine.read({
     sourceUrl: source.url,
     mime: engineMime(doc.mime),
     ...(password ? { password } : {}),
     pageImagePutUrls: putUrls.map((u) => u.url),
-    languages: ["en"],
+    languages: ocrLanguages(await orgLanguages(c, ref.orgId)),
     maxRung: c.env.ENGINE_MAX_RUNG,
   });
 
@@ -220,7 +229,7 @@ export async function escalateStage(
     mime: engineMime(doc.mime),
     ...(password ? { password } : {}),
     pageImagePutUrls: putUrls.map((u) => u.url),
-    languages: [...new Set(["en", ...read.languages])],
+    languages: ocrLanguages(await orgLanguages(c, ref.orgId), read.languages),
     maxRung: "tesseract",
   });
 
@@ -271,18 +280,38 @@ export async function escalateStage(
 
 // ---------------------------------------------------------------- translate
 
+/**
+ * The lines to translate: only those not in English, each tagged with its
+ * own language (recognised by script; the document's detected languages,
+ * then the organisation's, decide a script several languages share). A
+ * notice in English with one Tamil paragraph sends just that paragraph.
+ */
+export function translationSegments(
+  pages: readonly Pick<PageText, "page" | "words">[],
+  preferred: readonly string[],
+): Array<{ id: string; text: string; lang: string }> {
+  const detect = lineLanguageDetector(preferred);
+  return pages.flatMap((p) => {
+    const lines = new Map<number, string[]>();
+    for (const w of p.words) lines.set(w.line, [...(lines.get(w.line) ?? []), w.text]);
+    return [...lines].flatMap(([line, ws]) => {
+      const text = ws.join(" ");
+      const lang = detect(text);
+      return lang === "en" || !text.trim() ? [] : [{ id: `${p.page}:${line}`, text, lang }];
+    });
+  });
+}
+
 export async function translateStage(
   c: Container,
   ref: DocumentRef,
   languages: string[],
 ): Promise<Record<string, string>> {
   await setStatus(c.database, ref.orgId, ref.documentId, "translating");
-  const lang = languages.find((l) => l !== "en") ?? "en";
-  const segments = (await loadPages(c, ref)).flatMap((p) => {
-    const lines = new Map<number, string[]>();
-    for (const w of p.words) lines.set(w.line, [...(lines.get(w.line) ?? []), w.text]);
-    return [...lines].map(([line, ws]) => ({ id: `${p.page}:${line}`, text: ws.join(" "), lang }));
-  });
+  const segments = translationSegments(await loadPages(c, ref), [
+    ...languages.filter((l) => l !== "en"),
+    ...(await orgLanguages(c, ref.orgId)),
+  ]);
   if (!segments.length) return {};
   // Hosted: engine-fast has no translator; engine-heavy (Sandbox) does.
   const res = await (c.heavyEngine ?? c.engine).translate({ segments });

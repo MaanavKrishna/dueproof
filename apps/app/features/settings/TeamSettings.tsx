@@ -1,10 +1,11 @@
 "use client";
 /**
  * Settings → Team & access: members with their role, "approves replies" and
- * client-level access; invitations; removal. Everyone can see the team;
+ * client-level access; invitations (emailed, with a link to copy); a
+ * password reset link sent to a member's inbox; removal. Everyone can see the team;
  * owners and admins can change it.
  */
-import { AddIcon, CopyIcon, MoreIcon, TrashIcon, UsersIcon } from "@dueproof/icons";
+import { AddIcon, CopyIcon, LockIcon, MoreIcon, TrashIcon, UsersIcon } from "@dueproof/icons";
 import {
   Avatar,
   Badge,
@@ -36,10 +37,12 @@ import {
   changeMemberRole,
   inviteMembers,
   removeMember,
+  sendMemberPasswordReset,
   setMemberApprover,
   setMemberClientAccess,
 } from "@/app/actions/team";
 import { ROLE_LABELS, ROLE_OPTIONS } from "@/lib/form-options";
+import { inviteLink } from "@/lib/invite-link";
 import { type SettingsChrome, SettingsFrame } from "./SettingsFrame";
 import { type SsoData, SsoSection } from "./SsoSection";
 import styles from "./settings.module.css";
@@ -99,9 +102,7 @@ export function TeamSettings({ chrome, data }: { chrome: SettingsChrome; data: T
             ? "Roles decide what each person can do. Approving replies is a separate permission."
             : "The people in your organisation. An owner or admin can change roles and access."
         }
-        actions={
-          data.canManage ? <InviteDialog appUrl={data.appUrl} viewerRole={data.viewerRole} /> : null
-        }
+        actions={data.canManage ? <InviteDialog viewerRole={data.viewerRole} /> : null}
       >
         <div className={styles.tableWrap}>
           <table className={styles.table}>
@@ -205,8 +206,14 @@ export function TeamSettings({ chrome, data }: { chrome: SettingsChrome; data: T
                     {data.canManage ? (
                       <td className={styles.end}>
                         {locked ? null : (
-                          <RemoveMember
+                          <MemberMenu
                             member={m}
+                            onSendReset={async () => {
+                              report(
+                                await sendMemberPasswordReset(m.memberId),
+                                `Reset link sent to ${m.email}`,
+                              );
+                            }}
                             onRemove={async () => {
                               report(await removeMember(m.memberId), `${m.name} removed`);
                             }}
@@ -225,7 +232,7 @@ export function TeamSettings({ chrome, data }: { chrome: SettingsChrome; data: T
       {data.canManage ? (
         <SettingsSection
           title="Invitations"
-          description="Each person signs up with the invited address and joins with that role. Invitations last 14 days."
+          description="Each person gets an email with a sign-up link and joins with that role. You can also copy the link and send it yourself. Invitations last 14 days."
         >
           {data.invitations.length === 0 ? (
             <EmptyState
@@ -255,7 +262,7 @@ export function TeamSettings({ chrome, data }: { chrome: SettingsChrome; data: T
                 </thead>
                 <tbody>
                   {data.invitations.map((inv) => {
-                    const link = `${data.appUrl}/sign-up?email=${encodeURIComponent(inv.email)}`;
+                    const link = inviteLink(data.appUrl, inv.email);
                     return (
                       <tr key={inv.id}>
                         <td>{inv.email}</td>
@@ -309,11 +316,13 @@ export function TeamSettings({ chrome, data }: { chrome: SettingsChrome; data: T
   );
 }
 
-function RemoveMember({
+function MemberMenu({
   member,
+  onSendReset,
   onRemove,
 }: {
   member: TeamMemberData;
+  onSendReset: () => Promise<void>;
   onRemove: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
@@ -324,6 +333,9 @@ function RemoveMember({
           <IconButton icon={MoreIcon} size="sm" label={`More for ${member.name}`} />
         </MenuTrigger>
         <MenuContent align="end">
+          <MenuItem icon={LockIcon} onSelect={() => void onSendReset()}>
+            Email a password reset link
+          </MenuItem>
           <MenuItem icon={TrashIcon} destructive onSelect={() => setOpen(true)}>
             Remove from organisation
           </MenuItem>
@@ -342,7 +354,7 @@ function RemoveMember({
   );
 }
 
-function InviteDialog({ appUrl, viewerRole }: { appUrl: string; viewerRole: string }) {
+function InviteDialog({ viewerRole }: { viewerRole: string }) {
   const router = useRouter();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -368,13 +380,27 @@ function InviteDialog({ appUrl, viewerRole }: { appUrl: string; viewerRole: stri
       return;
     }
     const { invited, skipped } = res.data;
+    const emailed = invited.filter((i) => i.emailed).length;
+    const notEmailed = invited.length - emailed;
+    const parts: string[] = [];
+    if (emailed > 0)
+      parts.push(
+        emailed === 1
+          ? "We've emailed them a sign-up link."
+          : `We've emailed ${emailed} sign-up links.`,
+      );
+    if (notEmailed > 0)
+      parts.push(
+        `${notEmailed === 1 ? "One email" : `${notEmailed} emails`} couldn't be sent. Copy the link under Invitations and send it yourself.`,
+      );
+    if (skipped.length > 0)
+      parts.push(
+        `${skipped.join(", ")} already ${skipped.length === 1 ? "is a member" : "are members"}.`,
+      );
     toast({
-      title: invited.length === 1 ? "1 invitation ready" : `${invited.length} invitations ready`,
-      description:
-        skipped.length > 0
-          ? `${skipped.join(", ")} already ${skipped.length === 1 ? "is a member" : "are members"}.`
-          : `They sign up at ${appUrl}/sign-up. Copy each link below to send it.`,
-      tone: "success",
+      title: invited.length === 1 ? "1 person invited" : `${invited.length} people invited`,
+      description: parts.join(" "),
+      tone: notEmailed > 0 ? "warning" : "success",
     });
     setOpen(false);
     setEmails("");
@@ -399,7 +425,7 @@ function InviteDialog({ appUrl, viewerRole }: { appUrl: string; viewerRole: stri
         </Button>
       }
       title="Invite people"
-      description="They'll sign up with the address you enter here."
+      description="We'll email each person a link to sign up with the address you enter here."
       dismissible={!emails}
       footer={
         <>

@@ -14,6 +14,7 @@ import { z } from "zod";
 import type { AuthContext } from "./authorize";
 import { badRequest, notFound } from "./errors";
 import { COUNTRY_OPTIONS, TIMEZONE_OPTIONS } from "./form-options";
+import { knownLanguages, LANGUAGE_CODES } from "./languages";
 import { type Onboarding, PROFILE_IDS, type ProfileId } from "./org-metadata";
 import { getOrg, getUser, renameOrg, renameUser, updateOrgMetadata } from "./server/directory";
 
@@ -76,6 +77,8 @@ export interface OrganisationView {
   reportLogoUrl: string | null;
   holidays: HolidayRow[];
   profiles: ProfileId[];
+  /** Languages the notices come in, beside English (OCR hints). */
+  languages: string[];
   onboarding: Onboarding;
 }
 
@@ -119,6 +122,7 @@ export async function getOrganisationFor(ctx: AuthContext): Promise<Organisation
     reportLogoUrl,
     holidays: days.map((d) => ({ day: String(d.day), name: d.name })),
     profiles: org.metadata.profiles,
+    languages: org.metadata.languages,
     onboarding: org.metadata.onboarding,
   };
 }
@@ -285,6 +289,20 @@ export async function saveProfilesFor(ctx: AuthContext, raw: unknown): Promise<P
   await updateOrgMetadata(ctx.container.database, ctx.orgId, (m) => ({ ...m, profiles }));
   await writeAudit(ctx, "org.profiles.update", { profiles });
   return profiles;
+}
+
+export const LanguagesInput = z.array(z.string()).max(LANGUAGE_CODES.length);
+
+/** The languages the organisation's notices come in, beside English. */
+export async function saveLanguagesFor(ctx: AuthContext, raw: unknown): Promise<string[]> {
+  const parsed = LanguagesInput.safeParse(raw);
+  if (!parsed.success) throw badRequest("Choose from the listed languages.");
+  const languages = knownLanguages(parsed.data);
+  if (languages.length !== new Set(parsed.data).size)
+    throw badRequest("Choose from the listed languages.");
+  await updateOrgMetadata(ctx.container.database, ctx.orgId, (m) => ({ ...m, languages }));
+  await writeAudit(ctx, "org.languages.update", { languages });
+  return languages;
 }
 
 export async function setOnboardingFor(

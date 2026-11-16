@@ -67,6 +67,5 @@ of the trail, with its hash chain and a verification report.
 ## Not yet in v0.1
 
 - Malware scanning of uploads.
-- Password reset by email.
 - Encryption at rest beyond what your disk, Neon or R2 provides.
 - Per-document access control (access is per organisation and per client).

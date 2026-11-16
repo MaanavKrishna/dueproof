@@ -2,11 +2,9 @@
 /**
  * Password reset. Without a token: ask for a link (the answer never says
  * whether an account exists). With one (from the emailed link): choose a
- * new password.
- *
- * TODO(email): Better Auth needs `emailAndPassword.sendResetPassword` in
- * packages/auth before links are actually sent. Until then the request
- * succeeds quietly and the page says an administrator can help.
+ * new password. The link is emailed through the install's mail driver
+ * (lib/server/container.ts); an administrator can also send one from
+ * Settings → Team & access.
  */
 import { authClient } from "@dueproof/auth/client";
 import { Banner, Button, Link, TextField } from "@dueproof/ui";
@@ -14,7 +12,14 @@ import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { AuthCard, authMessage, authStyles as styles } from "./AuthCard";
 
-export function ResetPasswordForm({ token }: { token: string | null }) {
+export function ResetPasswordForm({
+  token,
+  expired = false,
+}: {
+  token: string | null;
+  /** Arrived from a link that has expired or was already used. */
+  expired?: boolean;
+}) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -100,8 +105,8 @@ export function ResetPasswordForm({ token }: { token: string | null }) {
         foot={foot}
       >
         <Banner tone="info" title="No email?">
-          Installs without an email server can't send links yet. Ask an administrator of your firm
-          for help.
+          Check your spam folder. If nothing arrives, ask an administrator of your firm: they can
+          send you a new link from Settings → Team &amp; access.
         </Banner>
       </AuthCard>
     );
@@ -114,6 +119,11 @@ export function ResetPasswordForm({ token }: { token: string | null }) {
       foot={foot}
     >
       <form className={styles.form} onSubmit={request} noValidate>
+        {expired && !error ? (
+          <Banner tone="warning" role="status">
+            That link has expired or was already used. Ask for a new one below.
+          </Banner>
+        ) : null}
         {error ? (
           <Banner tone="danger" role="alert">
             {error}

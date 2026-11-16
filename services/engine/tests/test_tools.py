@@ -33,7 +33,6 @@ class Evaluation(unittest.TestCase):
         self.assertGreaterEqual(r["precision"], 0.95)
         self.assertGreaterEqual(r["recall"], 0.75)
         self.assertEqual(r["deadline_exact"], 1.0)
-        self.assertGreaterEqual(r["desk_top3"], 0.7)
         self.assertEqual(r["labelled_non_obligations_flagged"], 0)
 
     def test_scoring_arithmetic(self):
@@ -50,7 +49,9 @@ class Evaluation(unittest.TestCase):
         r = evaluate.score(labels, pred)
         self.assertEqual((r["precision"], r["recall"]), (0.5, 0.5))
         self.assertEqual(r["deadline_exact"], 0.0)                       # off by one day is wrong
-        self.assertEqual((r["desk_top1"], r["desk_top3"]), (1.0, 1.0))
+        # v0.1 has no desks: the demo's desk metrics are gone, even when a label names desks.
+        self.assertNotIn("desk_top1", r)
+        self.assertNotIn("desk_top3", r)
         self.assertEqual(r["false_confident"], 0.5)
         self.assertEqual(r["labelled_non_obligations_flagged"], 1)
 

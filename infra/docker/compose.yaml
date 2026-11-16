@@ -1,5 +1,6 @@
 # Dueproof self-hosted server (03 §4): app + engine + Postgres + Caddy,
-# plus a nightly backup job. One organisation per install.
+# plus a nightly backup job and the daily run (digest, notifications,
+# escalation). One organisation per install.
 #
 #   cd infra/docker
 #   cp .env.example .env        # then fill in the secrets (see docs/install.md)
@@ -9,7 +10,7 @@
 #   edge      Caddy <-> app. The only network with a route out (Caddy for
 #             certificates; the app only for things an admin turns on: AI
 #             provider, SMTP, SSO, Web Push).
-#   internal  app, engine, Postgres, backup. `internal: true`: no route to
+#   internal  app, engine, Postgres, backup, daily. `internal: true`: no route to
 #             the internet, so the engine (the only code that parses
 #             uploaded files) can reach nothing but the app (05 §4).
 
@@ -64,8 +65,24 @@ services:
       METRICS_TOKEN: ${METRICS_TOKEN:-}
       RATE_LIMITS: ${RATE_LIMITS:-}
       DUEPROOF_DEV_PAGES: ${DUEPROOF_DEV_PAGES:-0}
+      # The daily run: the `daily` service below calls /api/cron/daily with it.
+      CRON_SECRET: ${CRON_SECRET:?set CRON_SECRET in .env}
+      # Email (invitations, password resets, the morning digest). Unset: nothing is sent.
+      MAIL_DRIVER: ${MAIL_DRIVER:-}
+      SMTP_URL: ${SMTP_URL:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      # Encrypts each organisation's own AI key. Unset: "Your own key" can't save one.
+      AI_KEY_MASTER: ${AI_KEY_MASTER:-}
+      # Web Push keys. Unset: a pair derived from AUTH_SECRET.
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+      # Settings → System shows the last backup from the backup job's record.
+      BACKUP_STATUS_FILE: /backups/last.json
     volumes:
       - files:/data/files
+      - ${BACKUP_DIR:-./backups}:/backups:ro
     tmpfs:
       - /tmp:size=256m
       - /app/apps/app/.next/cache:uid=1000,gid=1000,size=256m
@@ -170,6 +187,31 @@ services:
       - ${BACKUP_DIR:-./backups}:/backups
       - files:/data/files:ro
     networks: [internal]
+    logging:
+      driver: json-file
+      options: { max-size: "5m", max-file: "3" }
+
+  # The daily run (digest, notifications, escalation) every day at DAILY_AT,
+  # with no host crontab: calls the app's /api/cron/daily over the internal
+  # network with the CRON_SECRET bearer. Uses the app image (nothing extra to
+  # pull) and catches up after a restart; the run is idempotent.
+  daily:
+    <<: *hardening
+    image: ${DUEPROOF_APP_IMAGE:-dueproof/app}:${DUEPROOF_VERSION:-0.1.0}
+    depends_on:
+      app: { condition: service_healthy }
+    entrypoint: ["node", "/scripts/daily.mjs"]
+    command: []
+    environment:
+      CRON_SECRET: ${CRON_SECRET:?set CRON_SECRET in .env}
+      DAILY_AT: ${DAILY_AT:-07:00}
+      TZ: ${TZ:-Asia/Kolkata}
+    volumes:
+      - ./scripts/daily.mjs:/scripts/daily.mjs:ro
+    networks: [internal]
+    # The image's own check probes the app server, which doesn't run here.
+    healthcheck:
+      disable: true
     logging:
       driver: json-file
       options: { max-size: "5m", max-file: "3" }

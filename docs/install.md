@@ -10,9 +10,11 @@ Compose:
 | `postgres` | PostgreSQL 17 with pgvector: all your data, the workflow queue and the rate-limit counters |
 | `caddy` | HTTPS in front of the app, with a certificate it gets and renews by itself |
 
-Two small helpers run beside them: `backup` (a nightly backup, see
-[Backup and restore](backup-and-restore.md)) and `pre-upgrade-backup` (a
-database dump before each start that could migrate the database).
+Three small helpers run beside them: `backup` (a nightly backup, see
+[Backup and restore](backup-and-restore.md)), `pre-upgrade-backup` (a
+database dump before each start that could migrate the database) and
+`daily` (the morning digest, notifications and escalation, see
+[Workflow and reminders](workflow-and-reminders.md#the-daily-run)).
 
 Nothing is sent to us: no telemetry, no usage data, no update check.
 
@@ -37,8 +39,8 @@ cp .env.example .env
 ## 2. Fill in `.env`
 
 ```bash
-# three secrets, 32+ characters each
-for k in AUTH_SECRET ENGINE_SHARED_SECRET POSTGRES_PASSWORD; do
+# four secrets, 32+ characters each
+for k in AUTH_SECRET ENGINE_SHARED_SECRET POSTGRES_PASSWORD CRON_SECRET; do
   sed -i "s|^$k=.*|$k=$(openssl rand -hex 32)|" .env
 done
 ```
@@ -48,8 +50,13 @@ Then set `DUEPROOF_DOMAIN` to your domain (for example `dueproof.yourfirm.in`).
 **Keep a copy of `.env` somewhere safe, away from the server.** Backups don't
 include it, and without `AUTH_SECRET` nobody can sign in to a restored copy.
 
-Everything else in `.env.example` is optional and explained there: the engine's
-image options, backup time and retention, upload size, rate limits.
+To send email (invitations, password reset links, the morning digest), set
+`SMTP_URL` and `MAIL_FROM`. Without them nothing is emailed: you copy
+invitation links by hand, and password resets and digests can't go out.
+
+Everything else in `.env.example` is optional and explained there: the
+daily run's time, the AI key master key, Web Push keys, the engine's image
+options, backup time and retention, upload size, rate limits.
 
 ## 3. Start it
 

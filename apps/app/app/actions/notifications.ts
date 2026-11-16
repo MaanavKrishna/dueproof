@@ -1,7 +1,8 @@
 "use server";
 /**
- * The signed-in person's new notifications, for the desktop app's OS alerts.
- * Its webviews have no Web Push, so the app polls this while it runs and
+ * The signed-in person's notifications: the sidebar bell (list, mark read)
+ * and new ones for the desktop app's OS alerts.
+ * The desktop app's webviews have no Web Push, so the app polls this while it runs and
  * raises each one with `new Notification()`, which the desktop shell bridges
  * to the OS (apps/desktop, "Native extras").
  *
@@ -12,6 +13,7 @@ import { and, asc, eq, gt, notifications, withOrg } from "@dueproof/db";
 import { z } from "zod";
 import { type ActionResult, runAction } from "@/lib/action";
 import { authorize } from "@/lib/authorize";
+import { type InboxNotification, listNotificationsFor, markReadFor } from "@/lib/notifications";
 import { type NotificationKind, PUSH_LINES } from "@/lib/notify";
 
 export interface DesktopAlert {
@@ -57,4 +59,20 @@ export async function newNotifications(since: string): Promise<ActionResult<Desk
       };
     });
   });
+}
+
+/** The bell: this person's latest notifications in this organisation, newest first. */
+export async function listNotifications(): Promise<ActionResult<InboxNotification[]>> {
+  return runAction("listNotifications", async () =>
+    listNotificationsFor(await authorize("case.view")),
+  );
+}
+
+/** Marks these notifications read, or every unread one when `ids` is null. */
+export async function markNotificationsRead(
+  ids: string[] | null,
+): Promise<ActionResult<{ marked: number }>> {
+  return runAction("markNotificationsRead", async () =>
+    markReadFor(await authorize("case.view"), ids),
+  );
 }

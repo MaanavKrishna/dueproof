@@ -16,14 +16,18 @@ GST, Income tax and TDS are on for a new organisation.
 
 ## What the choice does in v0.1
 
-The choice is saved and recorded in the audit trail. **It doesn't yet change
-what Dueproof reads**:
+The choice is saved and recorded in the audit trail. **It doesn't change
+what Dueproof reads**, and the settings page and setup wizard say so:
 
 - Every notice is read with the same rules, the engine's `notices_in` set
   for Indian notices (GST, income tax, TDS, MCA/ROC, EPFO/ESIC, RBI/SEBI and
   court notices), whatever is ticked.
 - Statutory deadlines come from each **client's registrations** (see
   [Quickstart → Clients](quickstart.md#8-clients)), not from this setting.
+- Ticking none changes nothing either: notices are still read in full.
+
+The same page has **Notice languages**, which does change how notices are
+read: see [Languages](languages.md#your-notice-languages).
 
 ## Where the rules live
 

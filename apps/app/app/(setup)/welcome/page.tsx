@@ -26,6 +26,7 @@ export default async function WelcomePage() {
         timezone: org.timezone,
         fiscalYearStartMonth: org.fiscalYearStartMonth,
         profiles: org.profiles,
+        languages: org.languages,
         aiMode: (ai.ok ? ai.data.mode : "off") as AiModeId,
         aiProvider: ai.ok ? ai.data.provider : null,
         canStoreKey: ai.ok ? ai.data.canStoreKey : false,

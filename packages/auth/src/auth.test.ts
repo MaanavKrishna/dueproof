@@ -219,6 +219,61 @@ describe("external sign-up (SSO from ee/, through AuthConfig.plugins)", () => {
   });
 });
 
+describe("password reset", () => {
+  it("sends a one-hour link through the app's mailer, and the link sets a new password", async () => {
+    await resetAuthTables();
+    const sent: Array<{ email: string; url: string }> = [];
+    const withMail = createAuth({
+      database,
+      baseURL: BASE,
+      secret: "test-secret-test-secret-test-secret-0123",
+      signupPolicy: "first-user",
+      rateLimit: false,
+      sendResetPassword: async ({ user, url }) => {
+        sent.push({ email: user.email, url });
+      },
+    });
+    await withMail.api.signUpEmail({
+      body: { email: "owner@firm.test", password: "correct horse battery", name: "Owner" },
+    });
+    await withMail.api.requestPasswordReset({
+      body: { email: "owner@firm.test", redirectTo: "/reset-password" },
+    });
+    // No account: the same quiet answer, and nothing sent.
+    await withMail.api.requestPasswordReset({
+      body: { email: "nobody@firm.test", redirectTo: "/reset-password" },
+    });
+    expect(sent).toHaveLength(1);
+    expect(sent[0]?.email).toBe("owner@firm.test");
+    const url = new URL(sent[0]?.url ?? "");
+    expect(url.origin).toBe(BASE);
+    expect(url.pathname).toMatch(/^\/api\/auth\/reset-password\/[\w-]+$/);
+    expect(url.searchParams.get("callbackURL")).toBe("/reset-password");
+    const token = url.pathname.split("/").pop() ?? "";
+
+    await withMail.api.resetPassword({ body: { token, newPassword: "a brand new password" } });
+    await expect(
+      withMail.api.signInEmail({
+        body: { email: "owner@firm.test", password: "correct horse battery" },
+      }),
+    ).rejects.toThrow();
+    const ok = await withMail.api.signInEmail({
+      body: { email: "owner@firm.test", password: "a brand new password" },
+    });
+    expect(ok.user.email).toBe("owner@firm.test");
+    // The link works once.
+    await expect(
+      withMail.api.resetPassword({ body: { token, newPassword: "yet another password" } }),
+    ).rejects.toThrow();
+  });
+
+  it("is refused when no mailer is configured", async () => {
+    await expect(
+      auth.api.requestPasswordReset({ body: { email: "owner@firm.test" } }),
+    ).rejects.toThrow(/isn't enabled/);
+  });
+});
+
 describe("rate limits", () => {
   it("limits sign-in attempts per IP", async () => {
     await resetAuthTables();

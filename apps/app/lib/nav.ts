@@ -85,7 +85,6 @@ export const NAV: NavSection[] = [
     id: "insight",
     title: "Insight",
     items: [
-      { id: "ask", label: "Ask", href: "/ask", icon: SearchIcon, keywords: ["ai", "question"] },
       {
         id: "reports",
         label: "Reports",

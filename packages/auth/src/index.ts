@@ -6,6 +6,7 @@ export {
   getMembership,
   isFirstRun,
   type Membership,
+  RESET_LINK_SECONDS,
   type SignupPolicy,
 } from "./auth";
 export { ARGON2ID, hashPassword, verifyPassword } from "./password";
