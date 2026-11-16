@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 # finds obligations in and proves quotes on notices. The TypeScript app calls
 # it (packages/contracts/src/engine.ts is the contract).
 #
-# One codebase, two deployment shapes (planning/v0.1/03-architecture.md §3a):
+# One codebase, two deployment shapes (design record 03 §3a):
 #
 #   engine-fast   the base install (`uv sync --no-default-groups`): PDFium text
 #                 layer, page images, PaddleOCR on ONNX Runtime (numpy + Pillow,

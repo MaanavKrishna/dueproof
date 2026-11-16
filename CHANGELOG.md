@@ -15,8 +15,7 @@ real deadlines: statutory periods and rates are marked "verify" until a
 chartered accountant signs them off, and interest and penalty figures are
 estimates, not advice.
 
-v0.1 is the full rebuild described in
-[planning/v0.1-plan.md](planning/v0.1-plan.md). Nothing is carried over from
+v0.1 is a full rebuild. Nothing is carried over from
 the demo's code except the engine's reading, OCR, translation, rules and
 proof-linking.
 
@@ -114,8 +113,7 @@ Read these before you rely on the beta. Most are on the
 ## Demo (0.0.1) — 2026-10-24
 
 The proof-of-concept, now labelled the demo. It was first published as
-"0.1.0"; that number now belongs to the full rebuild described in
-[planning/v0.1-plan.md](planning/v0.1-plan.md).
+"0.1.0"; that number now belongs to the full rebuild.
 
 First public version (the demo).
 

@@ -62,10 +62,10 @@ ee/                 Business features, under a commercial licence
 evals/              the AI eval harness
 infra/              Docker Compose, Vercel and Sandbox setups
 docs/               documentation (also rendered on the website)
-planning/           the v0.1 plan: the design record
 ```
 
-[Architecture](docs/architecture.md) has the full map.
+[Architecture](docs/architecture.md) has the full map. Code comments such as
+"(03 §6)" cite sections of the internal design record, which is not public.
 
 ## House rules
 

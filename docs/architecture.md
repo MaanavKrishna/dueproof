@@ -1,8 +1,6 @@
 # Architecture
 
-Dueproof v0.1 is a TypeScript monorepo with one Python service. The full
-design is in [`planning/v0.1/03-architecture.md`](../planning/v0.1/03-architecture.md);
-this page is the short version.
+Dueproof v0.1 is a TypeScript monorepo with one Python service.
 
 ```
 browser / desktop app / phone (PWA)

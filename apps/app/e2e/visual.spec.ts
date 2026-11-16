@@ -1,9 +1,9 @@
 /**
- * Design screenshots (planning/design/app-*.png). Runs only with
+ * Design screenshots (app-*.png). Runs only with
  * SCREENSHOTS_DIR set, after the other specs have filled the workspace (files
  * run in name order):
  *
- *   SCREENSHOTS_DIR=$PWD/../../planning/design pnpm e2e
+ *   SCREENSHOTS_DIR=$PWD/../../docs/images pnpm e2e
  *
  * With VISUAL_SWEEP=1 it also saves every screen at 1440 and 390 wide, in
  * light and dark, under SCREENSHOTS_DIR/sweep, to look for layout bugs.

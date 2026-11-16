@@ -1,6 +1,6 @@
 /**
  * @dueproof/ai — provider adapters, model routing, prompts and the AI side of
- * the proof gate (planning/v0.1/04-ai.md). Server-only.
+ * the proof gate (design record 04). Server-only.
  *
  * The workflow's `ai_assist` step calls `assistExtraction()`; its
  * `aiFindings` go to `reconcile()` in @dueproof/core and its `runs` to `ai_runs`.

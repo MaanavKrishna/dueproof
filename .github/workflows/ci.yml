@@ -82,7 +82,7 @@ jobs:
         run: |
           uv venv
           uv pip install torch==2.13.0 --index-url https://download.pytorch.org/whl/cpu
-          uv pip install -e ".[dev]"
+          uv pip install -e . --group dev
       - name: Lint
         run: .venv/bin/python -m pyflakes dueproof_engine tests scripts api
       - name: Tests

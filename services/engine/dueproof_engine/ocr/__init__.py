@@ -1,4 +1,4 @@
-"""OCR rungs beyond the text layer (planning/v0.1/03-architecture.md §6a).
+"""OCR rungs beyond the text layer (design record 03 §6a).
 
 paddle.py      rung 2: PaddleOCR (PP-OCR detection + recognition) on ONNX
                Runtime, with numpy and Pillow only — no OpenCV, no Paddle, so it

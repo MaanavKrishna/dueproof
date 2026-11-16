@@ -1,6 +1,6 @@
 """Step 1 — read a document: page images, word boxes, reading-order text.
 
-Each page climbs the OCR ladder (planning/v0.1/03-architecture.md §6a) only
+Each page climbs the OCR ladder (design record 03 §6a) only
 as far as it needs to:
 
   1. text_layer   PDFium's text layer, where the PDF has a real one

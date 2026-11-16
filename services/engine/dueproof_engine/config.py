@@ -47,7 +47,7 @@ LOCALS = enabled([c.strip() for c in (os.environ.get("DUEPROOF_LANGUAGES")
 LOCAL_SCRIPTS = "".join(dict.fromkeys(lang["script"] for lang in LOCALS))
 
 # --- OCR -------------------------------------------------------------------
-# The ladder (planning/v0.1/03-architecture.md §6a): text layer, then
+# The ladder (design record 03 §6a): text layer, then
 # PaddleOCR on ONNX Runtime, then Tesseract. A page whose best reading is
 # below the bar is reported in needsEscalation.
 OCR_CONFIDENCE_BAR = _float("DUEPROOF_OCR_CONFIDENCE_BAR", 0.85)

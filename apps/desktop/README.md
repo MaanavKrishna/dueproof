@@ -3,8 +3,7 @@
 The desktop app for Windows, macOS and Linux. v0.1 ships **Connect mode**: a
 small native shell around your Dueproof server (self-hosted or hosted).
 **Local mode** (everything on one computer, no server) is a spike behind a
-build flag. Plan: `planning/v0.1/03-architecture.md` §5,
-`05-security.md` §7, `02-design-system.md` §9. User guide: `docs/desktop.md`.
+build flag. User guide: `docs/desktop.md`.
 
 ```
 apps/desktop
