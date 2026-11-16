@@ -7,6 +7,12 @@ becomes available under the Apache License, Version 2.0 two years after it is
 made available. The demo (0.0.1) and earlier commits remain available under
 the Apache License, Version 2.0.
 
+The ee/ directory is not covered by FSL-1.1-ALv2. It holds the Business
+features, which are proprietary and licensed under the commercial terms in
+ee/LICENSE (draft, pending legal review); they may be used only with a valid
+Dueproof Business licence. The rest of the product does not depend on ee/.
+ee/ uses @better-auth/sso and samlify (MIT) for SAML single sign-on.
+
 It bundles third-party work under its own licences:
 
 services/engine/dueproof_engine/pipeline/indictrans2/

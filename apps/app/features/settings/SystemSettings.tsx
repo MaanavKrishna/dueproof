@@ -83,6 +83,11 @@ const ACTIONS: Record<string, string> = {
   "org.setup.completed": "Finished setup",
   "org.setup.dismissed": "Left setup",
   "user.update": "Updated their profile",
+  "licence.install": "Installed the Business licence",
+  "licence.remove": "Removed the Business licence",
+  "sso.configure": "Set up single sign-on",
+  "sso.remove": "Turned off single sign-on",
+  "audit.export": "Exported the audit trail",
 };
 
 function describe(action: string): string {
