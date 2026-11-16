@@ -75,7 +75,18 @@ export interface AuthConfig {
    * from the provider, so no organisation is created for them.
    */
   externalSignUp?: (email: string, path: string | undefined) => Promise<boolean>;
+  /**
+   * Sends a password reset link (the app's mail driver). Without it, asking
+   * for a reset is refused. The link is a secret: never log it.
+   */
+  sendResetPassword?: (data: {
+    user: { id: string; email: string; name: string };
+    url: string;
+  }) => Promise<void>;
 }
+
+/** A reset link works once, for an hour. */
+export const RESET_LINK_SECONDS = 60 * 60;
 
 const ORG_NAME_FALLBACK = "My organisation";
 
@@ -103,6 +114,25 @@ export function createAuth(config: AuthConfig) {
       maxPasswordLength: 256,
       autoSignIn: true,
       password: { hash: hashPassword, verify: verifyPassword },
+      resetPasswordTokenExpiresIn: RESET_LINK_SECONDS,
+      // A new password signs out every other session (a stolen one included).
+      revokeSessionsOnPasswordReset: true,
+      ...(config.sendResetPassword
+        ? {
+            sendResetPassword: async ({
+              user,
+              url,
+            }: {
+              user: { id: string; email: string; name: string };
+              url: string;
+            }) => {
+              await config.sendResetPassword?.({
+                user: { id: user.id, email: user.email, name: user.name },
+                url,
+              });
+            },
+          }
+        : {}),
     },
     session: {
       expiresIn: 60 * 60 * 24 * 7,
