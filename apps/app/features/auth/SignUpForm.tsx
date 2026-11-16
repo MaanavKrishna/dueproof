@@ -90,7 +90,7 @@ export function SignUpForm({ mode }: { mode: SignUpMode }) {
           }
         : {
             title: "Create your account",
-            lede: "Start a 14-day trial. Your organisation is created with you as its owner.",
+            lede: "Free while Dueproof is in beta. Your organisation is created with you as its owner.",
             button: "Create account",
           };
 

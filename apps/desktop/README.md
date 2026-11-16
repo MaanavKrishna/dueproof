@@ -1,6 +1,6 @@
 # Dueproof desktop (Tauri 2)
 
-The desktop app for Windows, macOS and Linux. v0.1 ships **Connect mode**: a
+The desktop app. v0.1 ships a Linux build (Windows and macOS are coming) in **Connect mode**: a
 small native shell around your Dueproof server (self-hosted or hosted).
 **Local mode** (everything on one computer, no server) is a spike behind a
 build flag. User guide: `docs/desktop.md`.
