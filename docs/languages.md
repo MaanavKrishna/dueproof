@@ -22,13 +22,31 @@ in English or any of the 22 scheduled Indian languages.
 
 The list lives in `services/engine/dueproof_engine/languages.py`.
 
+## Your notice languages
+
+Tell Dueproof which Indian languages your notices come in: tick them under
+**Notice languages** in **Settings → Profiles**, or on the setup wizard's
+**Notice types** step. Owners and admins can change them. English is always
+read.
+
+The languages you tick are sent to the engine with every notice:
+
+- **Scans** are read with those languages' Tesseract packs as well as
+  English.
+- **Shared scripts** are settled by your choice: tick Marathi and a
+  Devanagari line is taken as Marathi, not Hindi.
+
+With none ticked, scans are read in English only.
+
 ## How a notice in another language is read
 
 1. **Reading.** The engine reads the PDF's text layer in any script. Each
    page's language is recognised by its script.
 2. **Translation.** Where offline translation is set up, lines in an Indian
    language are translated into English on your own server by IndicTrans2
-   (one model, about 200 million parameters, for all 22). Nothing is sent
+   (one model, about 200 million parameters, for all 22). Only those lines
+   are sent, each with its own language, so an English notice with a Tamil
+   paragraph and a Hindi stamp is translated line by line. Nothing is sent
    anywhere.
 3. **Finding.** The rules read the original and the English together, so a
    Tamil notice yields dated duties without anyone writing Tamil rules.
@@ -62,10 +80,11 @@ and then Tesseract:
   engine image has Hindi, Malayalam and Tamil by default; add others with
   `ENGINE_OCR_PACKS`. Seven languages have no Tesseract pack and can be read
   only from PDFs with a text layer.
-- **Known gap in v0.1:** the app asks the engine to OCR with English only,
-  so the installed Indian packs aren't used yet. Treat scanned
-  Indian-language notices as needing review, and check their findings
-  against the page.
+- The app asks the engine to OCR with your
+  [notice languages](#your-notice-languages) and English, so the installed
+  packs for those languages are used. A language you haven't ticked, or
+  whose pack isn't installed, is read as English and usually lands below
+  the bar.
 
 A page still below the bar goes to **Needs review** (or, with AI on, to the
 model).
@@ -81,8 +100,8 @@ Devanagari as Marathi. The engine image sets `all`, which means the order
 above: Devanagari is read as Hindi, Bengali script as Bengali, Arabic script
 as Urdu.
 
-In v0.1 a whole document is translated as one language: the first non-English
-language found in it.
+Your [notice languages](#your-notice-languages) come first: a Devanagari
+line is taken as the first of them written in Devanagari.
 
 ## Tested
 

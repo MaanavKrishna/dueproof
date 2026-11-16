@@ -1,10 +1,13 @@
 /**
  * Organisation facts that have no column of their own yet live as JSON in
- * Better Auth's `organization.metadata`: which notice profiles are on, where
+ * Better Auth's `organization.metadata`: which notice profiles are on, the
+ * languages its notices come in (OCR and translation hints), where
  * first-run setup got to, and client-level access per member. Pure parse and
  * update helpers; unknown or malformed values fall back to defaults so a bad
  * row never breaks a page.
  */
+
+import { knownLanguages } from "./languages";
 
 export const PROFILES = [
   {
@@ -35,6 +38,11 @@ export interface Onboarding {
 
 export interface OrgMetadata {
   profiles: ProfileId[];
+  /**
+   * Indian languages the organisation's notices come in (codes from
+   * lib/languages.ts). Sent to the engine as OCR hints beside English.
+   */
+  languages: string[];
   onboarding: Onboarding;
   /**
    * Client-level access: member user id → the client ids they may work on.
@@ -59,6 +67,8 @@ export function parseOrgMetadata(raw: string | null | undefined): OrgMetadata {
     ? obj.profiles.filter((p): p is ProfileId => PROFILE_IDS.includes(p as ProfileId))
     : [...DEFAULT_PROFILES];
 
+  const languages = Array.isArray(obj.languages) ? knownLanguages(obj.languages) : [];
+
   const ob = obj.onboarding && typeof obj.onboarding === "object" ? obj.onboarding : {};
   const onboarding: Onboarding = {};
   for (const k of ["completedAt", "dismissedAt"] as const) {
@@ -73,7 +83,7 @@ export function parseOrgMetadata(raw: string | null | undefined): OrgMetadata {
     }
   }
 
-  return { ...obj, profiles, onboarding, clientAccess } as OrgMetadata;
+  return { ...obj, profiles, languages, onboarding, clientAccess } as OrgMetadata;
 }
 
 export function serialiseOrgMetadata(meta: OrgMetadata): string {

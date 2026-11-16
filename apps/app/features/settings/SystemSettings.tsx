@@ -80,6 +80,8 @@ const ACTIONS: Record<string, string> = {
   "org.logo.set": "Changed the report logo",
   "org.logo.remove": "Removed the report logo",
   "org.profiles.update": "Changed notice types",
+  "org.languages.update": "Changed notice languages",
+  "member.password_reset.send": "Sent a password reset link",
   "org.setup.completed": "Finished setup",
   "org.setup.dismissed": "Left setup",
   "user.update": "Updated their profile",

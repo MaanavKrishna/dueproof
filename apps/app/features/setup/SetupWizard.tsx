@@ -24,11 +24,12 @@ import {
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { saveAiSettings, setAiKey } from "@/app/actions/ai-settings";
-import { finishSetup, saveOrganisation, saveProfiles } from "@/app/actions/settings";
+import { finishSetup, saveLanguages, saveOrganisation, saveProfiles } from "@/app/actions/settings";
 import { inviteMembers } from "@/app/actions/team";
 import { Wordmark } from "@/components/Wordmark";
 import { type AiModeId, aiModeOptions, type Edition, PROVIDERS } from "@/lib/ai-options";
 import { COUNTRY_OPTIONS, FY_OPTIONS, ROLE_OPTIONS, TIMEZONE_OPTIONS } from "@/lib/form-options";
+import { LANGUAGES } from "@/lib/languages";
 import { PROFILES, type ProfileId } from "@/lib/org-metadata";
 
 const STEPS: WizardStep[] = [
@@ -76,6 +77,7 @@ export interface SetupInitial {
   timezone: string;
   fiscalYearStartMonth: number;
   profiles: ProfileId[];
+  languages: string[];
   aiMode: AiModeId;
   aiProvider: string | null;
   canStoreKey: boolean;
@@ -96,6 +98,7 @@ export function SetupWizard({ initial }: { initial: SetupInitial }) {
   const [timezone, setTimezone] = useState(initial.timezone);
   const [fy, setFy] = useState(String(initial.fiscalYearStartMonth));
   const [profiles, setProfiles] = useState<ProfileId[]>(initial.profiles);
+  const [languages, setLanguages] = useState<string[]>(initial.languages);
   const [aiMode, setAiMode] = useState<AiModeId>(initial.aiMode);
   const [provider, setProvider] = useState(initial.aiProvider ?? "anthropic");
   const [apiKey, setApiKey] = useState("");
@@ -143,8 +146,13 @@ export function SetupWizard({ initial }: { initial: SetupInitial }) {
       }
       case "profiles": {
         const res = await saveProfiles(profiles);
-        if (!res.ok) setError(res.message);
-        return res.ok;
+        if (!res.ok) {
+          setError(res.message);
+          return false;
+        }
+        const langs = await saveLanguages(languages);
+        if (!langs.ok) setError(langs.message);
+        return langs.ok;
       }
       case "ai": {
         const res = await saveAiSettings({
@@ -302,6 +310,26 @@ export function SetupWizard({ initial }: { initial: SetupInitial }) {
             />
           ))
         : null}
+      {step?.id === "profiles" ? (
+        <Card variant="sunken" padding="md">
+          <p>
+            <strong>Notice languages.</strong> English is always read. Tick any Indian languages
+            your notices come in, so scans are read in them. All 22 are in Settings → Profiles.
+          </p>
+          {LANGUAGES.filter((l) => l.ocr || languages.includes(l.code)).map((l) => (
+            <Checkbox
+              key={l.code}
+              label={l.label}
+              checked={languages.includes(l.code)}
+              onCheckedChange={(v) =>
+                setLanguages((cur) =>
+                  v === true ? [...new Set([...cur, l.code])] : cur.filter((x) => x !== l.code),
+                )
+              }
+            />
+          ))}
+        </Card>
+      ) : null}
       {step?.id === "ai" ? (
         <>
           <RadioGroup

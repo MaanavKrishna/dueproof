@@ -22,5 +22,5 @@ export default async function ProfilesSettingsPage() {
       />
     );
   const org = await getOrganisationFor(access.ctx);
-  return <ProfilesSettings chrome={chrome} profiles={org.profiles} />;
+  return <ProfilesSettings chrome={chrome} profiles={org.profiles} languages={org.languages} />;
 }

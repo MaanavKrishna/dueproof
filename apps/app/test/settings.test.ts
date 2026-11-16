@@ -15,6 +15,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   finishSetup,
   saveHolidays,
+  saveLanguages,
   saveOrganisation,
   saveProfiles,
   setPreferences,
@@ -254,11 +255,14 @@ describe("settings and team", () => {
 
     expect(await saveProfiles(["gst", "roc"])).toMatchObject({ ok: true, data: ["gst", "roc"] });
     expect(await saveProfiles(["bogus"])).toMatchObject({ ok: false });
+    expect(await saveLanguages(["ml", "ta"])).toMatchObject({ ok: true, data: ["ml", "ta"] });
+    expect(await saveLanguages(["ml", "klingon"])).toMatchObject({ ok: false });
     expect(await finishSetup("completed")).toMatchObject({ ok: true });
 
     const view = await getOrganisationFor(ctx);
     expect(view.holidays.map((h) => h.day)).toEqual(["2026-01-26", "2026-08-15"]);
     expect(view.profiles).toEqual(["gst", "roc"]);
+    expect(view.languages).toEqual(["ml", "ta"]);
     expect(view.onboarding.completedAt).toBeTruthy();
   });
 
@@ -463,6 +467,7 @@ describe("settings and team", () => {
       "org.holidays.replace",
       "org.logo.set",
       "org.profiles.update",
+      "org.languages.update",
       "org.setup.completed",
       "user.update",
       "invitation.create",

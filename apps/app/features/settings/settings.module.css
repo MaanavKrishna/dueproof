@@ -57,6 +57,13 @@
   gap: var(--dp-space-12);
 }
 
+/* A checklist in columns (Notice languages). */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(var(--dp-space-96) * 1.75), 1fr));
+  gap: var(--dp-space-12);
+}
+
 .person {
   display: inline-flex;
   align-items: center;
