@@ -53,7 +53,7 @@ export async function callProvider(
     const status = (e as { status?: unknown })?.status;
     if (typeof status === "number") errorStatus = status;
   }
-  const latencyMs = Math.max(0, Math.round(now() - t0));
+  const latencyMs = result?.latencyMs ?? Math.max(0, Math.round(now() - t0));
   const usage = result?.usage ?? {
     inputTokens: 0,
     outputTokens: 0,

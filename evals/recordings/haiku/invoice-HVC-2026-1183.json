@@ -1,0 +1,45 @@
+{
+  "note": "Hand-written stand-in for a model response, authored from the engine's recorded page text on 2026-11-16. Replace with a real recording from `pnpm --filter @dueproof/ai eval --mode live --record`.",
+  "source": "synthetic",
+  "latencyMs": 1500,
+  "stop": "end",
+  "json": {
+    "findings": [
+      {
+        "kind": "deadline",
+        "text": "Clear the invoice to keep the 1.5% early-settlement discount",
+        "textEn": null,
+        "quote": "Finance must clear this invoice on or before 15 September 2026",
+        "quoteLang": "en",
+        "pageHint": 1,
+        "confidence": 0.9,
+        "dueRule": {
+          "type": "fixed",
+          "date": "2026-09-15"
+        },
+        "amountMinor": null,
+        "desk": "Finance",
+        "severity": "high"
+      },
+      {
+        "kind": "deadline",
+        "text": "Pay the invoice within 30 days of its date",
+        "textEn": null,
+        "quote": "Payment is due within 30 days of the invoice date.",
+        "quoteLang": "en",
+        "pageHint": 1,
+        "confidence": 0.8,
+        "dueRule": {
+          "type": "relative",
+          "anchor": "issue",
+          "amount": 30,
+          "unit": "days",
+          "condonable": null
+        },
+        "amountMinor": null,
+        "desk": "Finance",
+        "severity": "high"
+      }
+    ]
+  }
+}

@@ -25,6 +25,8 @@ export interface FakeResponse {
   servedModel?: string;
   usage?: Partial<ProviderResult["usage"]>;
   refusalCategory?: string | null;
+  /** Reported as the call's latency (recordings). */
+  latencyMs?: number;
 }
 
 export interface FakeProviderOptions {
@@ -86,6 +88,7 @@ export function createFakeProvider(options: FakeProviderOptions = {}): FakeProvi
         servedModel: r.servedModel ?? req.model,
         usage,
         refusalCategory: r.refusalCategory ?? null,
+        ...(r.latencyMs !== undefined ? { latencyMs: r.latencyMs } : {}),
       };
     },
   };

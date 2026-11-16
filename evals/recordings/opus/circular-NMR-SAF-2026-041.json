@@ -1,0 +1,119 @@
+{
+  "note": "Hand-written stand-in for a model response, authored from the engine's recorded page text on 2026-11-16. Replace with a real recording from `pnpm --filter @dueproof/ai eval --mode live --record`.",
+  "source": "synthetic",
+  "latencyMs": 15800,
+  "stop": "end",
+  "json": {
+    "findings": [
+      {
+        "kind": "deadline",
+        "text": "Station Controllers to replace expired portable extinguishers and certify to the Safety Department",
+        "textEn": null,
+        "quote": "Every Station Controller shall replace all expired portable extinguishers and certify the replacement to the Safety Department on or before 21 August 2026.",
+        "quoteLang": "en",
+        "pageHint": 1,
+        "confidence": 0.9,
+        "dueRule": {
+          "type": "fixed",
+          "date": "2026-08-21"
+        },
+        "amountMinor": null,
+        "desk": "Station Controller",
+        "severity": "high"
+      },
+      {
+        "kind": "deadline",
+        "text": "Inspect portable extinguishers at all elevated stations and certify to the Safety Department",
+        "textEn": "Portable fire extinguishers at all elevated stations must be inspected before 21 August 2026 and a certificate given to the Safety Department.",
+        "quote": "എല്ലാ എലിവേറ്റഡ് സ്റ്റേഷനുകളിലെയും പോർട്ടബിൾ അഗ്നിശമന ഉപകരണങ്ങൾ 2026 ഓഗസ്റ്റ് 21-ന് മുമ്പ് പരിശോധിച്ച് സാക്ഷ്യപത്രം സഹിതം സുരക്ഷാ വിഭാഗത്തിന് നൽകണം.",
+        "quoteLang": "ml",
+        "pageHint": 1,
+        "confidence": 0.9,
+        "dueRule": {
+          "type": "fixed",
+          "date": "2026-08-21"
+        },
+        "amountMinor": null,
+        "desk": "Station Controller",
+        "severity": "high"
+      },
+      {
+        "kind": "deadline",
+        "text": "Operations Control Centre to complete pending evacuation drills and report",
+        "textEn": null,
+        "quote": "The Operations Control Centre must complete the pending drills and report to the Chief Safety Officer not later than 31 August 2026.",
+        "quoteLang": "en",
+        "pageHint": 2,
+        "confidence": 0.9,
+        "dueRule": {
+          "type": "fixed",
+          "date": "2026-08-31"
+        },
+        "amountMinor": null,
+        "desk": "Operations Control Centre",
+        "severity": "high"
+      },
+      {
+        "kind": "deadline",
+        "text": "Complete this quarter's evacuation drills and report to the Operations Control Centre",
+        "textEn": "This quarter's evacuation drills must be completed before 31 August 2026 and reported to the Operations Control Centre.",
+        "quote": "നടപ്പുപാദത്തിലെ ഒഴിപ്പിക്കൽ പരിശീലനം 2026 ഓഗസ്റ്റ് 31-ന് മുമ്പ് പൂർത്തിയാക്കി ഓപ്പറേഷൻസ് കൺട്രോൾ സെന്ററിന് റിപ്പോർട്ട് ചെയ്യണം.",
+        "quoteLang": "ml",
+        "pageHint": 2,
+        "confidence": 0.9,
+        "dueRule": {
+          "type": "fixed",
+          "date": "2026-08-31"
+        },
+        "amountMinor": null,
+        "desk": "Operations Control Centre",
+        "severity": "high"
+      },
+      {
+        "kind": "obligation",
+        "text": "Signalling and Telecom to restore both faulty smoke detection loops",
+        "textEn": null,
+        "quote": "The Signalling and Telecom department is responsible for restoring both faulty smoke detection loops.",
+        "quoteLang": "en",
+        "pageHint": 2,
+        "confidence": 0.85,
+        "dueRule": null,
+        "amountMinor": null,
+        "desk": "Signalling & Telecom",
+        "severity": "medium"
+      },
+      {
+        "kind": "deadline",
+        "text": "Submit the full fire-safety audit report to the Commissioner of Metro Rail Safety through the Chief Safety Officer",
+        "textEn": "The full fire-safety audit report of all elevated stations must be submitted before 5 September 2026 to the Commissioner of Metro Rail Safety through the Chief Safety Officer.",
+        "quote": "മുഴുവൻ എലിവേറ്റഡ് സ്റ്റേഷനുകളിലെയും സമഗ്ര അഗ്നിസുരക്ഷാ ഓഡിറ്റ് റിപ്പോർട്ട് 2026 സെപ്റ്റംബർ 5-ന് മുമ്പ് ചീഫ് സേഫ്റ്റി ഓഫീസർ മുഖേന കമ്മീഷണർ ഓഫ് മെട്രോറെയിൽ സേഫ്റ്റിക്ക് സമർപ്പിക്കണം.",
+        "quoteLang": "ml",
+        "pageHint": 3,
+        "confidence": 0.9,
+        "dueRule": {
+          "type": "fixed",
+          "date": "2026-09-05"
+        },
+        "amountMinor": null,
+        "desk": "Safety Officer",
+        "severity": "high"
+      },
+      {
+        "kind": "deadline",
+        "text": "Each department to hand its part of the report to the Safety Department",
+        "textEn": "Before the report is prepared, each department must hand over its part to the Safety Department by 28 August 2026.",
+        "quote": "റിപ്പോർട്ട് തയ്യാറാക്കുന്നതിന് മുന്നോടിയായി ഓരോ വിഭാഗവും അവരവരുടെ ഭാഗം 2026 ഓഗസ്റ്റ് 28-നകം സുരക്ഷാ വിഭാഗത്തിന് കൈമാറേണ്ടതാണ്.",
+        "quoteLang": "ml",
+        "pageHint": 3,
+        "confidence": 0.9,
+        "dueRule": {
+          "type": "fixed",
+          "date": "2026-08-28"
+        },
+        "amountMinor": null,
+        "desk": "Safety Officer",
+        "severity": "high"
+      }
+    ]
+  }
+}

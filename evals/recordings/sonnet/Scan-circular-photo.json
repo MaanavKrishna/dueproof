@@ -1,0 +1,55 @@
+{
+  "note": "Hand-written stand-in for a model response, authored from the engine's recorded page text on 2026-11-16. Replace with a real recording from `pnpm --filter @dueproof/ai eval --mode live --record`.",
+  "source": "synthetic",
+  "latencyMs": 6100,
+  "stop": "end",
+  "json": {
+    "findings": [
+      {
+        "kind": "deadline",
+        "text": "Station Controllers to replace expired portable extinguishers and certify to the Safety Department",
+        "textEn": null,
+        "quote": "Every Station Controller shall replace all expired portable extinguishers and certify the replacement to the Safety Department on or before 21 August 2026.",
+        "quoteLang": "en",
+        "pageHint": 1,
+        "confidence": 0.9,
+        "dueRule": {
+          "type": "fixed",
+          "date": "2026-08-21"
+        },
+        "amountMinor": null,
+        "desk": "Station Controller",
+        "severity": "high"
+      },
+      {
+        "kind": "deadline",
+        "text": "Operations Control Centre to complete pending evacuation drills and report",
+        "textEn": null,
+        "quote": "The Operations Control Centre must complete the pending drills and report to the Chief Safety Officer not later than 31 August 2026.",
+        "quoteLang": "en",
+        "pageHint": 2,
+        "confidence": 0.9,
+        "dueRule": {
+          "type": "fixed",
+          "date": "2026-08-31"
+        },
+        "amountMinor": null,
+        "desk": "Operations Control Centre",
+        "severity": "high"
+      },
+      {
+        "kind": "obligation",
+        "text": "Signalling and Telecom to restore both faulty smoke detection loops",
+        "textEn": null,
+        "quote": "The Signalling and Telecom department is responsible for restoring both faulty smoke detection loops.",
+        "quoteLang": "en",
+        "pageHint": 2,
+        "confidence": 0.85,
+        "dueRule": null,
+        "amountMinor": null,
+        "desk": "Signalling & Telecom",
+        "severity": "medium"
+      }
+    ]
+  }
+}

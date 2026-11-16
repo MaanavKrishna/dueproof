@@ -31,6 +31,8 @@ export interface ProviderResult {
   servedModel: string;
   usage: TokenUsage;
   refusalCategory?: string | null;
+  /** Recorded latency (fake provider replaying a recording); real providers leave it unset. */
+  latencyMs?: number;
 }
 
 export interface Provider {

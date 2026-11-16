@@ -1,0 +1,71 @@
+{
+  "note": "Hand-written stand-in for a model response, authored from the engine's recorded page text on 2026-11-16. Replace with a real recording from `pnpm --filter @dueproof/ai eval --mode live --record`.",
+  "source": "synthetic",
+  "latencyMs": 1900,
+  "stop": "end",
+  "json": {
+    "findings": [
+      {
+        "kind": "deadline",
+        "text": "Explain the discrepancies and pay the tax of Rs. 4,52,300 with interest",
+        "textEn": null,
+        "quote": "You are hereby directed to explain the discrepancies and pay the tax of Rs. 4,52,300 with interest within 30 days of receipt of this notice.",
+        "quoteLang": "en",
+        "pageHint": 1,
+        "confidence": 0.8,
+        "dueRule": {
+          "type": "relative",
+          "anchor": "issue",
+          "amount": 30,
+          "unit": "days",
+          "condonable": null
+        },
+        "amountMinor": 45230000,
+        "desk": "Finance",
+        "severity": "high"
+      },
+      {
+        "kind": "hearing",
+        "text": "Personal hearing before the Assistant Commissioner, 11:00 AM",
+        "textEn": null,
+        "quote": "A personal hearing is fixed on 18 November 2026",
+        "quoteLang": "en",
+        "pageHint": 1,
+        "confidence": 0.9,
+        "dueRule": {
+          "type": "fixed",
+          "date": "2026-11-18"
+        },
+        "amountMinor": null,
+        "desk": "Legal & Compliance",
+        "severity": "high"
+      },
+      {
+        "kind": "amount",
+        "text": "Tax demanded: Rs. 4,52,300 with interest",
+        "textEn": null,
+        "quote": "pay the tax of Rs. 4,52,300",
+        "quoteLang": "en",
+        "pageHint": 1,
+        "confidence": 0.9,
+        "dueRule": null,
+        "amountMinor": 45230000,
+        "desk": "Finance",
+        "severity": "medium"
+      },
+      {
+        "kind": "reference",
+        "text": "Reference No ZD2910260012345",
+        "textEn": null,
+        "quote": "Reference No: ZD2910260012345",
+        "quoteLang": "en",
+        "pageHint": 1,
+        "confidence": 0.95,
+        "dueRule": null,
+        "amountMinor": null,
+        "desk": null,
+        "severity": "low"
+      }
+    ]
+  }
+}

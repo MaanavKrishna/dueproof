@@ -26,7 +26,7 @@ import { systemPrompt } from "./prompts";
 import { createProvider } from "./providers";
 import type { Provider, StructuredRequest } from "./providers/types";
 import { createRedactor, restoreDeep } from "./redact";
-import { decideRoute, judgeAttempt, type RouteDecision } from "./routing";
+import { type AttemptVerdict, decideRoute, judgeAttempt, type RouteDecision } from "./routing";
 import { EXTRACTION_JSON_SCHEMA, type Issue, validateExtraction } from "./schema";
 import type { AiRunRecord, CallOutcome, EscalationReason, Level } from "./types";
 import { untrustedBlock } from "./untrusted";
@@ -78,6 +78,11 @@ export interface AssistDeps {
   now?: () => number;
   /** Safety bound on calls per document. Default 5. */
   maxCalls?: number;
+  /**
+   * Eval only: run this level regardless of the route (even when the rules are
+   * confident) and accept its first usable answer, no retry or escalation.
+   */
+  forceLevel?: Level;
 }
 
 const INSTRUCTION =
@@ -132,7 +137,7 @@ export async function assistExtraction(
   if (policy.mode === "off") return empty("ai_off");
   if (!policy.provider && !deps.provider) return empty("no_provider");
   if (isClientExcluded(policy, input.clientId)) return empty("client_excluded");
-  if (route.level === null)
+  if (route.level === null && !deps.forceLevel)
     return empty(route.reasons.includes("ai_off") ? "ai_off" : "rules_confident");
 
   const provider =
@@ -152,7 +157,7 @@ export async function assistExtraction(
   let opusCalls = policy.usage.opusCallsThisMonth;
   let spent = policy.usage.spentMicroUsdThisMonth;
 
-  let level: Level = route.level;
+  let level: Level = deps.forceLevel ?? (route.level as Level);
   let reason: EscalationReason | null = null;
   let retriedHere = false;
   let gateFailures = 0;
@@ -250,17 +255,21 @@ export async function assistExtraction(
     if (outcome === "ok" && (!kept || !gate.failed || kept.gate.failed))
       kept = { level, findings: graded, gate };
 
-    const verdict = judgeAttempt({
-      level,
-      outcome,
-      retriedHere,
-      gateFailures,
-      gateFailed: gate.failed,
-      dateConflict: conflicts.date,
-      amountConflict: conflicts.amount,
-      longOrder: route.longOrder,
-      serverFallbacks: provider.serverFallbacks,
-    });
+    const verdict: AttemptVerdict = deps.forceLevel
+      ? outcome === "ok"
+        ? { action: "accept" }
+        : { action: "stop", reason: outcome === "refusal" ? "refusal" : "provider_error" }
+      : judgeAttempt({
+          level,
+          outcome,
+          retriedHere,
+          gateFailures,
+          gateFailed: gate.failed,
+          dateConflict: conflicts.date,
+          amountConflict: conflicts.amount,
+          longOrder: route.longOrder,
+          serverFallbacks: provider.serverFallbacks,
+        });
 
     if (verdict.action === "accept") {
       accepted = true;
