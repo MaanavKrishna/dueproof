@@ -42,6 +42,30 @@ const highlights: ProofHighlight[] = [
 
 const tick = () => act(() => new Promise((r) => setTimeout(r, 0)));
 
+function Case() {
+  const [active, setActive] = useState<string | null>(null);
+  return (
+    <>
+      <FindingCard
+        duty="Reply to the notice"
+        origin="rule"
+        verification={{ state: "verified", page: 2 }}
+        grade="approximate"
+        sourceLabel="Page 2"
+        onShowSource={() => setActive("amount")}
+        selected={active === "amount"}
+      />
+      <ProofViewer
+        title="ASMT-10"
+        pages={pages}
+        highlights={highlights}
+        activeHighlightId={active}
+        onActiveHighlightChange={setActive}
+      />
+    </>
+  );
+}
+
 describe("ProofViewer", () => {
   it("names every highlight with what it proves, its grade and its page", () => {
     render(<ProofViewer title="ASMT-10" pages={pages} highlights={highlights} />);
@@ -165,29 +189,6 @@ describe("ProofViewer", () => {
 
   it("is driven by a finding card's source button", async () => {
     const user = userEvent.setup();
-    function Case() {
-      const [active, setActive] = useState<string | null>(null);
-      return (
-        <>
-          <FindingCard
-            duty="Reply to the notice"
-            origin="rule"
-            verification={{ state: "verified", page: 2 }}
-            grade="approximate"
-            sourceLabel="Page 2"
-            onShowSource={() => setActive("amount")}
-            selected={active === "amount"}
-          />
-          <ProofViewer
-            title="ASMT-10"
-            pages={pages}
-            highlights={highlights}
-            activeHighlightId={active}
-            onActiveHighlightChange={setActive}
-          />
-        </>
-      );
-    }
     render(<Case />);
     await user.click(screen.getByRole("button", { name: /Show on the page, Page 2/ }));
     await tick();

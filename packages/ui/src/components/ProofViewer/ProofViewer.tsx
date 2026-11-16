@@ -539,6 +539,7 @@ export function ProofViewer({
             </nav>
           ) : null}
 
+          {/* biome-ignore lint/a11y/useSemanticElements: a labelled scroller for the page, not a form group. */}
           <div
             ref={viewportRef}
             role="group"
