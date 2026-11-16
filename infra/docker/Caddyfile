@@ -1,0 +1,47 @@
+# HTTPS in front of the Dueproof app (infra/docker/compose.yaml).
+# Caddy obtains and renews the certificate for DUEPROOF_DOMAIN by itself
+# (Let's Encrypt / ZeroSSL; "localhost" gets Caddy's own local CA).
+{
+	# To get certificate-expiry mail from the CA, add:  email you@example.in
+	# No admin API on the network.
+	admin off
+}
+
+{$DUEPROOF_DOMAIN} {
+	encode zstd gzip
+
+	# Uploads go straight to the app's signed storage URL: 50 MB per file
+	# (05 §3a) with room for multipart overhead.
+	request_body {
+		max_size 85MB
+	}
+
+	# Operator endpoints and the Workflow DevKit's internal queue route are
+	# not for the internet (03 §12; the queue route has no authentication of
+	# its own, see @workflow/world-postgres). The worker reaches the app on
+	# localhost, so nothing legitimate goes through here.
+	@internal {
+		path /api/metrics /api/metrics/* /api/health /api/health/*
+		path /.well-known/workflow/v1/flow /.well-known/workflow/v1/flow/*
+		path /.well-known/workflow/v1/manifest.json
+	}
+	respond @internal 404
+
+	reverse_proxy app:3000 {
+		# Long uploads and the live status stream (SSE).
+		flush_interval -1
+		transport http {
+			read_timeout 5m
+			write_timeout 5m
+		}
+	}
+
+	header {
+		-Server
+		# HSTS without preload for self-hosted (the app adds it too; preload is a hosted decision).
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	}
+
+	# No access log by default: signed storage URLs carry tokens in the query
+	# string (05 §3, never log tokens). Errors still go to stdout.
+}

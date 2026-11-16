@@ -1,0 +1,213 @@
+# Dueproof self-hosted server (03 §4): app + engine + Postgres + Caddy,
+# plus a nightly backup job. One organisation per install.
+#
+#   cd infra/docker
+#   cp .env.example .env        # then fill in the secrets (see docs/install.md)
+#   docker compose up -d --build
+#
+# Networks:
+#   edge      Caddy <-> app. The only network with a route out (Caddy for
+#             certificates; the app only for things an admin turns on: AI
+#             provider, SMTP, SSO, Web Push).
+#   internal  app, engine, Postgres, backup. `internal: true`: no route to
+#             the internet, so the engine (the only code that parses
+#             uploaded files) can reach nothing but the app (05 §4).
+
+name: dueproof
+
+x-hardening: &hardening
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: { max-size: "20m", max-file: "5" }
+
+services:
+  app:
+    <<: *hardening
+    image: ${DUEPROOF_APP_IMAGE:-dueproof/app}:${DUEPROOF_VERSION:-0.1.0}
+    build:
+      context: ../..
+      dockerfile: apps/app/Dockerfile
+      args:
+        DUEPROOF_VERSION: ${DUEPROOF_VERSION:-0.1.0}
+    depends_on:
+      postgres: { condition: service_healthy }
+      engine: { condition: service_healthy }
+      pre-upgrade-backup: { condition: service_completed_successfully }
+    environment:
+      DUEPROOF_EDITION: self-hosted
+      APP_URL: https://${DUEPROOF_DOMAIN:?set DUEPROOF_DOMAIN in .env}
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET in .env}
+      AUTH_SIGNUP: ${AUTH_SIGNUP:-first-user}
+      # Caddy sets X-Forwarded-For to the client address (it ignores a client-sent one).
+      AUTH_IP_HEADER: x-forwarded-for
+      DATABASE_DRIVER: postgres
+      DATABASE_URL: postgres://dueproof:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/dueproof
+      DB_MIGRATE_ON_START: "1"
+      STORAGE_DRIVER: local
+      STORAGE_LOCAL_DIR: /data/files
+      # The engine fetches originals and writes page images through the app's signed URLs.
+      STORAGE_ENGINE_BASE_URL: http://app:3000
+      ENGINE_MODE: http
+      ENGINE_URL: http://engine:8000
+      ENGINE_SHARED_SECRET: ${ENGINE_SHARED_SECRET:?set ENGINE_SHARED_SECRET in .env}
+      ENGINE_MAX_RUNG: ${ENGINE_MAX_RUNG:-tesseract}
+      UPLOAD_MAX_BYTES: ${UPLOAD_MAX_BYTES:-52428800}
+      WORKFLOW_TARGET_WORLD: "@workflow/world-postgres"
+      WORKFLOW_POSTGRES_URL: postgres://dueproof:${POSTGRES_PASSWORD}@postgres:5432/dueproof
+      WORKFLOW_POSTGRES_JOB_PREFIX: dueproof_
+      WORKFLOW_POSTGRES_WORKER_CONCURRENCY: ${WORKFLOW_CONCURRENCY:-8}
+      WORKFLOW_POSTGRES_JOB_LOCK_STALE_SECONDS: "30"
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
+      RATE_LIMITS: ${RATE_LIMITS:-}
+      DUEPROOF_DEV_PAGES: ${DUEPROOF_DEV_PAGES:-0}
+    volumes:
+      - files:/data/files
+    tmpfs:
+      - /tmp:size=256m
+      - /app/apps/app/.next/cache:uid=1000,gid=1000,size=256m
+    networks: [edge, internal]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.status<500?0:1),()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 90s
+      retries: 3
+
+  engine:
+    <<: *hardening
+    image: ${DUEPROOF_ENGINE_IMAGE:-dueproof/engine}:${DUEPROOF_VERSION:-0.1.0}
+    build:
+      context: ../../services/engine
+      args:
+        INSTALL_TRANSLATION: ${ENGINE_INSTALL_TRANSLATION:-1}
+        INSTALL_TESSERACT: ${ENGINE_INSTALL_TESSERACT:-1}
+        OCR_PACKS: ${ENGINE_OCR_PACKS:-tesseract-ocr-hin tesseract-ocr-mal tesseract-ocr-tam}
+    environment:
+      ENGINE_SHARED_SECRET: ${ENGINE_SHARED_SECRET}
+      # Defence in depth on top of the network: fetch and PUT only to the app.
+      DUEPROOF_ALLOWED_HOSTS: app
+      # No model hub lookups, ever (the network has no route out anyway).
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+    volumes:
+      # Optional IndicTrans2 weights (docs/install.md, "Offline translation").
+      - ${INDICTRANS2_DIR:-./indictrans2}:/models/indictrans2:ro
+    tmpfs:
+      - /tmp:size=1g
+    networks: [internal]
+    pids_limit: 512
+    mem_limit: ${ENGINE_MEMORY:-6g}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/health', timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+
+  postgres:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dueproof
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: dueproof
+      POSTGRES_INITDB_ARGS: --data-checksums
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    shm_size: 256m
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dueproof -d dueproof"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 6
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      app: { condition: service_healthy }
+    environment:
+      DUEPROOF_DOMAIN: ${DUEPROOF_DOMAIN}
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+      - "${HTTPS_PORT:-443}:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks: [edge]
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: ["no-new-privileges:true"]
+
+  # Nightly database dump + files archive, verified after each run (03 §14).
+  backup:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+    entrypoint: ["/bin/sh", "/scripts/backup.sh", "schedule"]
+    environment: &backup-env
+      PGHOST: postgres
+      PGUSER: dueproof
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: dueproof
+      BACKUP_AT: ${BACKUP_AT:-02:30}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+      TZ: ${TZ:-Asia/Kolkata}
+    volumes: &backup-volumes
+      - ./scripts:/scripts:ro
+      - ${BACKUP_DIR:-./backups}:/backups
+      - files:/data/files:ro
+    networks: [internal]
+    logging:
+      driver: json-file
+      options: { max-size: "5m", max-file: "3" }
+
+  # Runs once per `up`: dumps the database before the app migrates it, if
+  # there is anything to dump (skipped on a fresh install).
+  pre-upgrade-backup:
+    image: pgvector/pgvector:pg17
+    restart: "no"
+    depends_on:
+      postgres: { condition: service_healthy }
+    entrypoint: ["/bin/sh", "/scripts/backup.sh", "pre-upgrade"]
+    environment: *backup-env
+    volumes: *backup-volumes
+    networks: [internal]
+
+  # Restore a backup: see docs/backup-and-restore.md. Not started by `up`.
+  restore:
+    image: pgvector/pgvector:pg17
+    profiles: [restore]
+    restart: "no"
+    depends_on:
+      postgres: { condition: service_healthy }
+    entrypoint: ["/bin/sh", "/scripts/restore.sh"]
+    environment: *backup-env
+    volumes:
+      - ./scripts:/scripts:ro
+      - ${BACKUP_DIR:-./backups}:/backups:ro
+      - files:/data/files
+    networks: [internal]
+
+networks:
+  edge: {}
+  internal:
+    internal: true
+
+volumes:
+  pgdata: {}
+  files: {}
+  caddy-data: {}
+  caddy-config: {}

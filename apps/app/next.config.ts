@@ -37,7 +37,6 @@ const config: NextConfig = {
     "@electric-sql/pglite",
     "postgres",
     "@neondatabase/serverless",
-    "@vercel/sandbox",
   ],
   poweredByHeader: false,
   // The repo has its own AGENTS.md; don't let `next dev` write another one here.
