@@ -143,8 +143,9 @@ Punjabi, Sanskrit, Santali, Sindhi, Tamil, Telugu and Urdu.
 
 ## Status
 
-Version 0.1, early. It works end to end and is tested: 265 tests, plus an
-accuracy gate in CI that fails if any finding is outlined confidently in the
+This is the **demo** (0.0.1), a working proof of concept; version 0.1 is the
+full rebuild now being planned in [planning/v0.1-plan.md](planning/v0.1-plan.md).
+The demo works end to end and is tested: 265 tests, plus an accuracy gate in CI that fails if any finding is outlined confidently in the
 wrong place. It has been measured only on a small, fictional set of notices.
 Before you rely on it for real deadlines, run it beside your current process
 and measure it on your own documents with `dueproof eval`.

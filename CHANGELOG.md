@@ -1,8 +1,12 @@
 # Changelog
 
-## 0.1.0 — 2026-10-24
+## Demo (0.0.1) — 2026-10-24
 
-First public version.
+The proof-of-concept, now labelled the demo. It was first published as
+"0.1.0"; that number now belongs to the full rebuild described in
+[planning/v0.1-plan.md](planning/v0.1-plan.md).
+
+First public version (the demo).
 
 **Reading**
 - PDFs through PDFium; phone photos (JPEG, PNG, multi-page TIFF) through

@@ -1,5 +1,5 @@
 export const REPO = "https://github.com/MaanavKrishna/dueproof";
-export const VERSION = "0.1";
+export const VERSION = "0.0.1 demo";
 
 /** A file in public/, with the GitHub Pages base path in front. */
 export const asset = (path: string) => `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}${path}`;
