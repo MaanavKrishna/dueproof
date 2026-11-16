@@ -5,12 +5,13 @@
  * default), the team, and a first notice. Each step saves as you go, so
  * leaving half-way loses nothing; everything can be changed in Settings.
  */
-import { UploadIcon } from "@dueproof/icons";
+import { CopyIcon, UploadIcon } from "@dueproof/icons";
 import {
   Banner,
   Button,
   Card,
   Checkbox,
+  IconButton,
   Radio,
   RadioGroup,
   Select,
@@ -59,7 +60,7 @@ const STEPS: WizardStep[] = [
     id: "team",
     label: "Invite your team",
     title: "Invite your team",
-    description: "Each person signs up with the address you invite.",
+    description: "We'll email each person a sign-up link. You can copy it too.",
   },
   {
     id: "first",
@@ -100,6 +101,9 @@ export function SetupWizard({ initial }: { initial: SetupInitial }) {
   const [apiKey, setApiKey] = useState("");
   const [emails, setEmails] = useState("");
   const [role, setRole] = useState("member");
+  const [invited, setInvited] = useState<Array<{ email: string; link: string; emailed: boolean }>>(
+    [],
+  );
 
   const step = STEPS[current];
   const go = (n: number) => {
@@ -168,14 +172,26 @@ export function SetupWizard({ initial }: { initial: SetupInitial }) {
           setError(res.message);
           return false;
         }
-        const n = res.data.invited.length;
+        const people = res.data.invited.map((i) => ({
+          email: i.email,
+          link: i.link,
+          emailed: i.emailed,
+        }));
+        setInvited((cur) => [
+          ...cur.filter((c) => !people.some((p) => p.email === c.email)),
+          ...people,
+        ]);
+        const n = people.length;
         toast({
-          title: n === 1 ? "1 invitation ready" : `${n} invitations ready`,
-          description: `They sign up at ${initial.appUrl}/sign-up with the invited address.`,
+          title: n === 1 ? "1 person invited" : `${n} people invited`,
+          description: people.every((p) => p.emailed)
+            ? "We've emailed each of them a sign-up link."
+            : "Copy each link below and send it to them.",
           tone: "success",
         });
         setEmails("");
-        return true;
+        // Stay on this step so the links can be copied; Next then moves on.
+        return n === 0;
       }
       case "first": {
         const res = await finishSetup("completed");
@@ -340,6 +356,34 @@ export function SetupWizard({ initial }: { initial: SetupInitial }) {
             rows={4}
           />
           <Select label="Role" value={role} onValueChange={setRole} options={ROLE_OPTIONS} />
+          {invited.length > 0 ? (
+            <Card variant="sunken" padding="md">
+              <p>
+                <strong>Invited.</strong> Each link opens sign-up with the address filled in. It
+                works for 14 days.
+              </p>
+              <ul aria-label="Invitation links">
+                {invited.map((i) => (
+                  <li key={i.email}>
+                    {i.email} · {i.emailed ? "emailed" : "not emailed: send the link yourself"}{" "}
+                    <IconButton
+                      icon={CopyIcon}
+                      size="sm"
+                      label={`Copy sign-up link for ${i.email}`}
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(i.link);
+                          toast({ title: "Sign-up link copied", description: "Send it to them." });
+                        } catch {
+                          toast({ title: "Couldn't copy", description: i.link });
+                        }
+                      }}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          ) : null}
         </>
       ) : null}
       {step?.id === "first" ? (

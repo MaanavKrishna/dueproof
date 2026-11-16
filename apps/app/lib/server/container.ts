@@ -20,6 +20,8 @@ import { loadEe } from "../ee";
 import { type Env, getEnv } from "../env";
 import { createHeavyEngine, type HeavyEngine } from "../heavy-engine";
 import { hasFeature } from "../licence";
+import { createMailer, type Mailer } from "../mail";
+import { renderResetEmail } from "../mail-templates";
 import type { DocumentRef } from "../pipeline/types";
 import { storageHosts } from "../security/headers";
 
@@ -43,6 +45,8 @@ export interface Container {
    * place of the one built from the organisation's settings.
    */
   aiProvider?: Provider;
+  /** Tests only: the mailer used in place of the one MAIL_DRIVER configures. */
+  mailer?: Mailer;
   /** Starts processDocument for a stored document; returns a run id. */
   startPipeline: (ref: DocumentRef) => Promise<string>;
 }
@@ -190,6 +194,19 @@ export function businessAuth(env: Env, database: Database) {
   };
 }
 
+/**
+ * Better Auth's password reset email, through the mail driver. A failure is
+ * swallowed (the person sees the same "check your email" either way, so the
+ * page never reveals whether an account exists); the link is never logged.
+ */
+export function resetPasswordSender(mailer: () => Mailer) {
+  return async ({ user, url }: { user: { email: string; name: string }; url: string }) => {
+    await mailer()
+      .send(renderResetEmail({ to: user.email, name: user.name || null, link: url }))
+      .catch(() => undefined);
+  };
+}
+
 async function build(env: Env): Promise<Container> {
   const database = await createDatabase(
     env.DATABASE_DRIVER === "pglite"
@@ -209,6 +226,7 @@ async function build(env: Env): Promise<Container> {
         .map((s) => s.trim())
         .filter(Boolean) ?? [],
     ...(env.AUTH_IP_HEADER ? { ipAddressHeaders: [env.AUTH_IP_HEADER] } : {}),
+    sendResetPassword: resetPasswordSender(() => createMailer(env)),
   });
 
   const { storage, engineStorage } = storagePair(env);

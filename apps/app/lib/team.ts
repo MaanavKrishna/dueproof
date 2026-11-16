@@ -15,12 +15,17 @@ import { asc, clients, isNull, withOrg } from "@dueproof/db";
 import { z } from "zod";
 import type { AuthContext } from "./authorize";
 import { badRequest, forbidden, notFound } from "./errors";
+import { inviteLink } from "./invite-link";
+import { canSendMail, mailerFor } from "./mail";
+import { renderInviteEmail } from "./mail-templates";
 import {
   cancelInvitation,
   createInvitation,
   deleteMember,
   getMember,
   getOrg,
+  getUser,
+  INVITATION_DAYS,
   type InvitationRecord,
   listMembers,
   listPendingInvitations,
@@ -88,8 +93,15 @@ export const InviteInput = z.object({
   role: Role,
 });
 
+export interface InvitedPerson extends InvitationRecord {
+  /** The sign-up link with the address filled in (the same one the email carries). */
+  link: string;
+  /** Whether the invitation email went out (false without a mail server, or if it failed). */
+  emailed: boolean;
+}
+
 export interface InviteResult {
-  invited: InvitationRecord[];
+  invited: InvitedPerson[];
   /** Addresses that already belong to a member. */
   skipped: string[];
 }
@@ -99,8 +111,13 @@ export async function inviteFor(ctx: AuthContext, raw: unknown): Promise<InviteR
   if (!parsed.success) throw badRequest(parsed.error.issues[0]?.message ?? "Check the addresses.");
   const { emails, role } = parsed.data;
   if (role === "owner" && ctx.role !== "owner") throw forbidden("Only an owner can invite owners.");
-  const { database } = ctx.container;
-  const invited: InvitationRecord[] = [];
+  const { database, env } = ctx.container;
+  const [org, inviter] = await Promise.all([
+    getOrg(database, ctx.orgId),
+    getUser(database, ctx.userId),
+  ]);
+  const mailer = mailerFor(ctx.container);
+  const invited: InvitedPerson[] = [];
   const skipped: string[] = [];
   for (const email of [...new Set(emails)]) {
     if (await memberExistsByEmail(database, ctx.orgId, email)) {
@@ -108,9 +125,32 @@ export async function inviteFor(ctx: AuthContext, raw: unknown): Promise<InviteR
       continue;
     }
     const inv = await createInvitation(database, ctx.orgId, { email, role, inviterId: ctx.userId });
-    invited.push(inv);
+    const link = inviteLink(env.APP_URL, email);
+    let emailed = false;
+    try {
+      const sent = await mailer.send(
+        renderInviteEmail({
+          to: email,
+          orgName: org?.name ?? "your organisation",
+          inviterName: inviter?.name ?? null,
+          role,
+          link,
+          days: INVITATION_DAYS,
+        }),
+      );
+      emailed = sent.delivered;
+    } catch {
+      // The invitation stands; the admin can copy the link from Team & access.
+      emailed = false;
+    }
+    invited.push({ ...inv, link, emailed });
     // The address is the invitation's subject; it's needed to trace who was let in.
-    await writeAudit(ctx, "invitation.create", { role, email }, { type: "invitation", id: inv.id });
+    await writeAudit(
+      ctx,
+      "invitation.create",
+      { role, email, emailed },
+      { type: "invitation", id: inv.id },
+    );
   }
   return { invited, skipped };
 }
@@ -238,4 +278,25 @@ export async function removeMemberFor(ctx: AuthContext, memberId: unknown): Prom
     { role: target.role },
     { type: "user", id: target.userId },
   );
+}
+
+/**
+ * Emails a member a password reset link (Better Auth's reset, through the
+ * mail driver). The admin never sees the link: only the member's inbox gets
+ * it. Refused when the install has no mail server, since nothing would arrive.
+ */
+export async function sendPasswordResetFor(ctx: AuthContext, memberId: unknown): Promise<void> {
+  const target = await loadTarget(ctx, memberId);
+  if (target.userId === ctx.userId)
+    throw badRequest("To reset your own password, use “Forgot password?” on the sign-in page.");
+  if (target.role === "owner" && ctx.role !== "owner")
+    throw forbidden("Only an owner can send an owner a reset link.");
+  if (!canSendMail(ctx.container))
+    throw badRequest(
+      "This install can't send email yet. An administrator of the server can set it up (MAIL_DRIVER).",
+    );
+  await ctx.container.auth.api.requestPasswordReset({
+    body: { email: target.email, redirectTo: "/reset-password" },
+  });
+  await writeAudit(ctx, "member.password_reset.send", {}, { type: "user", id: target.userId });
 }

@@ -26,6 +26,16 @@ export interface Mailer {
 /** Messages the stub "sent", newest last; for tests and the dev harness. */
 export const stubOutbox: MailMessage[] = [];
 
+/** The container's mailer when a test installed one, else the one the environment configures. */
+export function mailerFor(c: { env: Env; mailer?: Mailer | undefined }): Mailer {
+  return c.mailer ?? createMailer(c.env);
+}
+
+/** Whether mail actually leaves this install (the log driver only records it). */
+export function canSendMail(c: { env: Env; mailer?: Mailer | undefined }): boolean {
+  return Boolean(c.mailer) || c.env.MAIL_DRIVER !== "log";
+}
+
 export function createMailer(env: Env): Mailer {
   switch (env.MAIL_DRIVER) {
     case "resend":

@@ -27,15 +27,22 @@ import {
   changeMemberRole,
   inviteMembers,
   removeMember,
+  sendMemberPasswordReset,
   setMemberApprover,
   setMemberClientAccess,
 } from "../app/actions/team";
 import { authorize } from "../lib/authorize";
 import { parseEnv } from "../lib/env";
+import type { MailMessage } from "../lib/mail";
 import { activeNavId } from "../lib/nav";
 import { clientIdsFor, parseOrgMetadata } from "../lib/org-metadata";
 import { noFlashScript, readPreferences } from "../lib/preferences";
-import { type Container, createEngine, setContainer } from "../lib/server/container";
+import {
+  type Container,
+  createEngine,
+  resetPasswordSender,
+  setContainer,
+} from "../lib/server/container";
 import { findInvitationByEmail, getOrg, listMembers } from "../lib/server/directory";
 import { safeNext } from "../lib/server/page";
 import { getOrganisationFor, sniffLogo } from "../lib/settings";
@@ -57,6 +64,14 @@ vi.mock("next/headers", () => ({
 let dir: string;
 let database: Database;
 let container: Container;
+/** What the test mailer "delivered", newest last. */
+const outbox: MailMessage[] = [];
+const testMailer = {
+  send: async (m: MailMessage) => {
+    outbox.push(m);
+    return { driver: "smtp" as const, delivered: true };
+  },
+};
 
 async function signUp(email: string, name: string): Promise<string> {
   const res = await container.auth.api.signUpEmail({
@@ -95,7 +110,9 @@ beforeAll(async () => {
       secret: env.AUTH_SECRET,
       signupPolicy: "first-user",
       rateLimit: false,
+      sendResetPassword: resetPasswordSender(() => container.mailer ?? testMailer),
     }),
+    mailer: testMailer,
     storage,
     engineStorage: storage,
     engine: createEngine(env, storage),
@@ -283,6 +300,14 @@ describe("settings and team", () => {
       "ananya@mehtaiyer.test",
     ]);
     expect(res.data.skipped).toEqual(["priya@mehtaiyer.test"]);
+    // Each invitee is emailed the same working link the admin can copy.
+    const link = `${APP}/sign-up?email=rahul%40mehtaiyer.test`;
+    expect(res.data.invited[0]).toMatchObject({ link, emailed: true });
+    const mail = outbox.find((m) => m.to === "rahul@mehtaiyer.test");
+    expect(mail?.subject).toBe("Join Mehta Iyer & Associates on Dueproof");
+    expect(mail?.text).toContain(link);
+    expect(mail?.html).toContain(link);
+    expect(mail?.html).toContain("Mehta Iyer &amp; Associates");
     expect(await findInvitationByEmail(database, "rahul@mehtaiyer.test")).toMatchObject({
       orgName: "Mehta Iyer & Associates",
       role: "member",
@@ -378,6 +403,46 @@ describe("settings and team", () => {
     await expect(authorize("client.view", { resource: { clientId: other } })).resolves.toBeTruthy();
   });
 
+  it("emails a member a password reset link, within the owner and self rules", async () => {
+    as(owner);
+    const members = await listMembers(database, orgId);
+    const me = members.find((m) => m.userId === ownerId);
+    const r = members.find((m) => m.email === "rahul@mehtaiyer.test");
+    if (!me || !r) throw new Error("members missing");
+    // Your own reset goes through the sign-in page.
+    expect(await sendMemberPasswordReset(me.memberId)).toMatchObject({ ok: false });
+    // A member can't send anyone a link.
+    as(rahul);
+    expect(await sendMemberPasswordReset(me.memberId)).toMatchObject({
+      ok: false,
+      error: "forbidden",
+    });
+    // Without a mail server nothing would arrive, so it's refused.
+    as(owner);
+    delete container.mailer;
+    expect(await sendMemberPasswordReset(r.memberId)).toMatchObject({ ok: false });
+    container.mailer = testMailer;
+
+    const before = outbox.length;
+    expect(await sendMemberPasswordReset(r.memberId)).toMatchObject({ ok: true });
+    const mail = outbox.slice(before).find((m) => m.to === "rahul@mehtaiyer.test");
+    expect(mail?.subject).toBe("Reset your Dueproof password");
+    const url = mail?.text.match(/https?:\/\/\S+\/api\/auth\/reset-password\/\S+/)?.[0];
+    expect(url).toBeTruthy();
+    const token = new URL(url ?? "").pathname.split("/").pop() ?? "";
+    await container.auth.api.resetPassword({
+      body: { token, newPassword: "rahul's brand new password" },
+    });
+    const signedIn = await container.auth.api.signInEmail({
+      body: { email: "rahul@mehtaiyer.test", password: "rahul's brand new password" },
+      returnHeaders: true,
+    });
+    // The reset signed out his other sessions; carry on with the new one.
+    rahul = (signedIn.headers.get("set-cookie") ?? "").split(";")[0] ?? "";
+    as(rahul);
+    await expect(authorize("case.view")).resolves.toBeTruthy();
+  });
+
   it("removes a member, who loses access at once", async () => {
     as(owner);
     const r = (await listMembers(database, orgId)).find((m) => m.email === "rahul@mehtaiyer.test");
@@ -406,11 +471,14 @@ describe("settings and team", () => {
       "member.role.change",
       "member.approver.change",
       "member.client_access.change",
+      "member.password_reset.send",
       "member.remove",
     ])
       expect(actions).toContain(a);
     // No secret values in detail: logos record a size, not bytes.
     expect(JSON.stringify(page.data)).not.toContain("a-long-test-password");
+    // Nor reset links.
+    expect(JSON.stringify(page.data)).not.toContain("reset-password/");
     const v = await verifyAuditChain();
     expect(v).toMatchObject({ ok: true, data: { ok: true } });
   });

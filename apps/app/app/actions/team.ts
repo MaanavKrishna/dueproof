@@ -8,6 +8,7 @@
  *   await changeMemberRole(memberId, "manager");
  *   await setMemberApprover(memberId, true);
  *   await setMemberClientAccess(memberId, ["client-id", …]);   // null = every client
+ *   await sendMemberPasswordReset(memberId);                    // emails them a reset link
  */
 import { type ActionResult, runAction } from "@/lib/action-result";
 import { authorize } from "@/lib/authorize";
@@ -17,6 +18,7 @@ import {
   type InviteResult,
   inviteFor,
   removeMemberFor,
+  sendPasswordResetFor,
   setApproverFor,
   setClientAccessFor,
 } from "@/lib/team";
@@ -64,6 +66,13 @@ export async function setMemberClientAccess(
 export async function removeMember(memberId: string): Promise<ActionResult<null>> {
   return runAction("remove member", async () => {
     await removeMemberFor(await authorize("team.manage"), memberId);
+    return null;
+  });
+}
+
+export async function sendMemberPasswordReset(memberId: string): Promise<ActionResult<null>> {
+  return runAction("send reset link", async () => {
+    await sendPasswordResetFor(await authorize("team.manage"), memberId);
     return null;
   });
 }

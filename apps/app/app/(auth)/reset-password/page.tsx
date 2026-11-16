@@ -9,8 +9,13 @@ export const metadata: Metadata = { title: "Reset password" };
 export default async function ResetPasswordPage({
   searchParams,
 }: {
-  searchParams: Promise<{ token?: string }>;
+  searchParams: Promise<{ token?: string; error?: string }>;
 }) {
-  const { token } = await searchParams;
-  return <ResetPasswordForm token={typeof token === "string" && token ? token : null} />;
+  const { token, error } = await searchParams;
+  return (
+    <ResetPasswordForm
+      token={typeof token === "string" && token ? token : null}
+      expired={error === "INVALID_TOKEN"}
+    />
+  );
 }

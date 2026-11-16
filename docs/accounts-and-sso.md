@@ -14,7 +14,7 @@ single sign-on on the Business edition.
 | `open` | hosted | Anyone can sign up. Someone with a pending invitation joins that organisation; anyone else gets a new organisation as its owner |
 
 Someone without an invitation on a `first-user` install sees **Sign-up is by
-invitation**.
+invitation**, which tells them to ask an administrator for an invite link.
 
 ## Inviting people
 
@@ -22,12 +22,19 @@ Owners and admins invite from **Settings → Team & access → Invite people**
 (or the setup wizard's **Invite your team** step): email addresses and a
 role.
 
-**Dueproof doesn't send an invitation email in v0.1.** Under
-**Invitations**, use the copy button beside each address to copy its
-sign-up link (`/sign-up?email=<their address>`) and send it yourself. The
-page names your organisation and the role, with the address filled in.
-Plain `/sign-up` without the address shows **Sign-up is by invitation**.
-Invitations last 14 days; cancel one from the same list.
+Each person gets an invitation email through the install's mail settings
+(`MAIL_DRIVER`, see [Configuration](configuration.md#reminders-and-email)).
+It carries their sign-up link, `/sign-up?email=<their address>`. The page
+names your organisation and the role, with the address filled in.
+
+The same link is shown in the setup wizard after you invite, and under
+**Invitations** in **Team & access** (the copy button beside each address).
+Use it when the install has no mail server (`MAIL_DRIVER=log` sends
+nothing) or an email went astray: copy it and send it yourself.
+
+Plain `/sign-up` without an invited address shows **Sign-up is by
+invitation** and asks the person to get an invite link from an
+administrator. Invitations last 14 days; cancel one from the same list.
 
 ## Roles
 
@@ -56,10 +63,20 @@ At least 10 characters (at most 256), stored as Argon2id hashes. Sign-in is
 limited to 20 attempts per 15 minutes from one address, and sign-up to 3 an
 hour.
 
-**Forgot your password?** asks for a reset link, but **v0.1 doesn't send
-reset emails yet**. The page says so politely and never says whether an
-account exists. Until email reset arrives, a forgotten password can't be
-reset from the app. A passkey, added beforehand, is the way back in.
+**Forgot your password?** emails a reset link through the install's mail
+settings. The page gives the same answer whether or not the account exists.
+The link works once, for one hour, and choosing a new password signs out
+every other session.
+
+An owner or admin can also send a member a reset link: in **Team &
+access**, open the **⋯** menu beside the person and choose **Email a
+password reset link**. Only the member's inbox gets the link; the
+administrator never sees it. Only an owner can send one to another owner,
+and you reset your own password from the sign-in page.
+
+Reset emails need a mail server. With `MAIL_DRIVER=log` nothing is sent:
+the admin action says so, and a passkey added beforehand is the way back
+in.
 
 ## Passkeys
 
