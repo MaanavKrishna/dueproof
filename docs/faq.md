@@ -1,27 +1,45 @@
 # FAQ
 
-**Does any document leave my machine?**
-No. There is no code path that sends document text anywhere. The only network
-access in the project is `dueproof fetch-model`, which you run by hand once to
-download translation weights.
+**Does any document leave my server?**
+Not on a self-hosted server with AI off. The engine that opens your files
+has no network route out, translation runs on your server, and Dueproof
+sends no telemetry. **Settings → System → Network** lists every host the
+install connects to. If you turn AI on with your own key or the Dueproof AI
+plan, the parts of a notice the rules weren't sure of go to that provider.
+On the hosted service, your data is stored outside India: the database in
+Singapore and files in Cloudflare R2 (see [Deployment](deployment.md)).
 
-**Does it use ChatGPT or another LLM?**
-No. Extraction is rules you can read and change; translation is a small,
-dedicated model (IndicTrans2, about 200 million parameters) running locally.
+**Does it use ChatGPT or another AI model?**
+Not unless you turn it on. Rules read every notice, and they are lists of
+words you can read and change. AI is off by default; an owner or admin can
+choose a local model, your own key (Anthropic, OpenAI and others) or, on
+hosted, the Dueproof AI plan (Claude). AI never sets a date: it returns a
+rule, and Dueproof works out the date.
 
-**How accurate is it?**
-Measured on the project's small fictional corpus: every obligation it reports
-is real, it finds about three quarters of them, and every due date it reports
-is right. On your documents it will differ — measure it with
-[`dueproof eval`](evaluation.md). It is built to be wrong visibly: an
-unlocatable passage gets no box, and a doubtful translation is flagged.
+**How do I know a deadline is right?**
+Click it. The page opens with the sentence outlined, and the deadline says
+how its date was worked out. Anything Dueproof isn't sure of waits in
+**Needs review** until a person confirms it. Measure it on your own
+documents with the [evaluation tool](evaluation.md).
 
 **Can it read handwriting?** No.
 
-**Does it need a GPU?** No. Translation runs on a CPU; a page takes a second
-or two to read and a few seconds to translate.
+**Does it need a GPU?** No.
 
-**What does it cost?** Nothing; it is Apache-2.0 licensed. Hosting, support and
-integrations for organisations are planned.
+**Can it read notices in Hindi, Tamil and other Indian languages?**
+Yes, from PDFs with a text layer; with offline translation set up, the rules
+read them too. Scanned Indian-language notices are a known gap in v0.1. See
+[Languages](languages.md).
+
+**Does it file replies or pay anything?** No. It proposes; a person decides.
+
+**What does it cost?**
+Self-hosted is free, with no limits on what reads, proves and tracks
+notices. Single sign-on, audit export and white-label reports need a
+Business licence. The hosted service is paid.
+
+**What licence is it under?**
+FSL-1.1-ALv2 (see `LICENSE`), except `ee/`, which is under a commercial
+licence.
 
 **Why "Dueproof"?** Every due date, with proof.

@@ -36,11 +36,9 @@ The sample notice (`lib/sample.ts`) is fictional.
 
 ## Deploying
 
-**GitHub Pages:** a project site is served under `/<repo>/`, so build with
-`PAGES_BASE_PATH=/dueproof pnpm --filter @dueproof/site build` and publish
-`apps/site/out`.
+The website is at <https://dueproof-site.vercel.app>.
 
 **Vercel:** create a project with Root Directory `apps/site` and the Next.js
 framework preset; Vercel installs the pnpm workspace from the repository root
-and serves the static export. Leave `PAGES_BASE_PATH` unset. No environment
-variables are needed.
+and serves the static export. Leave `PAGES_BASE_PATH` unset (it is only for
+serving the export under a sub-path). No environment variables are needed.

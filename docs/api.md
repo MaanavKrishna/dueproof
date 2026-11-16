@@ -1,43 +1,71 @@
 # API
 
-The web app uses this API; so can you. All responses are JSON unless stated.
-With sign-in on, calls need the session cookie (from `POST /api/login`) or your
-proxy's user header, and every `POST`/`PATCH` needs the header `X-Dueproof: 1`.
+Most of Dueproof v0.1 runs on Next.js server actions, which aren't a public
+API. The HTTP routes below are the ones the app's own pages and the desktop
+app call. They use the signed-in session cookie; v0.1 has no API keys yet.
+
+Rules for every route that needs a session:
+
+- It checks the person's role for the action and works only inside their
+  organisation.
+- A `POST` must come from the app's own origin (the `Origin` header, or
+  `Sec-Fetch-Site: same-origin`), or from one in `AUTH_TRUSTED_ORIGINS`.
+  Anything else gets 403 `csrf`.
+- Errors are JSON: `{ "error": "<code>", "message": "<plain words>" }`.
+
+## Uploading
+
+An upload has three steps, so the file goes straight to storage and never
+through the app.
+
+| | | |
+|---|---|---|
+| `POST` | `/api/v1/uploads` | JSON `{ filename, size, mime, sha256, receivedOn?, role?, caseId?, clientId? }`. `mime`: PDF, JPEG, PNG or TIFF. `receivedOn` is `YYYY-MM-DD` (default: today in the organisation's time zone). Answers 201 `{ status: "upload", documentId, upload }` with a signed PUT link that expires within 5 minutes, or 200 `{ status: "duplicate", documentId }` if the organisation already has the same file |
+| `PUT` | the `upload` link | The file's bytes |
+| `POST` | `/api/v1/uploads/{id}/complete` | Checks the stored file's size, SHA-256 and real type, then starts the workflow. 422 if the file was quarantined |
+
+Too large: 413 `too_large` (over `UPLOAD_MAX_BYTES`). Wrong type: 415
+`unsupported_type`. Too many: 429.
 
 ## Documents
 
 | | | |
 |---|---|---|
-| `POST` | `/api/upload` | multipart: `file` (PDF, JPEG, PNG, TIFF), optional `channel`, `sender`, `received_on` (YYYY-MM-DD). Returns `{doc_id, duplicate}` — identical bytes return the existing document. |
-| `GET` | `/api/status/{doc_id}` | `{stage, percent, status, done}` while processing |
-| `GET` | `/api/documents?role=&channel=&limit=&offset=` | A page of the queue, newest first; `X-Total-Count` header |
-| `GET` | `/api/document/{doc_id}` | The card: notice fields, bullets, obligations, duplicates |
-| `PATCH` | `/api/documents/{doc_id}` | `{received_on?, title?}`; receipt-based deadlines move with `received_on` |
-| `POST` | `/api/inbox/scan` | Ingest new files in `<data>/inbox/` |
-| `GET` | `/api/page/{doc_id}/{n}.jpg` | Page image |
+| `GET` | `/api/v1/documents/{id}` | The document with its findings, proof, deadlines and history |
+| `GET` | `/api/v1/documents/{id}/events` | Server-sent events: `event: status` with `{ status, detail, at }` on each change, until it is `ready`, `needs_review`, `needs_password`, `failed` or `quarantined` |
 
-## Obligations
+## Reports and calendars
 
 | | | |
 |---|---|---|
-| `GET` | `/api/deadlines?role=&status=&days=&limit=&offset=` | Dated obligations in due order. `status`: `open` (default), `done`, `dismissed`, `all` |
-| `PATCH` | `/api/findings/{id}` | Any of `{status, assignee, due_date, roles, note}`; `null` due date or roles restores what was found |
-| `GET` | `/api/findings/{id}/history` | Every change, oldest first |
-| `GET` | `/api/export/deadlines.csv` | Same filters; spreadsheet with BOM for Excel |
-| `GET` | `/api/export/deadlines.html` | Same filters; printable evidence report |
+| `GET` | `/api/v1/reports/deadlines.csv` | With the Deadlines filters: `client`, `person`, `type`, `status`, `source` (comma separated) |
+| `GET` | `/api/v1/reports/clients.csv` | |
+| `GET` | `/api/v1/reports/workload.csv` | |
+| `GET` | `/api/v1/reports/exposure.csv` | |
+| `GET` | `/api/v1/reports/statement.csv?client=` | |
+| `GET` | `/api/v1/reports/evidence.csv?case=` · `?client=` · `?range=YYYY-MM-DD..YYYY-MM-DD` | |
+| `GET` | `/api/v1/calendar/{token}.ics` | A calendar feed. The token is the authorisation (no session); make one with **Subscribe (iCal)** |
+| `GET` | `/api/v1/audit-export?from=&to=&format=jsonl\|csv&part=records\|report` | Business, owners and admins: the audit trail with its hash chain, or its verification report |
 
-Each finding carries `due_date` (with any correction), `found_due_date`,
-`roles`, `found_roles`, `status`, `assignee`, `note`, `section`, `tag`
-(`hearing`), `due_basis` (`receipt:30`), `evidence_quote`, `page`, `rects`
-(boxes as fractions of the page, `[x0, y0, x1, y1]`), `confidence`
-(`exact`/`strong`/`approximate`/`none`), `orig_lang`, `translated`, `term_flags`.
+CSV files are UTF-8 with a byte-order mark, so Excel reads ₹ and Indian
+scripts.
 
-## Search, people, audit
+## Sign-in
+
+`/api/auth/*` is Better Auth: sign-up and sign-in with email and password
+(`/api/auth/sign-up/email`, `/api/auth/sign-in/email`), passkeys, two-step
+verification, sessions and, on Business, SAML. The app's pages use Better
+Auth's own client.
+
+## Operations
 
 | | | |
 |---|---|---|
-| `GET` | `/api/search?q=` | Pages and translated findings matching every term, with rectangles |
-| `POST` | `/api/login` · `/api/logout` | `{email, password}` |
-| `GET` | `/api/me` · `/api/users` | Who is signed in; who findings can be assigned to |
-| `GET` | `/api/audit?doc_id=&action=` | The audit trail, newest first |
-| `GET` | `/api/meta` · `/api/version` · `/health` | Settings for the app; version; liveness |
+| `GET` | `/api/health` | Database and engine reachability and timings, version, edition. 200 (`ok` or `degraded`) or 503 (`down`). Self-hosted: refused by Caddy, so call it from the server |
+| `GET` | `/api/metrics` | Prometheus text. From the server itself, or with `Authorization: Bearer <METRICS_TOKEN>` |
+| `GET` | `/api/cron/daily` | The daily reminder run, with `Authorization: Bearer <CRON_SECRET>`. 404 when `CRON_SECRET` is unset. See [Workflow and reminders](workflow-and-reminders.md#the-daily-run) |
+| `GET`, `PUT` | `/api/storage/local` | Signed file links when files are on the server's disk. The link's token is the authorisation |
+
+The engine's own API (`services/engine`) is described in
+[`services/engine/README.md`](../services/engine/README.md). Only the app
+calls it.

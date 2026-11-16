@@ -5,7 +5,7 @@ Dueproof v0.1 runs three ways:
 | | Where | Guide |
 |---|---|---|
 | **Self-hosted server** | Your Linux server, Docker Compose: app + engine + Postgres + Caddy | [Install](install.md), [Backup and restore](backup-and-restore.md), [Upgrading](upgrading.md) |
-| **Hosted** | Vercel (app, workflows, engine-fast, engine-heavy in Sandbox) + Neon + Cloudflare R2, Mumbai | [`infra/vercel/README.md`](../infra/vercel/README.md) |
+| **Hosted** | Vercel (app, workflows, engine-fast, engine-heavy in Sandbox) + Neon + Cloudflare R2. App and database in Singapore, engine-fast in Mumbai | [`infra/vercel/README.md`](../infra/vercel/README.md) |
 | **Desktop** | Tauri app for Windows, macOS and Linux; in v0.1 it connects to one of the servers above | [Desktop app](desktop.md) |
 
 The demo's systemd and single-container instructions (0.0.x) no longer apply.
@@ -14,10 +14,10 @@ The demo's systemd and single-container instructions (0.0.x) no longer apply.
 
 ```mermaid
 flowchart LR
-  B[Browser] --> APP["dueproof-app (Next.js, bom1)<br/>Workflow DevKit, Vercel World"]
-  APP --> NEON[("Neon Postgres<br/>aws-ap-south-1")]
+  B[Browser] --> APP["dueproof-app (Next.js, sin1)<br/>Workflow DevKit, Vercel World"]
+  APP --> NEON[("Neon Postgres<br/>aws-ap-southeast-1 (Singapore)")]
   APP --> R2[("Cloudflare R2")]
-  APP -->|signed URLs + 5-min token| EF["dueproof-engine-fast<br/>Python Function, no secrets"]
+  APP -->|signed URLs + 5-min token| EF["dueproof-engine-fast (bom1)<br/>Python Function, no secrets"]
   APP -. only when needed .-> EH["engine-heavy<br/>Vercel Sandbox from a snapshot<br/>network: R2 only"]
   EF & EH --> R2
 ```
@@ -34,7 +34,14 @@ flowchart LR
 - Files never pass through a function: browsers and the engine use signed
   storage URLs that expire within 5 minutes.
 
-Configuration lives in `apps/app/vercel.ts` (region `bom1`, Fluid compute,
+**Where the data is.** Neon through the Vercel Marketplace offers Singapore
+(`aws-ap-southeast-1`) as its closest region to India, so the database is
+there and the app's functions run beside it (`sin1`). Files are in
+Cloudflare R2, which can't be pinned to India. So **hosted data is stored
+outside India**. engine-fast runs in Mumbai (`bom1`) and keeps nothing. If
+your data must stay in India, run Dueproof on your own server.
+
+Configuration lives in `apps/app/vercel.ts` (region `sin1`, Fluid compute,
 function durations) and `services/engine/vercel.json`. The full set of
 environment variables for each project is in
 [`infra/vercel/README.md`](../infra/vercel/README.md).

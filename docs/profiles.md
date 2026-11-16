@@ -1,49 +1,47 @@
-# Profiles
+# Notice types
 
-Everything Dueproof looks for lives in a profile: a Python file of plain lists
-in `dueproof/profiles/`. Choose one with `DUEPROOF_PROFILE`.
+In v0.1 an organisation says which kinds of notice it handles in the setup
+wizard (**Notice types**) or in **Settings → Profiles**. Owners and admins
+can change it.
 
-| Profile | For |
+| Notice type | Covers |
 |---|---|
-| `notices_in` (default) | Indian businesses and the CA/CS firms serving them: GST, income tax, TDS, MCA/ROC, EPFO/ESIC, RBI/SEBI and court notices. Eight desks. Hindi on. |
-| `general` | Any organisation: operations, safety, finance, procurement, HR, legal, IT, facilities. English only unless you add languages. |
-| `hospital` | A hospital or health system. |
-| `municipality` | A city or district administration; Hindi on. |
-| `metro_rail_ml` | A rail operator with Malayalam vocabulary — the example of going deep on one language. |
+| GST | ASMT-10, DRC-01, REG-17 and others; GSTR-1, 3B and 9 calendar |
+| Income tax | 143(1), 142(1), 148A, 156; advance tax and ITR calendar |
+| TDS | 200A intimations; TDS payments and returns |
+| ROC / MCA | Adjudication notices; AOC-4 and MGT-7 |
+| Courts and tribunals | Hearing notices and orders |
 
-## Writing your own
+GST, Income tax and TDS are on for a new organisation.
 
-Copy `general.py` to `dueproof/profiles/myorg.py`, edit, and run with
-`DUEPROOF_PROFILE=myorg`. Matching is lowercase substring, so a stem
-("procure", "penalt") covers its inflections.
+## What the choice does in v0.1
 
-| Setting | Required | What it is |
-|---|---|---|
-| `ROLES` | yes | Your desks |
-| `ROLE_KEYWORDS` | yes | desk → words that route a finding there |
-| `DEFAULT_ROLE` | yes | where a finding goes when nothing routes it |
-| `DOC_TYPE_KEYWORDS` | yes | document type → phrases that identify it |
-| `OBLIGATION_CUES` | yes | how a duty is worded; start from `english.OBLIGATION_CUES` |
-| `DOC_TYPE_ROLES` | | document type → the desk every finding in it goes to |
-| `SEVERITY_HIGH` | | words that make a duty urgent |
-| `DEADLINE_MARKERS` | | regex fragments that make a date a deadline |
-| `RECEIPT_MARKERS`, `HEARING_MARKERS` | | regex fragments; defaults cover English |
-| `AUTHORITIES`, `REFERENCE_LABELS` | | issuing offices; how references are introduced |
-| `CHANNELS`, `ORG_NAME`, `TIMEZONE` | | where documents come from; your name; where "today" is decided |
-| `LANGUAGES` | | codes to read beside English, see [Languages](languages.md) |
-| `LOCAL_MONTHS`, `LOCAL_RELATIVE`, `TERMS`, `LATIN_TERMS` | | optional own-language depth |
+The choice is saved and recorded in the audit trail. **It doesn't yet change
+what Dueproof reads**:
 
-A profile is checked when Dueproof starts: a missing required list, a
-`DEFAULT_ROLE` that is not a desk, or keywords for an unknown desk stop it with
-a plain message.
+- Every notice is read with the same rules, the engine's `notices_in` set
+  for Indian notices (GST, income tax, TDS, MCA/ROC, EPFO/ESIC, RBI/SEBI and
+  court notices), whatever is ticked.
+- Statutory deadlines come from each **client's registrations** (see
+  [Quickstart → Clients](quickstart.md#8-clients)), not from this setting.
 
-## Changing a profile safely
+## Where the rules live
 
-Vocabulary changes move findings. Before and after an edit:
+- **Reading notices:** `services/engine/dueproof_engine/profiles/`. A
+  profile is a Python file of plain word lists: notice types and the phrases
+  that identify them, how a duty is worded, deadline markers, issuing
+  offices, how references are introduced. `notices_in.py` is the one the app
+  uses. The others (`general`, `hospital`, `municipality`, `metro_rail_ml`)
+  come from the 0.0.x demo; the engine can load them, but the v0.1 app
+  doesn't ask for them.
+- **Statutory calendars:** `packages/core/src/statutory/packs/in/`
+  (GST, income tax and TDS, ROC). Each rule is data with a source citation,
+  and each is marked `verified: false` until a CA signs it off. The app shows
+  "Rule not yet checked by a CA" beside every such deadline.
 
-```bash
-dueproof eval my-labels.jsonl --docs my-documents/
-```
+## Changing the rules safely
 
-See [Evaluation](evaluation.md). Contributions of profiles for other kinds of
-organisation are welcome — see `CONTRIBUTING.md`.
+Vocabulary changes move findings. Measure before and after on your own
+documents with the engine's evaluation tool: see
+[Evaluation](evaluation.md). Contributions are welcome; see
+`CONTRIBUTING.md`.
