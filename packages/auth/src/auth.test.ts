@@ -12,7 +12,10 @@ import {
   withOrg,
 } from "@dueproof/db";
 import { unsafeRawDb } from "@dueproof/db/internal";
+import type { BetterAuthPlugin } from "better-auth";
+import { createAuthEndpoint } from "better-auth/api";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { z } from "zod";
 import { type Auth, createAuth, getMembership, isFirstRun } from "./auth";
 import { hashPassword, verifyPassword } from "./password";
 
@@ -144,6 +147,65 @@ describe("open sign-up (hosted)", () => {
     expect(mb[0]?.role).toBe("owner");
     expect(ma[0]?.organizationId).not.toBe(mb[0]?.organizationId);
     await db2.close();
+  });
+});
+
+describe("external sign-up (SSO from ee/, through AuthConfig.plugins)", () => {
+  it("lets an identity provider vouch for someone, never a password sign-up", async () => {
+    const db3 = await createDatabase({ driver: "pglite" });
+    await migrate(db3);
+    const calls: Array<string | undefined> = [];
+    // Stands in for the SSO plugin: an endpoint under /sso/ that creates a user.
+    const fakeSso = {
+      id: "fake-sso",
+      endpoints: {
+        fakeSsoCreate: createAuthEndpoint(
+          "/sso/fake-create",
+          { method: "POST", body: z.object({ email: z.string() }) },
+          async (ctx) => {
+            const user = await ctx.context.internalAdapter.createUser(
+              { email: ctx.body.email, name: "From the IdP", emailVerified: true },
+              { method: "sso-saml", sso: { providerId: "fake" } },
+            );
+            return ctx.json({ id: user.id });
+          },
+        ),
+      },
+    } satisfies BetterAuthPlugin;
+    const withSso = createAuth({
+      database: db3,
+      baseURL: BASE,
+      secret: "test-secret-test-secret-test-secret-0123",
+      signupPolicy: "first-user",
+      rateLimit: false,
+      plugins: [fakeSso],
+      externalSignUp: async (email, path) => {
+        calls.push(path);
+        return email.endsWith("@firm.test") && Boolean(path?.startsWith("/sso/"));
+      },
+    });
+    await withSso.api.signUpEmail({
+      body: { email: "owner@firm.test", password: "correct horse battery", name: "Owner" },
+    });
+    // A password sign-up with the right domain is still refused: no invitation.
+    await expect(
+      withSso.api.signUpEmail({
+        body: { email: "intruder@firm.test", password: "correct horse battery", name: "X" },
+      }),
+    ).rejects.toThrow(/invitation/);
+    expect(calls).toContain("/sign-up/email");
+
+    // Through the "IdP" the same domain may sign up, and gets no organisation of its own.
+    const api = withSso.api as unknown as {
+      fakeSsoCreate: (o: { body: { email: string } }) => Promise<{ id: string }>;
+    };
+    const created = await api.fakeSsoCreate({ body: { email: "staff@firm.test" } });
+    const raw = unsafeRawDb(db3);
+    expect(await raw.select().from(organization)).toHaveLength(1);
+    expect(await raw.select().from(member).where(eq(member.userId, created.id))).toHaveLength(0);
+    // Another domain through the same endpoint is refused.
+    await expect(api.fakeSsoCreate({ body: { email: "a@elsewhere.test" } })).rejects.toThrow();
+    await db3.close();
   });
 });
 
