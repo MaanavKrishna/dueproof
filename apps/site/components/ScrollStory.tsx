@@ -1,9 +1,23 @@
 "use client";
 
 import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
+import {
+  MotionProvider,
+  type MotionValue,
+  m,
+  useMotionValue,
+  useScroll,
+  useTransform,
+} from "@/lib/motion";
 import { COMPUTED, NOTICE } from "@/lib/sample";
-import { m, MotionProvider, type MotionValue, useMotionValue, useScroll, useTransform } from "@/lib/motion";
-import { AmountIcon, CalendarCheckIcon, GstIcon, HearingIcon, ProofIcon, VerifiedIcon } from "./icons";
+import {
+  AmountIcon,
+  CalendarCheckIcon,
+  GstIcon,
+  HearingIcon,
+  ProofIcon,
+  VerifiedIcon,
+} from "./icons";
 import { NoticePaper } from "./NoticePaper";
 import { DueChip } from "./ui";
 
@@ -93,7 +107,7 @@ function Stills() {
         <ol className="frames">
           {STEPS.map((s, i) => (
             <li className="frame" key={s.title}>
-              <Still p={STILLS[i]} />
+              <Still p={STILLS[i]} label={`Still frame: ${s.title}`} />
               <div>
                 <p className="fine">Step {i + 1} of 4</p>
                 <h3 className="h3">{s.title}</h3>
@@ -107,13 +121,9 @@ function Stills() {
   );
 }
 
-function Still({ p }: { p: number }) {
+function Still({ p, label }: { p: number; label: string }) {
   const value = useMotionValue(p);
-  return (
-    <Viewport label="">
-      {(narrow) => <Scene p={value} narrow={narrow} />}
-    </Viewport>
-  );
+  return <Viewport label={label}>{(narrow) => <Scene p={value} narrow={narrow} />}</Viewport>;
 }
 
 function RailSegment({ p, i }: { p: MotionValue<number>; i: number }) {
@@ -127,10 +137,15 @@ function RailSegment({ p, i }: { p: MotionValue<number>; i: number }) {
 
 function Caption({ p, i, children }: { p: MotionValue<number>; i: number; children: ReactNode }) {
   const s = i * 0.25;
-  const input = i === 0 ? [0, 0.2, 0.25] : i === 3 ? [0.72, 0.77, 1] : [s - 0.03, s + 0.02, s + 0.2, s + 0.25];
+  const input =
+    i === 0 ? [0, 0.2, 0.25] : i === 3 ? [0.72, 0.77, 1] : [s - 0.03, s + 0.02, s + 0.2, s + 0.25];
   const output = i === 0 ? [1, 1, 0] : i === 3 ? [0, 1, 1] : [0, 1, 1, 0];
   const opacity = useTransform(p, input, output);
-  const y = useTransform(p, input, output.map((o) => (1 - o) * 12));
+  const y = useTransform(
+    p,
+    input,
+    output.map((o) => (1 - o) * 12),
+  );
   return (
     <m.li className="story-caption" style={{ opacity, y }}>
       {children}
@@ -139,7 +154,13 @@ function Caption({ p, i, children }: { p: MotionValue<number>; i: number; childr
 }
 
 /** Fits the fixed-size scene into whatever space the layout gives it. */
-function Viewport({ label, children }: { label: string; children: (narrow: boolean) => ReactNode }) {
+function Viewport({
+  label,
+  children,
+}: {
+  label: string;
+  children: (narrow: boolean) => ReactNode;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const [fit, setFit] = useState({ scale: 1, narrow: false });
   useLayoutEffect(() => {
@@ -157,7 +178,7 @@ function Viewport({ label, children }: { label: string; children: (narrow: boole
     return () => ro.disconnect();
   }, []);
   return (
-    <div ref={ref} className="story-viewport" role={label ? "img" : undefined} aria-label={label || undefined}>
+    <div ref={ref} className="story-viewport" role="img" aria-label={label}>
       <div
         className={`story-canvas${fit.narrow ? " narrow" : ""}`}
         style={{ scale: String(fit.scale) }}
@@ -205,7 +226,10 @@ function Scene({ p, narrow }: { p: MotionValue<number>; narrow: boolean }) {
         <NoticePaper
           style={{ height: "31rem", overflow: "hidden" }}
           stamp={
-            <m.span className="stamp" style={{ opacity: stampOpacity, scale: stampScale, rotate: -6 }}>
+            <m.span
+              className="stamp"
+              style={{ opacity: stampOpacity, scale: stampScale, rotate: -6 }}
+            >
               Received
               <b>{COMPUTED.received}</b>
             </m.span>
@@ -225,9 +249,27 @@ function Scene({ p, narrow }: { p: MotionValue<number>; narrow: boolean }) {
       </m.div>
 
       <div className="story-chips">
-        <Chip p={p} at={0.3} icon={<GstIcon size={18} />} label="Kind" value="GST ASMT-10 · scrutiny" />
-        <Chip p={p} at={0.34} icon={<AmountIcon size={18} />} label="Amount" value={`${COMPUTED.amount} (${COMPUTED.amountWords})`} />
-        <Chip p={p} at={0.38} icon={<HearingIcon size={18} />} label="Hearing" value={COMPUTED.hearing} />
+        <Chip
+          p={p}
+          at={0.3}
+          icon={<GstIcon size={18} />}
+          label="Kind"
+          value="GST ASMT-10 · scrutiny"
+        />
+        <Chip
+          p={p}
+          at={0.34}
+          icon={<AmountIcon size={18} />}
+          label="Amount"
+          value={`${COMPUTED.amount} (${COMPUTED.amountWords})`}
+        />
+        <Chip
+          p={p}
+          at={0.38}
+          icon={<HearingIcon size={18} />}
+          label="Hearing"
+          value={COMPUTED.hearing}
+        />
         <Chip
           p={p}
           at={0.6}
@@ -241,7 +283,11 @@ function Scene({ p, narrow }: { p: MotionValue<number>; narrow: boolean }) {
       <m.div className="story-register" style={{ opacity: regOpacity, x: regX, y: regY }}>
         <div className="window">
           <div className="window-bar">
-            <span className="dots" aria-hidden="true"><i /><i /><i /></span>
+            <span className="dots" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </span>
             Deadlines
             <span className="muted">Harbour Valley Components</span>
           </div>
@@ -252,7 +298,9 @@ function Scene({ p, narrow }: { p: MotionValue<number>; narrow: boolean }) {
               <DueChip state="later" label="Due" detail={COMPUTED.due} size="sm" />
             </span>
             <span className="s">
-              <span className="basis">{COMPUTED.rule} · received {COMPUTED.received}</span>
+              <span className="basis">
+                {COMPUTED.rule} · received {COMPUTED.received}
+              </span>
               <span>
                 <VerifiedIcon size={13} className="proof-ic" /> Proof: page 1, exact
               </span>

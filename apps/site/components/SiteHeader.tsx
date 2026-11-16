@@ -12,6 +12,7 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
 
   // Close the menu on navigation, and with Escape.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs on each navigation by design
   useEffect(() => setOpen(false), [path]);
   useEffect(() => {
     if (!open) return;
@@ -24,7 +25,8 @@ export function SiteHeader() {
     };
   }, [open]);
 
-  const current = (href: string) => (path === href || (href !== "/" && path.startsWith(href)) ? "page" : undefined);
+  const current = (href: string) =>
+    path === href || (href !== "/" && path.startsWith(href)) ? "page" : undefined;
 
   return (
     <>

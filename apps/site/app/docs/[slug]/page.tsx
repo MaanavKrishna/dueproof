@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { DocsShell } from "@/components/DocsShell";
-import { SLUGS, readDoc } from "@/lib/docs";
+import { readDoc, SLUGS } from "@/lib/docs";
 
 export const dynamicParams = false;
 

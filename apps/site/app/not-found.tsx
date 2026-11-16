@@ -12,8 +12,12 @@ export default function NotFound() {
           The link may be old, or the page may have moved.
         </p>
         <div className="actions">
-          <Link className="cta cta-primary" href="/">Home</Link>
-          <Link className="cta cta-secondary" href="/docs/">Documentation</Link>
+          <Link className="cta cta-primary" href="/">
+            Home
+          </Link>
+          <Link className="cta cta-secondary" href="/docs/">
+            Documentation
+          </Link>
         </div>
       </div>
     </section>

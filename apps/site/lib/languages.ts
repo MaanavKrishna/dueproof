@@ -1,7 +1,13 @@
 // The 22 languages of the Eighth Schedule, which Dueproof reads besides
 // English. Per-language OCR quality is measured in the v0.1 bake-off and is
 // not claimed here until it is published.
-export type Language = { code: string; name: string; english: string; script: string; rtl?: boolean };
+export type Language = {
+  code: string;
+  name: string;
+  english: string;
+  script: string;
+  rtl?: boolean;
+};
 
 const L = (code: string, name: string, english: string, script: string, rtl = false): Language => ({
   code,

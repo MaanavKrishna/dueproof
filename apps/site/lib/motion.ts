@@ -6,5 +6,5 @@
  * uses, and nothing else in the site imports `motion` directly.
  * TODO(ui): move useScroll / useTransform into @dueproof/ui/motion.
  */
-export { emphasis, fade, m, MotionProvider, standard, useReducedMotion } from "@dueproof/ui/motion";
+export { emphasis, fade, MotionProvider, m, standard, useReducedMotion } from "@dueproof/ui/motion";
 export { type MotionValue, useMotionValue, useScroll, useTransform } from "motion/react";
