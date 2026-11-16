@@ -3,37 +3,71 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { NAV, REPO } from "@/lib/site";
-import { Mark } from "./Mark";
+import { BUILDING, NAV, RELEASED, REPO } from "@/lib/site";
+import { Wordmark } from "./Brand";
+import { CloseIcon, MenuIcon } from "./icons";
 
 export function SiteHeader() {
   const path = usePathname();
   const [open, setOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
 
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  // Close the menu on navigation, and with Escape.
   useEffect(() => setOpen(false), [path]);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("keydown", onKey);
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.documentElement.style.overflow = "";
+    };
+  }, [open]);
 
-  const current = (href: string) =>
-    path === href || (href !== "/" && path.startsWith(href)) ? "page" : undefined;
+  const current = (href: string) => (path === href || (href !== "/" && path.startsWith(href)) ? "page" : undefined);
 
   return (
-    <header className={`site-head${scrolled ? " is-scrolled" : ""}${open ? " is-open" : ""}`}>
-      <div className="wrap head-row">
-        <Link className="brand" href="/"><Mark />Dueproof</Link>
-        <button className="menu-btn" aria-expanded={open} aria-controls="site-nav" onClick={() => setOpen(!open)}>
-          {open ? "Close" : "Menu"}
-        </button>
-        <nav className="nav" id="site-nav" aria-label="Site">
-          {NAV.map((n) => <Link key={n.href} href={n.href} aria-current={current(n.href)}>{n.label}</Link>)}
-        </nav>
-        <a className="btn btn-line head-gh" href={REPO}>GitHub</a>
+    <>
+      <div className="status-strip">
+        <p className="wrap">
+          <span>
+            {BUILDING} is being built. This site describes it; what runs today is the {RELEASED}.
+          </span>
+          <a href={`${REPO}/blob/main/ROADMAP.md`}>Roadmap</a>
+        </p>
       </div>
-    </header>
+      <header className={`site-head${open ? " is-open" : ""}`}>
+        <div className="wrap head-row">
+          <Link className="brand" href="/" aria-label="Dueproof, home">
+            <Wordmark />
+          </Link>
+          <button
+            type="button"
+            className="menu-btn"
+            aria-expanded={open}
+            aria-controls="site-nav"
+            onClick={() => setOpen(!open)}
+          >
+            {open ? <CloseIcon size={22} /> : <MenuIcon size={22} />}
+            <span className="sr-only">{open ? "Close menu" : "Menu"}</span>
+          </button>
+          <nav className="nav" id="site-nav" aria-label="Site">
+            {NAV.map((n) => (
+              <Link key={n.href} href={n.href} aria-current={current(n.href)}>
+                {n.label}
+              </Link>
+            ))}
+          </nav>
+          <div className="head-actions">
+            <a className="cta cta-secondary cta-sm" href={REPO}>
+              GitHub
+            </a>
+            <Link className="cta cta-primary cta-sm" href="/pricing/">
+              Get Dueproof
+            </Link>
+          </div>
+        </div>
+      </header>
+    </>
   );
 }
