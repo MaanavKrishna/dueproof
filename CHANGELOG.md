@@ -1,15 +1,24 @@
 # Changelog
 
-## 0.1.0-beta — 2026-11-16
+## 0.1.0 — 2026-11-16 (beta)
 
-The first beta of v0.1: hosted at <https://dueproof-app.vercel.app>, or
-self-hosted with Docker. Run it beside your current process before you rely on
-it for real deadlines; statutory periods and rates are marked "verify" until a
-chartered accountant signs them off.
+Dueproof reads tax, regulatory and court notices in English and 22 Indian
+languages, typed or photographed, finds what is owed and by when, and proves
+every finding on the page it came from. Cases, deadlines, the statutory
+calendar and demand exposure live in one register your whole firm works from.
 
-The full rebuild described in [planning/v0.1-plan.md](planning/v0.1-plan.md).
-Nothing is carried over from the demo's code except the engine's reading,
-OCR, translation, rules and proof-linking.
+This is the first release of v0.1, and it is a **beta**. Use it hosted at
+<https://dueproof-app.vercel.app>, or self-host it with Docker Compose
+([Install](docs/install.md)); there is also a desktop app that connects to
+your server. Run it beside your current process before you rely on it for
+real deadlines: statutory periods and rates are marked "verify" until a
+chartered accountant signs them off, and interest and penalty figures are
+estimates, not advice.
+
+v0.1 is the full rebuild described in
+[planning/v0.1-plan.md](planning/v0.1-plan.md). Nothing is carried over from
+the demo's code except the engine's reading, OCR, translation, rules and
+proof-linking.
 
 **Platform**
 - A TypeScript monorepo (pnpm, Turborepo): the app on Next.js, the website,
@@ -20,8 +29,8 @@ OCR, translation, rules and proof-linking.
 - The engine is a stateless HTTP service with an OCR ladder (text layer,
   PaddleOCR, Tesseract) and offline translation (IndicTrans2). It reads files
   through short-lived signed URLs and has no network route out when
-  self-hosted. Hosted, pages it can't read climb to engine-heavy in a Vercel
-  Sandbox.
+  self-hosted. On hosted, a step that sends pages it can't read to
+  engine-heavy in a Vercel Sandbox is built, but off in this beta.
 - Processing runs as a durable workflow: inspect, read, translate, analyse,
   link, AI assist, reconcile, resolve dates, write.
 - Password-protected PDFs wait for their password, which is kept encrypted for
@@ -71,15 +80,30 @@ OCR, translation, rules and proof-linking.
   Playwright end-to-end tests with axe-core accessibility checks on every main
   screen, and an AI eval that fails on any confidently wrong outline.
 
-**Known limitations in this beta**
-- Hosted email (invitations, password resets, the digest) needs a mail
-  provider configured; until then, copy invite links from Team and access.
-- Hosted pages below the OCR confidence bar aren't yet sent to engine-heavy.
-- Notice languages are set per organisation, not per client.
-- Desktop builds are made for Linux; Windows and macOS builds and signing come
+**Known limitations**
+
+Read these before you rely on the beta. Most are on the
+[roadmap](ROADMAP.md)'s list for leaving beta.
+
+- **Statutory data is not yet verified.** Every statutory period and rate is
+  data with a source, marked "verify" until a chartered accountant signs it
+  off. The app says so beside each such deadline.
+- **No published accuracy on real notices yet.** The evaluation runs on a
+  small set of invented fixtures; precision, recall and deadline accuracy on
+  a labelled set of real GST, income-tax and TDS notices come before the
+  beta ends.
+- **Email needs configuring on hosted.** Invitations, password resets and the
+  morning digest need a mail provider; until then, copy invite links from
+  Team and access.
+- **Desktop is Linux-only for now.** Windows and macOS builds, signed, come
   before the beta ends.
-- Hosted data is stored in Singapore (database) and Asia-Pacific (files), not
+- **Hosted data is in Singapore** (database) and Asia-Pacific (files), not
   in India.
+- **engine-heavy is off on hosted.** Pages the fast engine can't read
+  confidently aren't yet sent to Tesseract and offline translation; they go
+  to the review queue instead. Self-hosted runs the full engine.
+- Notice languages are set per organisation, not per client.
+- No independent security test (VAPT) of the hosted edition yet.
 
 ## Demo (0.0.1) — 2026-10-24
 

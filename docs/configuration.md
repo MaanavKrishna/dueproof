@@ -29,7 +29,7 @@ Never commit one, and keep a copy of `AUTH_SECRET` away from the server.
 | `DUEPROOF_EDITION` | `self-hosted` | `self-hosted`, `hosted` or `desktop`. Sets the defaults below, which AI modes are offered, and HSTS preload (hosted) |
 | `APP_URL` | `http://localhost:3000` | The address people use to reach Dueproof. Used for links in emails, cookies (Secure when it starts with `https://`) and passkeys |
 | `NODE_ENV` | `development` | `production` in the images |
-| `DUEPROOF_VERSION` | `0.1.0-dev` | Reported by `/api/health` and `/api/metrics`; set by the image build |
+| `DUEPROOF_VERSION` | `0.1.0` | Reported by `/api/health` and `/api/metrics`; set by the image build |
 | `DUEPROOF_DEV_PAGES` | on outside production | Bare test pages under `/dev`. Keep `0` on a real server |
 
 ### Sign-in
