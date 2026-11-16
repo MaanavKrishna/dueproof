@@ -26,8 +26,20 @@ What happens on `up`:
 3. Documents that were being read when the old version stopped carry on from
    their last completed step (every step is safe to repeat).
 
-Check with `docker compose ps` (all `healthy`) and
+Check with `docker compose ps` (all `healthy`, and `daily` running) and
 `docker compose logs app | tail`.
+
+### From a copy without `CRON_SECRET`
+
+Since the `daily` service was added, `.env` needs `CRON_SECRET`, and
+`docker compose up` stops with "set CRON_SECRET in .env" until it has one:
+
+```bash
+echo "CRON_SECRET=$(openssl rand -hex 32)" >> .env
+```
+
+Remove any crontab line you added to call `/api/cron/daily` by hand: the
+`daily` service does it now.
 
 ## Going back
 

@@ -102,21 +102,22 @@ doesn't exist.
 
 - **Hosted:** Vercel Cron calls it at 01:15 UTC (06:45 in India), from
   `apps/app/vercel.ts`. Set `CRON_SECRET`, and `RESEND_API_KEY` for email.
-- **Self-hosted:** nothing calls it yet in v0.1, and `compose.yaml` doesn't
-  pass `CRON_SECRET` or the mail settings to the app. To turn it on, add
-  `CRON_SECRET`, `SMTP_URL` and `MAIL_FROM` to the `app` service's
-  `environment` in `compose.yaml` (with their values in `.env`), restart,
-  and call the route every morning from the server's crontab, for example:
+- **Self-hosted:** the `daily` service in `compose.yaml` calls it every day
+  at `DAILY_AT` (default `07:00`, in `TZ`), over the internal network, with
+  `CRON_SECRET` from `.env`. No host crontab is needed. After a restart past
+  that time it catches up at once, and a failed call is retried every 10
+  minutes for two hours. Its log (`docker compose logs daily`) shows each
+  run's counts. To run it now:
 
   ```bash
-  30 6 * * * cd /path/to/dueproof/infra/docker && docker compose exec -T app node -e "fetch('http://127.0.0.1:3000/api/cron/daily',{headers:{authorization:'Bearer '+process.env.CRON_SECRET}}).then(r=>process.exit(r.ok?0:1))"
+  docker compose exec daily node /scripts/daily.mjs now
   ```
 
-  `/api/cron/daily` is reachable through Caddy too, but the call above
-  stays on the server.
-
-With no mail settings, `MAIL_DRIVER` is `log`: nothing is emailed, but each
-digest still counts as sent for that day.
+Email needs `SMTP_URL` and `MAIL_FROM` in `.env` (hosted: `RESEND_API_KEY`).
+With no mail settings, `MAIL_DRIVER` is `log`: nothing is emailed, and a
+digest that wasn't emailed isn't counted as sent, so that day's digests go
+out on the next run once mail is set up. Notifications and escalations work
+either way.
 
 ### Notifications
 

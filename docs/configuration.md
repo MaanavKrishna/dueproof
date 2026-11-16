@@ -113,15 +113,15 @@ provider) and **Dueproof AI plan** (Claude; hosted only).
 | `ANTHROPIC_API_KEY` | | Hosted only: the key the Dueproof AI plan uses to call the Claude API |
 | `AI_GATEWAY_API_KEY` | | Hosted only, optional: the plan through Vercel AI Gateway instead, used when `ANTHROPIC_API_KEY` is unset |
 
-The self-hosted Compose file doesn't pass `AI_KEY_MASTER` to the app in
-v0.1, so on that setup only **Off** and **Local model** work.
+On the self-hosted Compose setup, put `AI_KEY_MASTER` in `.env`. Without it
+only **Off** and **Local model** work.
 
 ### Reminders and email
 
 | Variable | Default | What it does |
 |---|---|---|
 | `CRON_SECRET` | | Secret. Turns on `GET /api/cron/daily` (the morning digest, notifications and escalation), which must be called with `Authorization: Bearer <CRON_SECRET>`. Unset: the route answers 404 |
-| `MAIL_DRIVER` | `resend` if `RESEND_API_KEY` is set, else `smtp` if `SMTP_URL` is set, else `log` | `log` sends nothing |
+| `MAIL_DRIVER` | `resend` if `RESEND_API_KEY` is set, else `smtp` if `SMTP_URL` is set, else `log` | Sends invitations, password reset links and the morning digest. `log` sends nothing: invitation links must be copied by hand, password reset links can't be sent, and digests aren't marked sent |
 | `SMTP_URL` | | `smtp://user:password@host:587` |
 | `RESEND_API_KEY` | | For `resend` (hosted) |
 | `MAIL_FROM` | `Dueproof <no-reply@dueproof.local>` | The sender |
@@ -180,7 +180,11 @@ storage, engine address, the Postgres World) itself.
 | Variable | Default | What it does |
 |---|---|---|
 | `DUEPROOF_DOMAIN` | **required** | The name people type to reach Dueproof. `APP_URL` becomes `https://<domain>` |
-| `AUTH_SECRET`, `ENGINE_SHARED_SECRET`, `POSTGRES_PASSWORD` | **required** | Secrets |
+| `AUTH_SECRET`, `ENGINE_SHARED_SECRET`, `POSTGRES_PASSWORD`, `CRON_SECRET` | **required** | Secrets. `CRON_SECRET` authorises the daily run, which the `daily` service calls |
+| `DAILY_AT` | `07:00` | When the `daily` service runs the morning digest, notifications and escalation, in `TZ` |
+| `SMTP_URL`, `MAIL_FROM`, `MAIL_DRIVER`, `RESEND_API_KEY` | | Email, as above |
+| `AI_KEY_MASTER` | | As above |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | derived from `AUTH_SECRET` | As above |
 | `AUTH_SIGNUP` | `first-user` | |
 | `DUEPROOF_VERSION` | `0.1.0` | Image tag |
 | `DUEPROOF_APP_IMAGE`, `DUEPROOF_ENGINE_IMAGE` | `dueproof/app`, `dueproof/engine` | Image names |
@@ -192,12 +196,9 @@ storage, engine address, the Postgres World) itself.
 | `UPLOAD_MAX_BYTES` | 50 MB | |
 | `RATE_LIMITS`, `METRICS_TOKEN` | | As above |
 | `WORKFLOW_CONCURRENCY` | `8` | Workflow steps run at once |
-| `BACKUP_DIR`, `BACKUP_AT`, `BACKUP_KEEP_DAYS`, `TZ` | `./backups`, `02:30`, `14`, | See [Backup and restore](backup-and-restore.md) |
+| `BACKUP_DIR`, `BACKUP_AT`, `BACKUP_KEEP_DAYS`, `TZ` | `./backups`, `02:30`, `14`, `Asia/Kolkata` | See [Backup and restore](backup-and-restore.md). The app reads `BACKUP_DIR` read-only (`BACKUP_STATUS_FILE` is set for you) to show the last backup in **Settings → System** |
 | `HTTP_PORT`, `HTTPS_PORT` | `80`, `443` | The ports Caddy listens on |
 | `DUEPROOF_DEV_PAGES` | `0` | |
 
-The v0.1 `compose.yaml` doesn't pass `CRON_SECRET`, `SMTP_URL`,
-`MAIL_FROM`, `AI_KEY_MASTER`, `BACKUP_STATUS_FILE` or the `VAPID_*`
-settings to the app, so adding them to `.env` does nothing. To use them, add
-them to the `app` service's `environment` in `compose.yaml`. Web Push works
-without them, with keys derived from `AUTH_SECRET`.
+`compose.yaml` passes each of these from `.env` to the app. Web Push works
+without the `VAPID_*` keys, with a pair derived from `AUTH_SECRET`.
