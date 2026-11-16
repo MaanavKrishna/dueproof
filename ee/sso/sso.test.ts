@@ -143,10 +143,6 @@ describe("SSO sign-in with a mock IdP", () => {
     expect(url.startsWith(TEST_IDP.ssoUrl)).toBe(true);
     const redirect = new URL(url);
     expect(redirect.searchParams.get("SAMLRequest")).toBeTruthy();
-    const stateCookie = start.headers
-      .getSetCookie()
-      .map((c) => c.split(";")[0])
-      .join("; ");
 
     // The mock IdP reads the request and answers with a signed assertion.
     const spMeta = await request(
@@ -177,7 +173,7 @@ describe("SSO sign-in with a mock IdP", () => {
     });
     const acs = await request(`/sso/saml2/sp/acs/${providerIdFor(orgId)}`, {
       method: "POST",
-      cookie: stateCookie,
+      // An IdP POST is cross-site: SameSite=Lax cookies are not sent, so none here.
       headers: { "content-type": "application/x-www-form-urlencoded" },
       body: form.toString(),
     });

@@ -4,12 +4,12 @@ Proprietary code under a commercial licence ([`ee/LICENSE`](LICENSE), a
 draft until a lawyer reviews it). Everything outside this directory is
 FSL-1.1-ALv2 and never imports it (AGENTS rule 12).
 
-| Folder | Feature | Licence feature |
-|---|---|---|
-| `licence/` | Offline licence keys: Ed25519-signed file, verified without any network call | — |
-| `sso/` | SAML single sign-on through Better Auth's SSO plugin | `sso` |
-| `audit-export/` | The audit trail as JSONL or CSV with its hash chain and a verification report | `audit-export` |
-| `white-label/` | Reports with only your logo and name | `white-label` |
+| Folder          | Feature                                                                       | Licence feature |
+| --------------- | ----------------------------------------------------------------------------- | --------------- |
+| `licence/`      | Offline licence keys: Ed25519-signed file, verified without any network call  | —               |
+| `sso/`          | SAML single sign-on through Better Auth's SSO plugin                          | `sso`           |
+| `audit-export/` | The audit trail as JSONL or CSV with its hash chain and a verification report | `audit-export`  |
+| `white-label/`  | Reports with only your logo and name                                          | `white-label`   |
 
 ## How the app finds it
 
@@ -17,7 +17,8 @@ The app imports `@dueproof/ee-entry`. That name resolves to `ee/index.ts`
 when this directory exists, and to `apps/app/lib/ee-absent.ts` (which
 exports `ee = null`) when it doesn't, or when `DUEPROOF_EE=off`:
 
-- TypeScript: `paths` in `apps/app/tsconfig.json` lists both, in order.
+- TypeScript: `apps/app/lib/ee-entry.d.ts` declares the module's shape, so
+  the app typechecks the same either way; ee/ typechecks itself.
 - Next.js: `turbopack.resolveAlias` in `apps/app/next.config.ts`.
 - Vitest: `resolve.alias` in `apps/app/vitest.config.ts`.
 

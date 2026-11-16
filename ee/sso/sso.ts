@@ -250,6 +250,10 @@ export const ssoExtension: SsoExtension = {
   authPlugins: (runtime) => ssoAuthPlugins(runtime),
   allowsSignUp,
   parseConfig: (input, options) => parseSsoConfig(input, options),
+  serviceProvider: (appUrl, orgId) => {
+    const providerId = providerIdFor(orgId);
+    return { providerId, ...spUrls(appUrl, providerId) };
+  },
   list: listProviders,
   save: saveProvider,
   remove: removeProvider,

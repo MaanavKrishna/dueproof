@@ -206,6 +206,11 @@ export interface SsoExtension {
    * the metadata URL only when one is given, https only, size-capped.
    */
   parseConfig(input: unknown, options?: { fetch?: typeof fetch }): Promise<SsoConfig>;
+  /** The values the admin gives their IdP, known before anything is saved. */
+  serviceProvider(
+    appUrl: string,
+    orgId: string,
+  ): Pick<SsoProviderView, "providerId" | "acsUrl" | "spEntityId">;
   list(database: unknown, orgId: string, appUrl: string): Promise<SsoProviderView[]>;
   /**
    * Registers the organisation's provider (replacing any earlier one) through
