@@ -6,7 +6,7 @@ Dueproof v0.1 runs three ways:
 |---|---|---|
 | **Self-hosted server** | Your Linux server, Docker Compose: app + engine + Postgres + Caddy | [Install](install.md), [Backup and restore](backup-and-restore.md), [Upgrading](upgrading.md) |
 | **Hosted** | Vercel (app, workflows, engine-fast, engine-heavy in Sandbox) + Neon + Cloudflare R2. App and database in Singapore, engine-fast in Mumbai | [`infra/vercel/README.md`](../infra/vercel/README.md) |
-| **Desktop** | Tauri app for Windows, macOS and Linux; in v0.1 it connects to one of the servers above | [Desktop app](desktop.md) |
+| **Desktop** | Tauri app, built for Linux in the beta (Windows and macOS are coming); in v0.1 it connects to one of the servers above | [Desktop app](desktop.md) |
 
 The demo's systemd and single-container instructions (0.0.x) no longer apply.
 

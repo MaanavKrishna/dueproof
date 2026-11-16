@@ -1,7 +1,8 @@
 # Desktop app
 
-The Dueproof desktop app runs on Windows, macOS and Linux. In v0.1 it
-**connects to a Dueproof server**: your own (see [Install](install.md)) or
+The Dueproof desktop app is built for Linux in the v0.1 beta. Windows and
+macOS builds, signed, come before the beta ends. In v0.1 it **connects to a
+Dueproof server**: your own (see [Install](install.md)) or
 the hosted service. It shows the same app as the browser, with a few things
 a browser tab can't do:
 
@@ -21,14 +22,11 @@ Download the file for your computer from the release page:
 
 | Computer | File |
 |---|---|
-| Windows 10 or 11 | `Dueproof_0.1.0_x64-setup.exe` (installs for you only, no admin rights) or the `.msi` |
-| macOS 12 or later | `Dueproof_0.1.0_universal.dmg` |
 | Ubuntu, Debian | `Dueproof_0.1.0_amd64.deb` (`sudo apt install ./Dueproof_0.1.0_amd64.deb`) |
 | Other Linux | `Dueproof_0.1.0_amd64.AppImage` (make it executable and run it) |
 
-The v0.1 builds are **not code-signed yet**. Windows shows "Windows
-protected your PC": choose **More info**, then **Run anyway**. On macOS,
-right-click the app and choose **Open** the first time.
+There are no Windows or macOS downloads yet. The v0.1 builds are **not
+code-signed yet**.
 
 ## Connect to your server
 
