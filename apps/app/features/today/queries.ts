@@ -213,6 +213,7 @@ export async function loadToday(
         origin: findings.origin,
         confidence: findings.confidence,
         dueRule: findings.dueRule,
+        conflict: findings.conflict,
         kind: findings.kind,
         documentId: findings.documentId,
         caseId: findings.caseId,

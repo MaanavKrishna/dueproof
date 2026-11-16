@@ -39,7 +39,7 @@ import {
 } from "../features/cases/actions";
 import { loadCase } from "../features/cases/queries";
 import { openCase } from "../features/inbox/actions";
-import { loadInbox } from "../features/inbox/queries";
+import { describeConflict, loadInbox } from "../features/inbox/queries";
 import { bulkUpdate, exportNoticesCsv, saveView, undoBulk } from "../features/notices/actions";
 import { applyFilters, type NoticeRow, toCsv } from "../features/notices/model";
 import { loadNoticeRows, loadNotices } from "../features/notices/queries";
@@ -254,6 +254,28 @@ describe("review and append-only edits", () => {
       "proposed_date",
     ]);
     expect(reviewReasons({ ...base, verification: "unlocated", confirmedBy: "u" })).toEqual([]);
+    expect(reviewReasons({ ...base, hasDeadline: true, conflict: { conflicts: [] } })).toEqual([
+      "conflict",
+    ]);
+  });
+
+  it("shows both readings of a rule/AI conflict", () => {
+    expect(
+      describeConflict({
+        conflicts: [
+          {
+            field: "due",
+            rule: { type: "relative", anchor: "receipt", amount: 30, unit: "days" },
+            ai: { type: "fixed", date: "2026-12-01" },
+            ruleDueOn: "2026-11-23",
+          },
+        ],
+      }),
+    ).toEqual({ field: "due", rule: "23 Nov 2026", ai: "1 Dec 2026" });
+    expect(
+      describeConflict({ conflicts: [{ field: "amount", rule: 45230000, ai: 45200000 }] }),
+    ).toMatchObject({ field: "amount", rule: "₹4,52,300" });
+    expect(describeConflict(null)).toBeNull();
   });
 
   it("confirm, dismiss, restore and edit each write finding_edits; the trail can't be changed", async () => {

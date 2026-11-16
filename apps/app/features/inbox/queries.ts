@@ -23,6 +23,7 @@ import {
   ne,
   withOrg,
 } from "@dueproof/db";
+import { formatMoney } from "@dueproof/i18n";
 import type { AuthContext } from "@/lib/authorize";
 import { clientScope, type DueState, dueState, fmtDate, fmtInstant, loadClock } from "@/lib/org";
 import { reviewReasons, reviewReasonText } from "@/lib/review";
@@ -77,6 +78,42 @@ export interface InboxData {
 
 const SETTLED = ["ready", "needs_review"] as const;
 
+function ruleWords(rule: unknown, dueOn: unknown, locale: string): string {
+  if (typeof dueOn === "string") return fmtDate(dueOn, locale);
+  const r = DateRule.safeParse(rule);
+  if (!r.success) return "—";
+  if (r.data.type === "fixed") return fmtDate(r.data.date, locale);
+  if (r.data.type === "relative")
+    return `${r.data.amount} ${r.data.unit.replace("_", " ")} from ${r.data.anchor}`;
+  return `${r.data.ruleKey} ${r.data.period}`;
+}
+
+/** Both readings of a rule/AI disagreement, in words (04 §4: "both shown"). */
+export function describeConflict(raw: unknown, locale = "en-IN"): ReviewItem["conflict"] {
+  const c = raw as {
+    conflicts?: {
+      field: string;
+      rule: unknown;
+      ai: unknown;
+      ruleDueOn?: string;
+      aiDueOn?: string;
+    }[];
+  } | null;
+  const first = c?.conflicts?.[0];
+  if (!first) return null;
+  if (first.field === "amount")
+    return {
+      field: "amount",
+      rule: formatMoney(Number(first.rule), { locale }),
+      ai: formatMoney(Number(first.ai), { locale }),
+    };
+  return {
+    field: "due",
+    rule: ruleWords(first.rule, first.ruleDueOn, locale),
+    ai: ruleWords(first.ai, first.aiDueOn, locale),
+  };
+}
+
 export async function loadInbox(ctx: AuthContext, now: Date = new Date()): Promise<InboxData> {
   const clock = await loadClock(ctx, now);
   return withOrg(ctx.container.database, ctx.orgId, async (tx) => {
@@ -114,6 +151,7 @@ export async function loadInbox(ctx: AuthContext, now: Date = new Date()): Promi
         dueRule: findings.dueRule,
         kind: findings.kind,
         amountMinor: findings.amountMinor,
+        conflict: findings.conflict,
         documentId: findings.documentId,
         caseId: findings.caseId,
         deadlineId: deadlines.id,
@@ -184,7 +222,7 @@ export async function loadInbox(ctx: AuthContext, now: Date = new Date()): Promi
         due,
         basis,
         amountMinor: f.amountMinor,
-        conflict: null,
+        conflict: describeConflict(f.conflict, clock.locale),
       });
     }
 

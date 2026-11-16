@@ -10,7 +10,12 @@
  * - it carries a date rule that hasn't become a deadline (proposed date
  *   waiting for review, or the receipt date is missing).
  */
-export type ReviewReason = "unlocated" | "ai_only" | "proposed_date" | "low_confidence";
+export type ReviewReason =
+  | "unlocated"
+  | "ai_only"
+  | "proposed_date"
+  | "low_confidence"
+  | "conflict";
 
 /** Below this, a located finding is still shown for a second look. */
 export const CONFIDENCE_BAR = 0.6;
@@ -25,6 +30,8 @@ export interface ReviewFacts {
   kind: string;
   /** A deadline row already points at this finding. */
   hasDeadline: boolean;
+  /** Rules and AI read it differently (findings.conflict). */
+  conflict?: unknown;
 }
 
 /** Kinds that are context, not duties: they're never queued for review on their own. */
@@ -33,6 +40,7 @@ const CONTEXT_KINDS = new Set(["reference", "office", "section", "summary"]);
 export function reviewReasons(f: ReviewFacts): ReviewReason[] {
   if (f.status !== "open" || f.confirmedBy) return [];
   const reasons: ReviewReason[] = [];
+  if (f.conflict) reasons.push("conflict");
   if (f.verification === "unlocated" && !CONTEXT_KINDS.has(f.kind)) reasons.push("unlocated");
   if (f.origin === "ai" && !f.hasDeadline && !CONTEXT_KINDS.has(f.kind)) reasons.push("ai_only");
   if (f.dueRule && !f.hasDeadline) reasons.push("proposed_date");
@@ -47,6 +55,7 @@ export function reviewReasonText(reasons: ReviewReason[]): string {
     ai_only: "Suggested by AI and not yet checked by a person",
     proposed_date: "The date waits for a person to confirm it",
     low_confidence: "Read with low confidence",
+    conflict: "The rules and AI read this differently: check both against the page",
   };
   return reasons.map((r) => words[r]).join(". ");
 }
