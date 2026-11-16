@@ -1,0 +1,16 @@
+import type { Metadata } from "next";
+import { ResetPasswordForm } from "@/features/auth/ResetPasswordForm";
+
+// Per request: reads the session and the CSP nonce.
+export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { title: "Reset password" };
+
+export default async function ResetPasswordPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ token?: string }>;
+}) {
+  const { token } = await searchParams;
+  return <ResetPasswordForm token={typeof token === "string" && token ? token : null} />;
+}

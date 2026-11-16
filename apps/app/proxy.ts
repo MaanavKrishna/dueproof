@@ -28,6 +28,8 @@ export function proxy(request: NextRequest): NextResponse {
   const incomingId = request.headers.get("x-request-id");
   const requestId = incomingId && REQUEST_ID.test(incomingId) ? incomingId : crypto.randomUUID();
   requestHeaders.set("x-request-id", requestId);
+  // Pages read it to send people back where they were after signing in.
+  requestHeaders.set("x-pathname", request.nextUrl.pathname + request.nextUrl.search);
 
   const isApi = request.nextUrl.pathname.startsWith("/api/");
   let csp = API_CSP;

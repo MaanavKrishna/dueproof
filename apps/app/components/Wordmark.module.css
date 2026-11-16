@@ -1,0 +1,31 @@
+.wordmark {
+  display: flex;
+  align-items: center;
+  gap: var(--dp-space-8);
+  min-width: 0;
+}
+
+.mark {
+  flex: none;
+  width: var(--dp-space-24);
+  height: var(--dp-space-24);
+  border-radius: var(--dp-radius-sm);
+  background: linear-gradient(135deg, var(--dp-accent-solid) 60%, var(--dp-proof-highlight) 60%);
+}
+
+.wordmarkText {
+  font: var(--dp-text-headline-font);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-collapsed] .wordmarkText {
+  display: none;
+}
+
+@media (width < 40rem) {
+  .phoneHidden {
+    display: none;
+  }
+}

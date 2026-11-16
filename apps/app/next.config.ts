@@ -28,6 +28,8 @@ const config: NextConfig = {
     "@dueproof/core",
     "@dueproof/db",
     "@dueproof/engine-client",
+    "@dueproof/i18n",
+    "@dueproof/icons",
     "@dueproof/storage",
     "@dueproof/tokens",
     "@dueproof/ui",
@@ -40,6 +42,8 @@ const config: NextConfig = {
     "@neondatabase/serverless",
   ],
   poweredByHeader: false,
+  // The dev-tools badge styles itself with inline <style>, which our CSP blocks.
+  devIndicators: false,
   // The repo has its own AGENTS.md; don't let `next dev` write another one here.
   agentRules: false,
   async headers() {
