@@ -53,6 +53,7 @@ export const documentStatus = pgEnum("document_status", [
   "reconciling",
   "ready",
   "needs_review",
+  "needs_password",
   "failed",
   "quarantined",
 ]);
@@ -84,6 +85,8 @@ export const deadlineSource = pgEnum("deadline_source", ["notice", "order", "sta
 export const registrationKind = pgEnum("registration_kind", ["gst", "tds", "income_tax", "roc", "other"]);
 export const filingFrequency = pgEnum("filing_frequency", ["monthly", "quarterly", "annual"]);
 export const aiMode = pgEnum("ai_mode", ["off", "local", "byok", "plan"]);
+export const demandHead = pgEnum("demand_head", ["tax", "interest", "penalty", "fee"]);
+export const demandStatus = pgEnum("demand_status", ["open", "paid", "stayed", "dropped"]);
 export const aiTier = pgEnum("ai_tier", ["none", "haiku", "sonnet", "opus", "local", "byok"]);
 
 /** Org-level settings that Better Auth's `organization` table doesn't hold. */
@@ -140,6 +143,8 @@ export const registrations = pgTable(
     frequency: filingFrequency("frequency"),
     /** e.g. "qrmp", "composition", "regular". */
     scheme: text("scheme"),
+    /** Facts the statutory calendar needs: audit flag, company type, AGM date, … */
+    attributes: jsonb("attributes").$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
     validFrom: date("valid_from"),
     validTo: date("valid_to"),
   },
@@ -349,6 +354,8 @@ export const demands = pgTable(
     clientId: text("client_id"),
     findingId: text("finding_id"),
     taxType: text("tax_type").notNull(),
+    head: demandHead("head").notNull().default("tax"),
+    status: demandStatus("status").notNull().default("open"),
     principalMinor: bigint("principal_minor", { mode: "number" }).notNull(),
     currency: text("currency").notNull().default("INR"),
     interestRule: text("interest_rule"),

@@ -50,6 +50,7 @@ export const DocumentStatus = z.enum([
   "reconciling",
   "ready",
   "needs_review",
+  "needs_password",
   "failed",
   "quarantined",
 ]);
@@ -101,6 +102,13 @@ export type RegistrationKind = z.infer<typeof RegistrationKind>;
 
 export const FilingFrequency = z.enum(["monthly", "quarterly", "annual"]);
 export type FilingFrequency = z.infer<typeof FilingFrequency>;
+
+/** What part of a demand an amount is (03 §8). */
+export const DemandHead = z.enum(["tax", "interest", "penalty", "fee"]);
+export type DemandHead = z.infer<typeof DemandHead>;
+
+export const DemandStatus = z.enum(["open", "paid", "stayed", "dropped"]);
+export type DemandStatus = z.infer<typeof DemandStatus>;
 
 /** AI tiers, routed by code (04 §6). */
 export const AiTier = z.enum(["none", "haiku", "sonnet", "opus", "local", "byok"]);

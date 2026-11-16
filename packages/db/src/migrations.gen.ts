@@ -102,6 +102,20 @@ export const MIGRATIONS: EmbeddedMigration[] = [
       '\nCREATE INDEX "verification_token_identifier" ON "verification_token" USING btree ("identifier");',
     ],
   },
+  {
+    tag: "0001_contract_attributes_demand_head_needs_password",
+    folderMillis: 1794829171941,
+    hash: "5b9e80897fbf8c83d0c580fdb2b5eee627c9d0735c4addfd81e7a49b42c9b6ac",
+    bps: true,
+    sql: [
+      "CREATE TYPE \"public\".\"demand_head\" AS ENUM('tax', 'interest', 'penalty', 'fee');",
+      "\nCREATE TYPE \"public\".\"demand_status\" AS ENUM('open', 'paid', 'stayed', 'dropped');",
+      "\nALTER TYPE \"public\".\"document_status\" ADD VALUE 'needs_password' BEFORE 'failed';",
+      '\nALTER TABLE "demands" ADD COLUMN "head" "demand_head" DEFAULT \'tax\' NOT NULL;',
+      '\nALTER TABLE "demands" ADD COLUMN "status" "demand_status" DEFAULT \'open\' NOT NULL;',
+      '\nALTER TABLE "registrations" ADD COLUMN "attributes" jsonb DEFAULT \'{}\'::jsonb NOT NULL;',
+    ],
+  },
 ];
 
 export const RLS_SQL: string[] = [
