@@ -148,7 +148,7 @@ Found a security problem? Please report it privately. See [SECURITY.md](SECURITY
 
 ## Licence
 
-[PolyForm Shield License 1.0.0](LICENSE), from version 0.1.0. Dueproof is
+[PolyForm Shield License 1.0.0](LICENSE). Dueproof is
 source-available: you may use it, self-host it, change it and improve it for
 free, but not sell it or offer it as a competing product or service, changed
 or not. Earlier versions keep the licence they were published under.
