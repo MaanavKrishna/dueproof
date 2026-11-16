@@ -33,8 +33,8 @@ export function SiteHeader() {
       <div className="status-strip">
         <p className="wrap">
           <span>
-            Dueproof {RELEASED} is out. Use it hosted at <a href={APP_URL}>dueproof-app.vercel.app</a>,
-            or run it on your own server.
+            Dueproof {RELEASED} is out. Use it hosted at{" "}
+            <a href={APP_URL}>dueproof-app.vercel.app</a>, or run it on your own server.
           </span>
           <a href={`${REPO}/blob/main/ROADMAP.md`}>Roadmap</a>
         </p>
