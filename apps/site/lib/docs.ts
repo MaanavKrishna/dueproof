@@ -11,7 +11,10 @@ const DOCS = path.join(process.cwd(), "..", "..", "docs");
 export const SECTIONS: { title: string; pages: string[] }[] = [
   { title: "Start", pages: ["index", "install", "quickstart"] },
   { title: "Using it", pages: ["notices", "workflow-and-reminders", "languages", "profiles"] },
-  { title: "Running it", pages: ["accounts-and-sso", "deployment", "configuration", "security"] },
+  {
+    title: "Running it",
+    pages: ["accounts-and-sso", "deployment", "desktop", "configuration", "security"],
+  },
   { title: "Reference", pages: ["evaluation", "api", "architecture", "faq"] },
 ];
 export const SLUGS = SECTIONS.flatMap((s) => s.pages);
