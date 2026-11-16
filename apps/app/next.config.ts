@@ -42,6 +42,8 @@ const config: NextConfig = {
     "@neondatabase/serverless",
   ],
   poweredByHeader: false,
+  // The dev-tools badge styles itself with inline <style>, which our CSP blocks.
+  devIndicators: false,
   // The repo has its own AGENTS.md; don't let `next dev` write another one here.
   agentRules: false,
   async headers() {
