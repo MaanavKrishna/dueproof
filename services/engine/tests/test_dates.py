@@ -2,7 +2,7 @@
 import unittest
 from datetime import date
 
-from dueproof.pipeline.analyze import deadline_in, parse_date
+from dueproof_engine.pipeline.analyze import deadline_in, parse_date
 
 BASE = date(2026, 8, 6)
 

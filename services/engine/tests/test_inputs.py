@@ -5,14 +5,17 @@ import unittest
 import unicodedata
 from pathlib import Path
 
-import cv2
+import io
 
-from dueproof import config
-from dueproof.pipeline import pdf
-from dueproof.pipeline.read import read_image
+from PIL import Image
+
+from dueproof_engine.pipeline import pdf
+from dueproof_engine.pipeline.analyze import analyze
+from dueproof_engine.pipeline.link import build_index, link_quote
+from dueproof_engine.pipeline.read import ReadError, read_document, read_image
 from tests.fixtures import CIRCULAR, FOLDER, SCAN
 from tests.pdfgen import pdf as make
-from tests.support import client, upload, wait_done
+from tests.support import paddle_present, tesseract_present
 
 TEXT = ("Subject: Rotation test\n\nThe registry shall file the return on or before 14 March 2027 "
         "and the clerk must acknowledge receipt within seven days of this notice.\n\n"
@@ -50,7 +53,7 @@ class Words(unittest.TestCase):
         for rotate in (0, 90, 180, 270):
             with self.subTest(rotate=rotate):
                 doc = pdf.open_pdf(tmp_pdf(make([TEXT], rotate=rotate)))
-                img = cv2.cvtColor(pdf.render(doc[0], 144), cv2.COLOR_BGR2GRAY)
+                img = pdf.render(doc[0], 144).mean(axis=2)
                 h, w = img.shape
                 if rotate in (90, 270):
                     self.assertGreater(w, h)
@@ -109,69 +112,87 @@ class Threads(unittest.TestCase):
         self.assertEqual(errors, [])
 
 
+@unittest.skipUnless(paddle_present() or tesseract_present(), "no OCR rung installed")
 class Photos(unittest.TestCase):
     """A phone photo of a notice, as JPEG, PNG or multi-page TIFF."""
     @classmethod
     def setUpClass(cls):
         doc = pdf.open_pdf(FOLDER / SCAN)
-        cls.pages = [pdf.render(doc[n], 200) for n in range(len(doc))]
+        cls.pages = [Image.fromarray(pdf.render(doc[n], 200)[:, :, ::-1]) for n in range(len(doc))]
 
-    def encoded(self, ext: str, page: int = 0) -> bytes:
-        ok, data = cv2.imencode(ext, self.pages[page])
-        self.assertTrue(ok)
-        return data.tobytes()
+    def encoded(self, fmt: str, page: int = 0) -> bytes:
+        out = io.BytesIO()
+        self.pages[page].save(out, format=fmt)
+        return out.getvalue()
 
-    def test_jpeg_and_png_uploads_are_read_by_ocr(self):
-        for ext in (".jpg", ".png"):
-            with self.subTest(ext=ext):
-                got = upload(self.encoded(ext, 0), f"notice-photo{ext}").json()
-                self.assertEqual(wait_done(got["doc_id"])["status"], "done")
-                d = client().get(f"/api/document/{got['doc_id']}").json()
-                self.assertEqual((d["text_source"], d["page_count"]), ("ocr", 1))
-                self.assertTrue(any(o["due_date"] == "2026-08-21" for o in d["obligations"]))
-                self.assertTrue(all(f["rects"] for f in d["bullets"] + d["obligations"]
-                                    if f["confidence"] != "none"))
-                self.assertEqual(client().get(f"/api/page/{got['doc_id']}/1.jpg").status_code, 200)
-                stored = list(config.UPLOADS.glob(f"{got['doc_id']}.*"))
-                self.assertEqual([p.suffix for p in stored], [ext])
+    def test_jpeg_and_png_are_read_by_ocr(self):
+        for fmt in ("JPEG", "PNG"):
+            with self.subTest(fmt=fmt):
+                doc = read_document(self.encoded(fmt, 0))
+                self.assertEqual((doc["text_source"], doc["page_count"]), ("ocr", 1))
+                self.assertIn(doc["pages"][0]["engine"], ("paddleocr", "tesseract"))
+                found = analyze(doc["page_texts"], "notice-photo")
+                self.assertTrue(any(o["due_date"] == "2026-08-21" for o in found["obligations"]))
+                index = build_index({1: doc["words"]})
+                for f in found["obligations"] + found["summary"]:
+                    hit = link_quote(f["evidence_quote"], index, 1)
+                    self.assertEqual(hit["confidence"] == "none", not hit["rects"])
 
     def test_a_multi_page_tiff_is_one_document(self):
-        path = Path(tempfile.mkdtemp()) / "bundle.tif"
-        cv2.imwritemulti(str(path), self.pages)
-        result = read_image("tiff-test", path)
+        out = io.BytesIO()
+        self.pages[0].save(out, format="TIFF", save_all=True, append_images=self.pages[1:])
+        result = read_image(out.getvalue())
         self.assertEqual(result["page_count"], len(self.pages))
         self.assertEqual(result["text_source"], "ocr")
         self.assertIn("2026", result["full_text"])
 
     def test_a_huge_photo_is_scaled_not_refused(self):
-        big = cv2.resize(self.pages[0], None, fx=4, fy=4)            # ~45 megapixels
-        path = Path(tempfile.mkdtemp()) / "big.png"
-        cv2.imwrite(str(path), big)
-        result = read_image("huge-test", path)
+        big = self.pages[0].resize((self.pages[0].width * 4, self.pages[0].height * 4))  # ~60 MP
+        out = io.BytesIO()
+        big.save(out, format="PNG", compress_level=1)
+        shown = []
+        result = read_image(out.getvalue(), max_rung="text_layer",
+                            on_image=lambda n, img: shown.append(img.shape))
         self.assertEqual(result["page_count"], 1)
-        shown = cv2.imread(str(config.PAGES / "huge-test" / "1.jpg"))
-        self.assertLessEqual(max(shown.shape[:2]), 1700)
+        self.assertEqual((result["pages"][0]["width"], result["pages"][0]["height"]),
+                         (float(big.width), float(big.height)))
+        self.assertLessEqual(max(shown[0][:2]), 1700)
 
+    def test_exif_orientation_is_applied(self):
+        out = io.BytesIO()
+        exif = Image.Exif()
+        exif[0x0112] = 6                                  # rotate 90 CW to display
+        self.pages[0].save(out, format="JPEG", exif=exif)
+        result = read_image(out.getvalue(), max_rung="text_layer")
+        self.assertEqual((result["pages"][0]["width"], result["pages"][0]["height"]),
+                         (float(self.pages[0].height), float(self.pages[0].width)))
+
+
+class Refusals(unittest.TestCase):
     def test_a_broken_image_fails_cleanly(self):
-        got = upload(b"\xff\xd8\xff\xe0 not really a jpeg" + bytes(64), "broken.jpg").json()
-        row = wait_done(got["doc_id"])
-        self.assertEqual(row["status"], "error")
-        self.assertIn("could not be read as an image", row["error"])
+        with self.assertRaises(ReadError) as caught:
+            read_document(b"\xff\xd8\xff\xe0 not really a jpeg" + bytes(64))
+        self.assertEqual(caught.exception.reason, "malformed")
+        self.assertIn("could not be read as an image", str(caught.exception))
 
     def test_other_files_are_refused(self):
-        for body, name in ((b"GIF89a....", "x.gif"), (b"PK\x03\x04", "x.docx"), (b"hello", "x.jpg")):
-            with self.subTest(name=name):
-                self.assertEqual(upload(body, name).status_code, 415)
+        for body in (b"GIF89a....", b"PK\x03\x04", b"hello"):
+            with self.subTest(body=body), self.assertRaises(ReadError) as caught:
+                read_document(body)
+            self.assertEqual(caught.exception.reason, "unsupported")
 
-    def test_inbox_takes_photos_and_skips_the_rest(self):
-        for p in config.INBOX.iterdir():
-            p.unlink()
-        (config.INBOX / "Scan-notice.jpg").write_bytes(self.encoded(".jpg", 1))
-        (config.INBOX / "notes.txt").write_text("not a document")
-        (config.INBOX / "fake.pdf").write_bytes(b"not a pdf at all")
-        started = client().post("/api/inbox/scan").json()["started"]
-        self.assertEqual([(s["filename"], s["channel"]) for s in started], [("Scan-notice.jpg", "Scan")])
-        self.assertEqual(wait_done(started[0]["doc_id"])["status"], "done")
+    def test_a_decompression_bomb_is_refused_before_decoding(self):
+        out = io.BytesIO()
+        Image.new("1", (20000, 20000)).save(out, format="PNG")    # 400 MP, a few KB
+        with self.assertRaises(ReadError) as caught:
+            read_document(out.getvalue())
+        self.assertEqual(caught.exception.reason, "too_large")
+
+    def test_a_blank_page_is_confidently_empty(self):
+        out = io.BytesIO()
+        Image.new("RGB", (800, 1100), "white").save(out, format="PNG")
+        page = read_document(out.getvalue())["pages"][0]
+        self.assertEqual((page["words"], page["confidence"], page["escalate"]), ([], 1.0, False))
 
 
 if __name__ == "__main__":

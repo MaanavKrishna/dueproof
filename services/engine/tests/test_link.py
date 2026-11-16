@@ -1,7 +1,7 @@
 """Citation linking: confidence bands and the refusal to guess."""
 import unittest
 
-from dueproof.pipeline.link import STRONG, WEAK, build_index, confidence_of, link_quote
+from dueproof_engine.pipeline.link import STRONG, WEAK, build_index, confidence_of, link_quote
 
 
 def words(text, page=1):

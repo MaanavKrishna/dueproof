@@ -2,8 +2,8 @@
 import unicodedata
 import unittest
 
-from dueproof.pipeline.read import _join, page_text
-from dueproof.pipeline.scripts.malayalam import clean, is_split_word, merge_orphans
+from dueproof_engine.pipeline.read import _join, page_text
+from dueproof_engine.pipeline.scripts.malayalam import clean, is_split_word, merge_orphans
 
 
 def word(text, x0=0.1, y0=0.1, x1=0.2, y1=0.12, block=0, line=0):

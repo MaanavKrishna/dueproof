@@ -2,11 +2,15 @@
 boxes come home. The one piece of maths that is easy to break and hard to notice."""
 import unittest
 
-import cv2
 import numpy as np
 
-from dueproof.pipeline.link import _rects_for, _stitch
-from dueproof.pipeline.read import MAX_SKEW_DEG, _deskew, _map_back
+from dueproof_engine.pipeline.link import _rects_for, _stitch
+
+try:                                    # OpenCV is engine-heavy only (the tesseract group)
+    import cv2
+    from dueproof_engine.ocr.tesseract import MAX_SKEW_DEG, _deskew, _map_back
+except ImportError:
+    cv2 = None
 
 W, H = 1200, 1600
 BOX = (300.0, 500.0, 700.0, 540.0)      # a word box on the straight page
@@ -33,6 +37,7 @@ def bbox_through(box, m):
     return p[:, 0].min(), p[:, 1].min(), p[:, 0].max(), p[:, 1].max()
 
 
+@unittest.skipIf(cv2 is None, "OpenCV is not installed (engine-fast)")
 class MapBack(unittest.TestCase):
     def test_identity_when_no_deskew(self):
         self.assertEqual(_map_back(BOX, None), BOX)
@@ -54,6 +59,7 @@ class MapBack(unittest.TestCase):
         self.assertGreaterEqual(y1, BOX[3] - 0.01)
 
 
+@unittest.skipIf(cv2 is None, "OpenCV is not installed (engine-fast)")
 class Deskew(unittest.TestCase):
     def test_straight_page_is_left_alone(self):
         img = page()

@@ -1,13 +1,11 @@
 """Notices: reference, issuing office, sections, amount demanded, deadlines that
 run from receipt, hearings — and the default notices profile end to end."""
-import json
 import unittest
 from datetime import date
 
-from dueproof.pipeline.analyze import (analyze, deadline_in, due_basis, notice_details, parse_date,
+from dueproof_engine.pipeline.analyze import (analyze, deadline_in, due_basis, notice_details, parse_date,
                                        section_of)
 from tests.fixtures import FOLDER, NOTICE
-from tests.test_profiles import run
 
 RECEIVED = date(2026, 10, 24)
 
@@ -87,71 +85,94 @@ class Deadlines(unittest.TestCase):
         self.assertEqual(parse_date("Dated 16 August 2026"), "2026-08-16")
 
 
-NOTICES_RUN = """
-    import json, time
-    from fastapi.testclient import TestClient
-    from dueproof import config
-    from dueproof.web.app import app
-    c = TestClient(app, headers={"X-Dueproof": "1"})
-    data = open(%r, "rb").read()
-    got = c.post("/api/upload", files={"file": ("notice.pdf", data, "application/pdf")},
-                 data={"received_on": "2026-10-24", "channel": "GST portal"}).json()
-    while not c.get(f"/api/status/{got['doc_id']}").json()["done"]:
-        time.sleep(0.05)
-    before = c.get(f"/api/document/{got['doc_id']}").json()
-    moved = c.patch(f"/api/documents/{got['doc_id']}", json={"received_on": "2026-10-22"}).json()
-    after = c.get(f"/api/document/{got['doc_id']}").json()
-    future = c.patch(f"/api/documents/{got['doc_id']}", json={"received_on": "2999-01-01"}).status_code
-    bad = c.patch(f"/api/documents/{got['doc_id']}", json={"received_on": "28/10/2026"}).status_code
-    print(json.dumps({"profile": config.ORG_NAME, "tz": str(config.TZ), "meta": c.get("/api/meta").json(),
-                      "before": before, "after": after, "moved": moved, "future": future, "bad": bad},
-                     ensure_ascii=False))
-"""
-
-
 class NoticesProfile(unittest.TestCase):
-    """The default profile, on a fictional GST notice."""
+    """The default profile, on a fictional GST notice — read as the engine
+    reads it, analysed by the notices_in analyzer whatever the process default."""
     @classmethod
     def setUpClass(cls):
-        cls.proc = run(NOTICES_RUN % str(FOLDER / NOTICE), DUEPROOF_PROFILE="notices_in",
-                       DUEPROOF_TRANSLATE="0")
-        cls.out = json.loads(cls.proc.stdout) if cls.proc.returncode == 0 else {}
-
-    def setUp(self):
-        self.assertEqual(self.proc.returncode, 0, self.proc.stderr[-2000:])
+        from dueproof_engine.pipeline.analyzers import analyzer
+        from dueproof_engine.pipeline.link import build_index, link_quote
+        from dueproof_engine.pipeline.read import read_pdf
+        cls.rules = analyzer("notices_in")
+        doc = read_pdf(FOLDER / NOTICE)
+        cls.before = cls.rules.analyze(doc["page_texts"], "notice.pdf", received=date(2026, 10, 24))
+        cls.after = cls.rules.analyze(doc["page_texts"], "notice.pdf", received=date(2026, 10, 22))
+        index = build_index({1: doc["words"]})
+        cls.links = [link_quote(o["evidence_quote"], index, o["page"])
+                     for o in cls.before["obligations"]]
 
     def test_settings(self):
-        meta = self.out["meta"]
-        self.assertEqual(self.out["tz"], "Asia/Kolkata")
-        self.assertIn("GST & Indirect Tax", meta["roles"])
-        self.assertIn("GST portal", meta["channels"])
-        self.assertEqual([lang["code"] for lang in meta["locals"]], ["hi"])
+        from dueproof_engine import profiles
+        p = profiles.load("notices_in")
+        self.assertEqual(p.TIMEZONE, "Asia/Kolkata")
+        self.assertIn("GST & Indirect Tax", p.ROLES)
+        self.assertIn("GST portal", p.CHANNELS)
+        self.assertEqual([lang["code"] for lang in self.rules.LOCALS], ["hi"])
 
     def test_what_the_notice_is_filed_under(self):
-        d = self.out["before"]
+        d = self.before
         self.assertEqual(d["doc_type"], "GST notice")
-        self.assertEqual(d["source_channel"], "GST portal")
-        self.assertEqual((d["reference"], d["authority"]),
+        n = d["notice"]
+        self.assertEqual((n["reference"], n["authority"]),
                          ("ZD2910260012345", "Assistant Commissioner of State Tax"))
-        self.assertEqual((d["amount"], d["amount_text"]), (452300, "Rs. 4,52,300"))
-        self.assertEqual(d["sections"], ["Section 61", "Section 73(1)"])
-        self.assertEqual((d["doc_date"], d["received_on"]), ("2026-10-20", "2026-10-24"))
+        self.assertEqual((n["amount"], n["amount_text"]), (452300, "Rs. 4,52,300"))
+        self.assertEqual(n["sections"], ["Section 61", "Section 73(1)"])
+        self.assertEqual(d["doc_date"], "2026-10-20")
 
     def test_reply_runs_from_receipt_and_the_hearing_is_on_the_line(self):
-        obs = {o["tag"] or "reply": o for o in self.out["before"]["obligations"] if o["due_date"]}
+        obs = {o["tag"] or "reply": o for o in self.before["obligations"] if o["due_date"]}
         self.assertEqual(obs["reply"]["due_date"], "2026-11-23")          # 24 Oct + 30 days
         self.assertEqual(obs["reply"]["due_basis"], "receipt:30")
+        self.assertEqual(obs["reply"]["due_rule"],
+                         {"type": "relative", "anchor": "receipt", "amount": 30, "unit": "days"})
         self.assertEqual(obs["hearing"]["due_date"], "2026-11-18")
+        self.assertEqual(obs["hearing"]["due_rule"], {"type": "fixed", "date": "2026-11-18"})
         for o in obs.values():
             self.assertEqual(o["roles"][0], "GST & Indirect Tax")
-            self.assertEqual(o["confidence"], "exact")
+        self.assertTrue(all(hit["confidence"] == "exact" for hit in self.links))
 
     def test_correcting_the_received_date_moves_only_receipt_deadlines(self):
-        after = {o["tag"] or "reply": o for o in self.out["after"]["obligations"] if o["due_date"]}
-        self.assertEqual(self.out["after"]["received_on"], "2026-10-22")
+        after = {o["tag"] or "reply": o for o in self.after["obligations"] if o["due_date"]}
         self.assertEqual(after["reply"]["due_date"], "2026-11-21")
         self.assertEqual(after["hearing"]["due_date"], "2026-11-18")
-        self.assertEqual((self.out["future"], self.out["bad"]), (422, 422))
+
+
+class Rules(unittest.TestCase):
+    """What a deadline sentence says, as a DateRule (contracts/date-rule.ts)."""
+    def test_shapes(self):
+        from dueproof_engine.pipeline.analyze import date_rule
+        cases = {
+            "Reply within 30 days of receipt of this notice.":
+                {"type": "relative", "anchor": "receipt", "amount": 30, "unit": "days"},
+            "Reply within 30 days of this notice.":
+                {"type": "relative", "anchor": "issue", "amount": 30, "unit": "days"},
+            "Reply within 2 weeks from the date of service of this notice.":
+                {"type": "relative", "anchor": "service", "amount": 14, "unit": "days"},
+            "An appeal may be filed within 3 months from the date of communication of this order, "
+            "and the authority may allow a further period of one month.":
+                {"type": "relative", "anchor": "service", "amount": 3, "unit": "months"},
+            "An appeal lies within 3 months from the date of the order, or within a further "
+            "period of 1 month if sufficient cause is shown.":
+                {"type": "relative", "anchor": "order", "amount": 3, "unit": "months",
+                 "condonable": {"amount": 1, "unit": "months"}},
+            "Submit the documents within 7 working days of receipt.":
+                {"type": "relative", "anchor": "receipt", "amount": 7, "unit": "working_days"},
+            "Reply on or before 30 November 2026.": {"type": "fixed", "date": "2026-11-30"},
+            "A personal hearing is fixed on 18 November 2026.": {"type": "fixed", "date": "2026-11-18"},
+        }
+        for sentence, want in cases.items():
+            with self.subTest(sentence=sentence[:50]):
+                self.assertEqual(date_rule(sentence), want)
+        self.assertIsNone(date_rule("The meeting was held on 3 March 2026."))   # no deadline marker
+
+    def test_the_engine_date_is_calendar_correct(self):
+        from dueproof_engine.pipeline.analyze import resolve_rule
+        rel = lambda n, unit, anchor="receipt": {"type": "relative", "anchor": anchor, "amount": n, "unit": unit}
+        self.assertEqual(resolve_rule(rel(30, "days"), None, date(2026, 10, 24)), "2026-11-23")
+        self.assertEqual(resolve_rule(rel(3, "months", "issue"), date(2026, 11, 30), None), "2027-02-28")
+        self.assertIsNone(resolve_rule(rel(30, "days"), date(2026, 10, 1), None))    # receipt unknown
+        self.assertIsNone(resolve_rule(rel(7, "working_days"), None, date(2026, 10, 24)))
+        self.assertIsNone(resolve_rule(rel(3, "months", "order"), date(2026, 10, 1), date(2026, 10, 2)))
 
 
 if __name__ == "__main__":
