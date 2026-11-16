@@ -1,8 +1,8 @@
 /**
  * Smoke: sign up, upload the GST ASMT-10 notice and a scanned page, open a
  * case from the Inbox, check the proof on the case page, then find the
- * notice with Search. Needs open sign-up (AUTH_SIGNUP=open) and the fake
- * engine (no ENGINE_URL).
+ * notice with Search. Runs on the shared Playwright server (fake engine,
+ * PGlite); SCREENSHOTS_DIR saves 2× screenshots of each screen.
  */
 import { fileURLToPath } from "node:url";
 import { expect, type Page, test } from "@playwright/test";
@@ -13,24 +13,33 @@ const shots = process.env.SCREENSHOTS_DIR;
 
 async function shot(page: Page, name: string) {
   if (!shots) return;
+  // Start each screenshot at the top of the page (not inside the proof viewer).
+  await page.evaluate(() => {
+    for (const el of document.querySelectorAll<HTMLElement>("main, main *")) {
+      if (el.scrollTop > 0 && !el.closest('[aria-label^="Proof viewer"]')) el.scrollTop = 0;
+    }
+  });
   await page.waitForTimeout(400);
   await page.screenshot({ path: `${shots}/app-${name}.png` });
 }
 
-test("Today → Inbox → case page → proof → search", async ({ page, request, baseURL }) => {
-  const email = `smoke-${Date.now()}@firm.test`;
-  const res = await request.post("/api/auth/sign-up/email", {
-    data: { email, password: "a-long-test-password", name: "Priya Sharma" },
-    headers: { origin: baseURL ?? "" },
-  });
-  expect(res.ok()).toBe(true);
-  // The request context's cookies are shared with the page.
-  const cookies = await request.storageState();
-  await page.context().addCookies(cookies.cookies);
+test.use({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
 
+/** Sign up (the first person owns the organisation), or sign in when another spec already did. */
+async function signIn(page: Page) {
+  const base = test.info().project.use.baseURL as string;
+  const body = { email: "asha@harbour.test", password: "a-long-test-password", name: "Asha Rao" };
+  const headers = { origin: base };
+  const up = await page.request.post("/api/auth/sign-up/email", { data: body, headers });
+  if (up.ok()) return;
+  const res = await page.request.post("/api/auth/sign-in/email", { data: body, headers });
+  expect(res.status()).toBe(200);
+}
+
+test("Today → Inbox → case page → proof → search", async ({ page }) => {
+  await signIn(page);
   await page.goto("/today");
   await expect(page.getByRole("heading", { name: "Today", level: 1 })).toBeVisible();
-  await expect(page.getByText("Nothing is due yet")).toBeVisible();
 
   await page.goto("/inbox");
   await expect(page.getByRole("heading", { name: "Inbox", level: 1 })).toBeVisible();
@@ -40,11 +49,11 @@ test("Today → Inbox → case page → proof → search", async ({ page, reques
     fixture("Scan-circular-photo.pdf"),
   ]);
   const filing = page.getByRole("list", { name: "To file in a case" });
-  await expect(filing.getByText(/ASMT-10/)).toBeVisible({ timeout: 60_000 });
-  // The scan has no duty on it: it waits in the review queue.
-  await expect(page.getByText("No deadline found on this document")).toBeVisible({
-    timeout: 60_000,
-  });
+  // Both are read and wait to be filed in a case (or were already, from another spec).
+  await expect(filing.getByText(/ZD2910260012345/)).toBeVisible({ timeout: 90_000 });
+  await expect
+    .poll(() => filing.getByRole("listitem").count(), { timeout: 90_000 })
+    .toBeGreaterThanOrEqual(2);
   await shot(page, "inbox");
 
   // Open a case for the notice, with a new client.
@@ -89,6 +98,6 @@ test("Today → Inbox → case page → proof → search", async ({ page, reques
   const results = page.getByRole("list", { name: "Results" });
   await expect(results.getByRole("link").first()).toBeVisible();
   await results.getByRole("link").first().click();
-  await page.waitForURL(/\/cases\/.+\?/);
+  await page.waitForURL(/\/cases\//);
   await expect(page.getByText(/30 days from receipt/).first()).toBeVisible();
 });

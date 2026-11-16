@@ -299,7 +299,7 @@ export function NoticesView({
   return (
     <ListPageTemplate
       title="Notices"
-      subtitle={`${data.rows.length.toLocaleString("en-IN")} cases · ${overdue.toLocaleString("en-IN")} overdue${rows.length !== data.rows.length ? ` · ${rows.length.toLocaleString("en-IN")} shown` : ""}`}
+      subtitle={`${data.rows.length.toLocaleString("en-IN")} case${data.rows.length === 1 ? "" : "s"} · ${overdue.toLocaleString("en-IN")} overdue${rows.length !== data.rows.length ? ` · ${rows.length.toLocaleString("en-IN")} shown` : ""}`}
       actions={
         <>
           <Button icon={DownloadIcon} onClick={() => void exportCsv()} loading={exporting}>
