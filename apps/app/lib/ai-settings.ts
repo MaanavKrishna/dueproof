@@ -94,7 +94,7 @@ function checkModeForEdition(
   baseUrl: string | null,
   edition: AuthContext["container"]["env"]["DUEPROOF_EDITION"],
 ) {
-  // The plan goes through our gateway account (hosted only in v0.1, D-biz-3).
+  // The plan uses Dueproof's own Claude API key (hosted only in v0.1, D-biz-3).
   if (mode === "plan" && edition !== "hosted")
     throw badRequest("The Dueproof AI plan is available on the hosted edition only.", "ai_mode");
   // A model server on the customer's own network: never from our hosted servers.

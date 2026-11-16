@@ -223,6 +223,20 @@ describe("policyFromSettings", () => {
     expect(policyFromSettings({ ...row, mode: "off" }, { usage }).provider).toBeNull();
   });
 
+  it("plan: the Claude API directly when Dueproof's Anthropic key is set, preferred over the gateway", () => {
+    const p = policyFromSettings(
+      { ...row, mode: "plan" },
+      { usage, anthropicKey: "sk-ant-test", gatewayKey: "vck_test" },
+    );
+    expect(p.provider).toMatchObject({ kind: "anthropic", name: "anthropic", serverFallbacks: true });
+    expect(p.provider && "baseURL" in p.provider ? p.provider.baseURL : undefined).toBeUndefined();
+    expect(p.models).toEqual({
+      haiku: "claude-haiku-5-5",
+      sonnet: "claude-sonnet-5-5",
+      opus: "claude-opus-5-5",
+    });
+  });
+
   it("plan: the gateway with dotted model ids, no server fallbacks until verified", () => {
     const p = policyFromSettings({ ...row, mode: "plan" }, { usage, gatewayKey: "vck_test" });
     expect(p.models).toEqual(GATEWAY_MODELS);

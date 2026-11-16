@@ -84,7 +84,7 @@ export interface LoadedPolicy {
   settings: StoredAiSettings;
 }
 
-/** Settings + usage → policy. The plan's gateway key is used on the hosted edition only. */
+/** Settings + usage → policy. The plan's Claude API key (or the optional gateway key) is used on the hosted edition only. */
 export async function loadAiPolicy(
   c: { env: Env; database: Database },
   orgId: string,
@@ -96,10 +96,15 @@ export async function loadAiPolicy(
       ? { aiCallsThisMonth: 0, opusCallsThisMonth: 0, spentMicroUsdThisMonth: 0 }
       : await monthlyAiUsage(c.database, orgId, now);
   const master = masterKey(c.env);
-  const gatewayKey = c.env.DUEPROOF_EDITION === "hosted" ? c.env.AI_GATEWAY_API_KEY : undefined;
+  const hosted = c.env.DUEPROOF_EDITION === "hosted";
+  // The plan calls the Claude API directly with Dueproof's key; the gateway
+  // is only an optional alternative.
+  const anthropicKey = hosted ? c.env.ANTHROPIC_API_KEY : undefined;
+  const gatewayKey = hosted ? c.env.AI_GATEWAY_API_KEY : undefined;
   const policy = policyFromSettings(settings, {
     usage,
     ...(master ? { master } : {}),
+    ...(anthropicKey ? { anthropicKey } : {}),
     ...(gatewayKey ? { gatewayKey } : {}),
   });
   return { policy, settings };
@@ -107,7 +112,7 @@ export async function loadAiPolicy(
 
 /**
  * Would a model see this document? Mode on, a provider configured (a key
- * stored for BYOK, the gateway key for the plan), and the client not excluded.
+ * stored for BYOK, Dueproof's Claude API key for the plan), and the client not excluded.
  */
 export function aiAvailableFor(policy: AiPolicy, clientId: string | null | undefined): boolean {
   return policy.mode !== "off" && policy.provider !== null && !isClientExcluded(policy, clientId);

@@ -33,7 +33,12 @@ export interface PolicyOptions {
   usage: AiUsage;
   /** AI_KEY_MASTER, loaded with `loadMasterKey()`; needed for BYOK. */
   master?: Buffer;
-  /** AI_GATEWAY_API_KEY for the plan path. */
+  /**
+   * ANTHROPIC_API_KEY for the plan path: Dueproof's own Claude API key.
+   * Preferred: the plan calls the Claude API directly.
+   */
+  anthropicKey?: KeySource;
+  /** AI_GATEWAY_API_KEY: optional alternative plan path through Vercel AI Gateway. */
   gatewayKey?: KeySource;
   /**
    * Plan path through the gateway: `anthropic` (Anthropic-compatible endpoint,
@@ -83,6 +88,18 @@ export function policyFromSettings(row: AiSettingsRow, opts: PolicyOptions): AiP
     case "off":
       break;
     case "plan":
+      if (opts.anthropicKey) {
+        // Direct Claude API: structured outputs, effort, caching and
+        // server-side refusal fallbacks all available.
+        provider = {
+          kind: "anthropic",
+          name: "anthropic",
+          apiKey: opts.anthropicKey,
+          serverFallbacks: true,
+        };
+        models = { ...PLAN_MODELS };
+        break;
+      }
       if (!opts.gatewayKey) break;
       if ((opts.gatewayVia ?? "anthropic") === "anthropic") {
         provider = {

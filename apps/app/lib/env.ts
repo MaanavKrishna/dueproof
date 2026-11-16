@@ -83,13 +83,15 @@ const Env = z
     /**
      * AI (04 §5, §7). AI_KEY_MASTER wraps each organisation's BYOK key
      * (32 bytes, base64; `openssl rand -base64 32`). Without it a BYOK key
-     * can't be saved or used. AI_GATEWAY_API_KEY is the Dueproof plan's
-     * Vercel AI Gateway key (hosted only).
+     * can't be saved or used. ANTHROPIC_API_KEY is Dueproof's own Claude
+     * API key for the AI plan (hosted only); AI_GATEWAY_API_KEY is an optional
+     * alternative plan path through Vercel AI Gateway.
      */
     AI_KEY_MASTER: z
       .string()
       .refine((v) => Buffer.from(v, "base64").length === 32, "must be 32 bytes, base64-encoded")
       .optional(),
+    ANTHROPIC_API_KEY: z.string().optional(),
     AI_GATEWAY_API_KEY: z.string().optional(),
 
     /** Bearer token for GET /api/metrics from outside the machine. Unset: local requests only. */
