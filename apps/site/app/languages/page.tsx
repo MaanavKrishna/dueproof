@@ -1,86 +1,106 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PageTitle } from "@/components/PageTitle";
-import { LANGUAGES, RTL } from "@/lib/languages";
+import { ArrowRightIcon } from "@/components/icons";
+import { PageHero } from "@/components/PageHero";
+import { LANGUAGES } from "@/lib/languages";
 
 export const metadata: Metadata = { title: "Languages" };
 
-const SCRIPT: Record<string, string> = {
-  hi: "Devanagari", bn: "Bengali", mr: "Devanagari", te: "Telugu", ta: "Tamil", gu: "Gujarati",
-  ur: "Arabic", kn: "Kannada", or: "Odia", ml: "Malayalam", pa: "Gurmukhi", as: "Bengali",
-  mai: "Devanagari", sat: "Ol Chiki", ks: "Arabic", ne: "Devanagari", sd: "Arabic",
-  kok: "Devanagari", doi: "Devanagari", mni: "Meetei Mayek", brx: "Devanagari", sa: "Devanagari",
-};
+const SCRIPTS = [...new Set(LANGUAGES.map((l) => l.script))];
 
 export default function Languages() {
-  const tested = LANGUAGES.filter((l) => l.tested).map((l) => l.english);
   return (
     <>
-      <PageTitle title="English and 22 Indian languages">
+      <PageHero overline="Languages" title="English and 22 Indian languages.">
         <p>
-          Every language in the Eighth Schedule. Text is translated into English on your own machine by
-          IndicTrans2, so one set of rules reads them all, and the outline always lands on the original words.
+          Every language in the Eighth Schedule. A notice is read in the language it was written in,
+          and the outline always lands on the original words. The English beside it is a working
+          translation, labelled as one.
         </p>
-      </PageTitle>
+      </PageHero>
 
-      <section className="band band-paper">
+      <section className="band band-canvas" aria-labelledby="all-title">
         <div className="wrap">
-          <div className="table-scroll">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th scope="col">Language</th>
-                  <th scope="col">Script</th>
-                  <th scope="col">Typed PDFs</th>
-                  <th scope="col">Scans and photos</th>
-                  <th scope="col">Tested end to end</th>
-                </tr>
-              </thead>
-              <tbody>
-                {LANGUAGES.map((l) => (
-                  <tr key={l.code}>
-                    <th scope="row">
-                      <span className="script" lang={l.code} dir={RTL.has(l.code) ? "rtl" : undefined}
-                            style={{ fontSize: "1.2rem", marginRight: 10 }}>{l.name}</span>
-                      {l.english}
-                    </th>
-                    <td>{SCRIPT[l.code]}</td>
-                    <td>Yes</td>
-                    <td>{l.scans ? "Yes" : <span className="muted">No OCR model yet</span>}</td>
-                    <td>{l.tested ? "Yes" : <span className="muted">Not yet</span>}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="section-head section-head-wide">
+            <h2 id="all-title" className="h2">
+              {LANGUAGES.length} languages, {SCRIPTS.length} scripts.
+            </h2>
+            <p className="muted">
+              Each script is set in its own Noto typeface, loaded only when a page shows it. Urdu,
+              Kashmiri and Sindhi are set right to left.
+            </p>
           </div>
-          <p className="small muted" style={{ marginTop: 14 }}>
-            Tested end to end with the real translation model: {tested.join(", ")}. The others use the same path;
-            if you try one, please report what you find.
-          </p>
+          <ul className="lang-grid">
+            {LANGUAGES.map((l) => (
+              <li className="lang" key={l.code}>
+                <span className="native" lang={l.code} dir={l.rtl ? "rtl" : undefined}>
+                  {l.name}
+                </span>
+                <span className="meta">
+                  <span>{l.english}</span>
+                  <span>{l.script}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
-      <section className="band">
-        <div className="wrap split">
-          <div className="measure">
-            <h2 style={{ marginBottom: 16 }}>Two things to know</h2>
-            <h3 style={{ margin: "24px 0 8px" }}>Languages that share a script</h3>
-            <p className="muted">
-              Dueproof tells languages apart by script. Hindi, Marathi, Nepali, Sanskrit, Konkani, Maithili, Dogri
-              and Bodo all use Devanagari, so among the languages you switch on, the first one listed claims the
-              script. <code>DUEPROOF_LANGUAGES=mr,ta</code> reads Devanagari as Marathi.
-            </p>
-            <h3 style={{ margin: "24px 0 8px" }}>Without the translation model</h3>
-            <p className="muted">
-              The model's weights are a separate, licence-gated download. Without them, Indian-language text is
-              still read, searched and shown, but duties are found only through words your profile lists in that
-              language.
-            </p>
+      <section className="band" aria-labelledby="how-title">
+        <div className="wrap">
+          <div className="section-head">
+            <p className="overline">How it reads them</p>
+            <h2 id="how-title" className="h2">
+              The original is always the proof.
+            </h2>
           </div>
-          <div>
-            <pre className="terminal"><span className="c"># Switch languages on when you start it</span>{"\n"}DUEPROOF_LANGUAGES=hi,ta,bn dueproof serve{"\n\n"}<span className="c"># or all 22</span>{"\n"}DUEPROOF_LANGUAGES=all dueproof serve</pre>
-            <p style={{ marginTop: 20 }}><Link href="/docs/languages/">Languages in the documentation</Link></p>
-          </div>
+          <ul className="rule-list">
+            <li>
+              <span>Translated offline by default</span>
+              <span className="muted">
+                Indian-language text is translated into English on the same server with IndicTrans2,
+                so the same rules find the same duties in any language and nothing leaves the
+                building.
+              </span>
+            </li>
+            <li>
+              <span>Read directly when AI is on</span>
+              <span className="muted">
+                With AI on, the model reads the original language directly. Its findings still have
+                to be found on the page before they can become a deadline. Model translation is
+                flagged as such.
+              </span>
+            </li>
+            <li>
+              <span>Scans and photographs</span>
+              <span className="muted">
+                Pages without a text layer go through an OCR ladder: PDFium for text-layer PDFs,
+                then PaddleOCR, then Tesseract, then a vision model for the hardest pages. Which
+                tool reads which script best is being measured on real notices.{" "}
+                <span className="verify">verify</span> We will publish the results per language
+                rather than claim them here.
+              </span>
+            </li>
+            <li>
+              <span>When a script can't be read offline</span>
+              <span className="muted">
+                The original is still shown and searchable, marked "translation unavailable". You
+                can turn AI on for that notice, or read the original.
+              </span>
+            </li>
+            <li>
+              <span>The interface</span>
+              <span className="muted">
+                The app itself is in English in v0.1. Interface translation into Indian and other
+                languages is planned for 0.3; every string is in message files from day one.
+              </span>
+            </li>
+          </ul>
+          <p style={{ marginTop: "var(--dp-space-40)" }}>
+            <Link className="text-link" href="/docs/languages/">
+              Languages in the documentation <ArrowRightIcon size={16} />
+            </Link>
+          </p>
         </div>
       </section>
     </>

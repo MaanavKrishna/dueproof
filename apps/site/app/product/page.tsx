@@ -1,130 +1,214 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PageTitle } from "@/components/PageTitle";
-import { Shot } from "@/components/Shot";
+import { ArrowRightIcon } from "@/components/icons";
+import { PageHero } from "@/components/PageHero";
+import { ReceiptClock } from "@/components/ReceiptClock";
 
-export const metadata: Metadata = { title: "How it works" };
+export const metadata: Metadata = { title: "Product" };
 
-// What Dueproof reads off the sample GST notice; each line is pinned by a test
-// in tests/test_notices.py.
-const READ_OFF = [
-  ["Kind of notice", "GST notice, filed to the GST & Indirect Tax desk"],
-  ["Reference", "ZD2910260012345"],
-  ["Issued by", "Assistant Commissioner of State Tax"],
-  ["Dated", "20 October 2026"],
-  ["Amount demanded", "Rs. 4,52,300"],
-  ["Provisions cited", "Section 61, Section 73(1)"],
-  ["Duty", "Explain the discrepancies and pay the tax with interest, within 30 days of receipt"],
-  ["Due", "23 November 2026, for a notice received on 24 October"],
-  ["Hearing", "18 November 2026, 11:00 AM"],
-];
+const PIPELINE = [
+  [
+    "In",
+    "Upload or drag a folder, forward to an email-in address, or photograph a letter on a phone. WhatsApp intake is planned, once Meta approves it.",
+  ],
+  [
+    "Read",
+    "Text and the position of every word come off the page, through an OCR ladder for scans. Indian-language text is translated offline.",
+  ],
+  [
+    "Find",
+    "Rules and, if you turned AI on, a model both propose findings: duties, deadline rules, hearings, amounts, references, sections.",
+  ],
+  [
+    "Prove",
+    "Each finding's quote is located on the page and outlined. A finding that can't be located stays an unverified suggestion.",
+  ],
+  [
+    "Compute",
+    "The date engine turns the rule into a date, using the receipt date, working days and holidays. A model never writes a date.",
+  ],
+  [
+    "Track",
+    "Findings join a case with stages, owners and approvals, beside the client's statutory calendar and open demands.",
+  ],
+] as const;
 
-const WORK = [
-  ["An owner for every duty", "Assign a person or leave it with the desk. View the deadline list one desk at a time."],
-  ["Corrections that keep the original", "Change a date, a desk or an owner. Dueproof stores who changed what and when, next to what it first read."],
-  ["Done and dismissed", "Close an item when it is handled, or dismiss a sentence that was never a duty. Dismissals become labels for measuring accuracy."],
-  ["A weekly email", "Each person gets the items due in the coming days and anything overdue. It runs from cron or a systemd timer."],
-  ["Search across every page", "In English and in the original script, including scanned pages."],
-  ["Take it with you", "A printable evidence report with each passage cropped from its page, and a spreadsheet of the register."],
-];
+const SCREENS = [
+  [
+    "Today",
+    "What is overdue, due today and this week, what needs review, hearings, replies awaiting approval and, for partners, the firm's ₹ exposure.",
+  ],
+  [
+    "Inbox",
+    "Uploads in progress and the review queue: findings below the bar, AI suggestions to confirm, unmatched clients, likely duplicates. J and K to move, Enter to confirm.",
+  ],
+  [
+    "Notices",
+    "One row per case, with client, type, stage, demand, owner and language. Saved views, bulk actions and a column chooser.",
+  ],
+  [
+    "Case page",
+    "The stage bar, the thread of documents, demand and interest with workings, finding cards and the proof viewer beside them.",
+  ],
+  [
+    "Deadlines",
+    "Notice deadlines, appeal windows, hearings and statutory filings together, as a list, a calendar or a timeline.",
+  ],
+  [
+    "Clients",
+    "Registrations (GSTIN, PAN, CIN, TAN), the client's statutory calendar and exposure.",
+  ],
+  [
+    "Ask",
+    "Questions across the register, answered with citations. An answer without a citation is refused. Only when AI is on.",
+  ],
+  [
+    "Reports",
+    "An evidence report that crops each passage from its page, client statements, workload and CSV.",
+  ],
+] as const;
+
+const LADDER = ["PDFium", "PaddleOCR", "Tesseract", "Vision model"];
 
 export default function Product() {
   return (
     <>
-      <PageTitle title="How Dueproof reads a notice">
+      <PageHero overline="Product" title="From the post to a proved deadline.">
         <p>
-          A notice goes in as a PDF or a photograph. What comes out is a set of entries, each with a date, a desk
-          and the exact passage it rests on, outlined on the page.
+          A notice goes in as a PDF, a scan or a photograph. What comes out is a case with dated
+          duties, each one outlined on the page it came from and each date shown with the rule that
+          produced it.
         </p>
-      </PageTitle>
+      </PageHero>
 
-      <section className="band band-paper">
-        <div className="wrap split split-wide">
-          <div>
-            <h2 style={{ marginBottom: 16 }}>What it reads off one GST notice</h2>
-            <p className="muted measure">
-              A sample Form GST ASMT-10, one page, typed. This is what the default profile finds in it, field by
-              field.
-            </p>
-            <div className="table-scroll" style={{ marginTop: 24 }}>
-              <table className="table">
-                <tbody>
-                  {READ_OFF.map(([k, v]) => <tr key={k}><th scope="row">{k}</th><td>{v}</td></tr>)}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <Shot src="notice.png"
-                alt="The GST notice open in Dueproof, with its reference, issuing office, amount, reply deadline and hearing listed beside the page"
-                caption="The same notice in the app. Choosing an entry outlines its sentence on the page." />
-        </div>
-      </section>
-
-      <section className="band">
+      <section className="band band-canvas" aria-labelledby="pipeline-title">
         <div className="wrap">
           <div className="section-head">
-            <h2>Why you can check every entry</h2>
-            <p>
-              Dueproof never paraphrases its way to a date. Each entry keeps the sentence it came from, and that
-              sentence is located on the page by its words, not by a guess.
-            </p>
+            <p className="overline">How it works</p>
+            <h2 id="pipeline-title" className="h2">
+              Six steps, each one checkable.
+            </h2>
           </div>
-          <div className="facts">
-            <div className="fact"><h3>Exact, strong, approximate or not found</h3><p>Each outline says how well the passage matched the page. When nothing matches well enough, there is no outline and you are told so.</p></div>
-            <div className="fact"><h3>Original wording is the proof</h3><p>For a Hindi or Tamil notice the English is a working translation, labelled as one. The outline is on the original.</p></div>
-            <div className="fact"><h3>Translations are checked</h3><p>If a translation seems to have dropped a number or a known term, the entry is flagged for you to check.</p></div>
-            <div className="fact"><h3>Measured, not promised</h3><p>The test suite fails if any finding is outlined confidently in the wrong place. Run <code>dueproof eval</code> on your own labelled notices.</p></div>
-          </div>
+          <ol className="pipeline">
+            {PIPELINE.map(([h, p]) => (
+              <li key={h}>
+                <h3>{h}</h3>
+                <p>{p}</p>
+              </li>
+            ))}
+          </ol>
         </div>
       </section>
 
-      <section className="band band-paper">
-        <div className="wrap">
-          <div className="section-head">
-            <h2>From a list of dates to work that gets done</h2>
-          </div>
-          <Shot src="deadlines.png"
-                alt="The deadline list: obligations in date order, overdue ones marked, each linked to its page"
-                caption="The deadline list, in the order things fall due. Overdue items are marked in amber." />
-          <div className="facts" style={{ marginTop: 40 }}>
-            {WORK.map(([h, p]) => <div className="fact" key={h}><h3>{h}</h3><p>{p}</p></div>)}
-          </div>
-        </div>
-      </section>
-
-      <section className="band">
-        <div className="wrap split split-wide">
-          <div className="measure">
-            <h2 style={{ marginBottom: 16 }}>Notices that are not in English</h2>
+      <section className="band" aria-labelledby="dates-title">
+        <div className="wrap split split-even">
+          <div className="stack">
+            <p className="overline">Dates are computed</p>
+            <h2 id="dates-title" className="h2">
+              "Within 30 days of receipt" depends on when it reached you.
+            </h2>
             <p className="lede">
-              Text in an Indian language is translated into English on your own machine, so the same rules find
-              the same duties. The outline stays on the original words.
+              The rule comes off the page; the date comes from code. Dueproof records the day each
+              notice reached you and counts from it, so a notice that arrived late isn't given a
+              deadline that has already passed.
             </p>
-            <p className="muted">
-              A circular with a Malayalam paragraph produces dated entries without anyone writing Malayalam
-              rules. <Link href="/languages/">Which languages are supported</Link>.
+            <p className="fine">
+              A simplified illustration. The date engine also applies the rule's working-day and
+              holiday settings from your organisation.
             </p>
           </div>
-          <Shot src="bilingual.png"
-                alt="A circular with Malayalam text: findings translated into English, the Malayalam passage outlined on page 3"
-                caption="Translated findings are labelled. The Malayalam passage is outlined on the page and quoted beneath it." />
+          <ReceiptClock />
         </div>
       </section>
 
-      <section className="band band-paper">
-        <div className="wrap">
-          <div className="section-head">
-            <h2>Made to fit your notices</h2>
-            <p>
-              A profile is a plain Python file of word lists: your desks, the kinds of notice you receive, who
-              issues them and how they phrase a deadline. The default covers Indian tax, corporate, labour,
-              regulatory and court notices.
+      <section className="band band-canvas" aria-labelledby="ocr-title">
+        <div className="wrap grid-2">
+          <div className="stack">
+            <p className="overline">Reading hard pages</p>
+            <h2 id="ocr-title" className="h2">
+              A ladder, not a single guess.
+            </h2>
+            <p className="muted">
+              Each page climbs only as far as it needs. Every rung must give the position of each
+              word, because the outline is drawn from those positions. Which tools sit on the ladder
+              is settled by a bake-off on real notices. <span className="verify">verify</span>
             </p>
           </div>
-          <div className="actions">
-            <Link className="btn btn-ink" href="/docs/profiles/">Write a profile</Link>
-            <Link className="btn btn-line" href="/docs/notices/">What a notice yields</Link>
+          <div className="stack">
+            <ol className="ladder" aria-label="OCR ladder">
+              {LADDER.flatMap((rung, i) => [
+                <li key={rung}>{rung}</li>,
+                ...(i < LADDER.length - 1
+                  ? [
+                      <li key={`${rung}-to`} className="arrow" aria-hidden="true">
+                        →
+                      </li>,
+                    ]
+                  : []),
+              ])}
+            </ol>
+            <p className="muted small">
+              Text-layer PDFs are read directly. Scans and photos go to OCR. A vision model helps
+              only on the hardest pages, and only with AI on; the linker must still find the words,
+              or the finding is unverified.
+            </p>
           </div>
+        </div>
+      </section>
+
+      <section className="band" aria-labelledby="screens-title">
+        <div className="wrap">
+          <div className="section-head section-head-wide">
+            <p className="overline">The app</p>
+            <h2 id="screens-title" className="h2">
+              One calm screen for today. Everything else a click away.
+            </h2>
+            <p className="muted">
+              Built on Ledger, our design system: light first, dense where it helps, keyboard-first,
+              with ⌘K or Ctrl K everywhere.
+            </p>
+          </div>
+          <ul className="rule-list">
+            {SCREENS.map(([h, p]) => (
+              <li key={h}>
+                <span>{h}</span>
+                <span className="muted">{p}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section className="band band-canvas" aria-labelledby="calm-title">
+        <div className="wrap grid-3">
+          <div className="card-flat">
+            <h2 id="calm-title" className="h3">
+              A calmer day
+            </h2>
+            <p className="muted small">
+              A morning digest for each person, escalation rules when something slips, and a
+              one-click hearing pack. Planned for v0.1 as "should have", after the core.
+            </p>
+          </div>
+          <div className="card-flat">
+            <h3 className="h3">Corrections that keep the original</h3>
+            <p className="muted small">
+              Change a date and the original stays beside the correction, with who changed it and
+              when. History is append-only.
+            </p>
+          </div>
+          <div className="card-flat">
+            <h3 className="h3">Made for your profile</h3>
+            <p className="muted small">
+              Profiles hold the notice vocabularies you receive. The default covers Indian tax,
+              corporate, labour, regulatory and court notices.
+            </p>
+          </div>
+        </div>
+        <div className="wrap" style={{ marginTop: "var(--dp-space-48)" }}>
+          <Link className="text-link" href="/use-cases/">
+            Who it's for <ArrowRightIcon size={16} />
+          </Link>
         </div>
       </section>
     </>
