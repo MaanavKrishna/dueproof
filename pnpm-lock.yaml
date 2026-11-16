@@ -136,6 +136,9 @@ importers:
       '@dueproof/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@dueproof/i18n':
+        specifier: workspace:*
+        version: link:../i18n
     devDependencies:
       typescript:
         specifier: 7.0.2
