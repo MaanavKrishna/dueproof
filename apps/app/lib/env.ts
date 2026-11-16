@@ -80,6 +80,18 @@ const Env = z
     /** Hosts the Sandbox may reach (comma separated). Default: the storage host only. */
     HEAVY_ENGINE_ALLOWED_HOSTS: z.string().optional(),
 
+    /**
+     * AI (04 §5, §7). AI_KEY_MASTER wraps each organisation's BYOK key
+     * (32 bytes, base64; `openssl rand -base64 32`). Without it a BYOK key
+     * can't be saved or used. AI_GATEWAY_API_KEY is the Dueproof plan's
+     * Vercel AI Gateway key (hosted only).
+     */
+    AI_KEY_MASTER: z
+      .string()
+      .refine((v) => Buffer.from(v, "base64").length === 32, "must be 32 bytes, base64-encoded")
+      .optional(),
+    AI_GATEWAY_API_KEY: z.string().optional(),
+
     /** Bearer token for GET /api/metrics from outside the machine. Unset: local requests only. */
     METRICS_TOKEN: secret.optional(),
     /** Postgres-backed rate limits (05 §3a). */

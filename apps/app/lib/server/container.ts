@@ -6,6 +6,7 @@
  */
 import "server-only";
 import { resolve } from "node:path";
+import type { Provider } from "@dueproof/ai";
 import { type Auth, createAuth } from "@dueproof/auth";
 import { createDatabase, type Database, migrate } from "@dueproof/db";
 import { createEngineClient, createFakeEngine, type EngineClient } from "@dueproof/engine-client";
@@ -35,6 +36,11 @@ export interface Container {
    * Absent elsewhere: the self-hosted engine container has the whole ladder.
    */
   heavyEngine?: HeavyEngine;
+  /**
+   * Tests and the eval only: the model provider the ai_assist step uses in
+   * place of the one built from the organisation's settings.
+   */
+  aiProvider?: Provider;
   /** Starts processDocument for a stored document; returns a run id. */
   startPipeline: (ref: DocumentRef) => Promise<string>;
 }

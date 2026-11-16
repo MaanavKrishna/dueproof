@@ -22,6 +22,7 @@ const config: NextConfig = {
   outputFileTracingRoot: repoRoot,
   turbopack: { root: repoRoot },
   transpilePackages: [
+    "@dueproof/ai",
     "@dueproof/auth",
     "@dueproof/contracts",
     "@dueproof/core",
