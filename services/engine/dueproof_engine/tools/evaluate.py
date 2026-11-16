@@ -1,24 +1,27 @@
-"""Measure extraction against labelled documents.
+"""Measure the engine's rules against labelled documents (docs/evaluation.md).
 
     python -m dueproof_engine.tools.evaluate labels.jsonl --docs FOLDER [--json] [--min-precision 0.8 ...]
 
-A labels file has one JSON object per line, one per document:
+Runs read -> analyze -> link on each file with the engine alone: no database,
+no AI. A labels file has one JSON object per line, one per document:
 
     {"file": "notice.pdf", "received_on": "2026-10-24",
      "obligations": [{"quote": "directed to explain the discrepancies",
-                      "due_date": "2026-11-23", "desks": ["GST & Indirect Tax"]}],
+                      "due_date": "2026-11-23"}],
      "not_obligations": ["Failure to reply will attract"]}
 
 A quote is any distinctive substring of the sentence; spacing, case and
-punctuation are ignored. The app exports this format from the corrections
-people make, so every review is also a label.
+punctuation are ignored. `due_date` and `received_on` are optional. Labels are
+written by hand from checked notices (the app doesn't export them).
 
 Reported:
   precision, recall     obligations found vs. labelled
-  deadline_exact        labelled due dates reproduced exactly (off by a day is wrong)
-  desk_top1, desk_top3  the right desk first, or anywhere in the top three
+  deadline_exact        labelled due dates reproduced exactly (off by a day is wrong);
+                        the engine's own date, which the app keeps as a cross-check
   false_confident       findings marked exact/strong whose outlined words are not
-                        the quote — the number that must stay at zero
+                        the quote: the number that must stay at zero
+  labelled_non_obligations_flagged
+                        sentences labelled as not duties that were flagged anyway
 """
 from __future__ import annotations
 
@@ -66,7 +69,7 @@ def predict(path: Path, received: date | None) -> dict:
 
 def score(labels: list[dict], predictions: dict[str, dict]) -> dict:
     tp = fp = fn = 0
-    due_ok = due_total = top1 = top3 = desk_total = 0
+    due_ok = due_total = 0
     confident = false_confident = 0
     flagged_negatives = 0
     per_file = {}
@@ -88,10 +91,6 @@ def score(labels: list[dict], predictions: dict[str, dict]) -> dict:
             if "due_date" in want:
                 due_total += 1
                 due_ok += got.get("due_date") == want["due_date"]
-            if want.get("desks"):
-                desk_total += 1
-                top1 += bool(got["roles"]) and got["roles"][0] in want["desks"]
-                top3 += bool(set(got["roles"][:3]) & set(want["desks"]))
         for i in unmatched:
             fp += 1
             q = _key(obligations[i]["evidence_quote"])
@@ -106,8 +105,8 @@ def score(labels: list[dict], predictions: dict[str, dict]) -> dict:
     ratio = lambda a, b: round(a / b, 4) if b else None
     return {"documents": len(labels), "labelled": tp + fn, "predicted": tp + fp,
             "precision": ratio(tp, tp + fp), "recall": ratio(tp, tp + fn),
-            "deadline_exact": ratio(due_ok, due_total), "desk_top1": ratio(top1, desk_total),
-            "desk_top3": ratio(top3, desk_total), "false_confident": ratio(false_confident, confident),
+            "deadline_exact": ratio(due_ok, due_total),
+            "false_confident": ratio(false_confident, confident),
             "labelled_non_obligations_flagged": flagged_negatives, "per_file": per_file}
 
 def load(labels_path: Path) -> list[dict]:
@@ -137,7 +136,7 @@ def main(args) -> int:
         print(json.dumps(result, indent=1, ensure_ascii=False))
     else:
         for key in ("documents", "labelled", "predicted", "precision", "recall", "deadline_exact",
-                    "desk_top1", "desk_top3", "false_confident", "labelled_non_obligations_flagged"):
+                    "false_confident", "labelled_non_obligations_flagged"):
             print(f"{key:<34} {result[key]}")
     failed = [f"{name} {result[name]} < {floor}" for name, floor in
               (("precision", args.min_precision), ("recall", args.min_recall),

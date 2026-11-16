@@ -46,9 +46,6 @@ uv run python -m dueproof_engine.tools.evaluate labels.jsonl --docs folder-with-
 | `false_confident` | Findings graded exact or strong whose outline doesn't cover the quote. **This must be zero**: a confident box in the wrong place is the one failure Dueproof exists to prevent |
 | `labelled_non_obligations_flagged` | Sentences you said aren't duties, that were flagged anyway |
 
-It also prints `desk_top1` and `desk_top3`, left from the 0.0.x demo's
-desks. v0.1 has no desks, so ignore them.
-
 Add `--json` for machine-readable output. Add floors to make it a gate, for
 CI or before upgrading:
 
