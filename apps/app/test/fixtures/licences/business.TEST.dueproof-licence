@@ -1,0 +1,6 @@
+{
+  "dueproofLicence": 1,
+  "keyId": "test-current",
+  "payload": "{\"v\":1,\"licenceId\":\"lic_test_business\",\"licensee\":\"Test Firm (TEST KEY)\",\"orgName\":\"Test Org\",\"features\":[\"sso\",\"audit-export\",\"white-label\"],\"seats\":10,\"issuedAt\":\"2026-01-01T00:00:00.000Z\",\"expiresAt\":\"2029-01-03T00:00:00.000Z\"}",
+  "signature": "NMtoDRv533b2YoABPDHepT/kHHpvf67sDfYqCdLG+szOWffByTenbIGta/A5VMGVFDE83+z9XZpwH6vfFCyLAw=="
+}

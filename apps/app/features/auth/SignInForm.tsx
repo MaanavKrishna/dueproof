@@ -1,10 +1,12 @@
 "use client";
 /**
  * Sign in: email and password, or a passkey; then the TOTP step when the
- * account has two-step verification (or a backup code instead).
+ * account has two-step verification (or a backup code instead). With single
+ * sign-on set up (Business), "Continue with SSO" sends the browser to the
+ * identity provider for the email's domain.
  */
 import { authClient } from "@dueproof/auth/client";
-import { LockIcon } from "@dueproof/icons";
+import { ExternalLinkIcon, LockIcon } from "@dueproof/icons";
 import { Banner, Button, Checkbox, Link, TextField } from "@dueproof/ui";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
@@ -13,15 +15,31 @@ import { AuthCard, authMessage, authStyles as styles } from "./AuthCard";
 
 type Step = "password" | "totp" | "backup";
 
-export function SignInForm({ next, firstRun }: { next: string; firstRun: boolean }) {
+export function SignInForm({
+  next,
+  firstRun,
+  sso = false,
+  ssoError = false,
+}: {
+  next: string;
+  firstRun: boolean;
+  /** Single sign-on is set up on this server (and licensed). */
+  sso?: boolean;
+  /** Came back from the identity provider with an error. */
+  ssoError?: boolean;
+}) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [trust, setTrust] = useState(false);
-  const [busy, setBusy] = useState<"password" | "passkey" | "code" | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<"password" | "passkey" | "code" | "sso" | null>(null);
+  const [error, setError] = useState<string | null>(
+    ssoError
+      ? "Single sign-on didn't work. If you already have a Dueproof password, sign in with it."
+      : null,
+  );
   const codeRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -73,6 +91,36 @@ export function SignInForm({ next, firstRun }: { next: string; firstRun: boolean
       return;
     }
     done();
+  };
+
+  const continueWithSso = async () => {
+    setError(null);
+    if (!email.trim()) {
+      setError("Enter your work email, then continue with SSO.");
+      return;
+    }
+    setBusy("sso");
+    try {
+      const res = await fetch("/api/auth/sign-in/sso", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          callbackURL: next,
+          errorCallbackURL: "/sign-in?sso=failed",
+        }),
+      });
+      const body = (await res.json().catch(() => null)) as { url?: string } | null;
+      if (!res.ok || !body?.url) {
+        setBusy(null);
+        setError("There's no single sign-on for that email. Use your password.");
+        return;
+      }
+      window.location.href = body.url;
+    } catch {
+      setBusy(null);
+      setError("Couldn't reach the server. Check your connection.");
+    }
   };
 
   const passkey = async () => {
@@ -207,6 +255,18 @@ export function SignInForm({ next, firstRun }: { next: string; firstRun: boolean
       >
         Sign in with a passkey
       </Button>
+      {sso ? (
+        <Button
+          variant="secondary"
+          size="lg"
+          fullWidth
+          icon={ExternalLinkIcon}
+          loading={busy === "sso"}
+          onClick={continueWithSso}
+        >
+          Continue with SSO
+        </Button>
+      ) : null}
     </AuthCard>
   );
 }

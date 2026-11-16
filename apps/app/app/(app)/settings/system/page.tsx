@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { NoAccessSettings } from "@/features/settings/NoAccessSettings";
 import { SystemSettings } from "@/features/settings/SystemSettings";
+import { auditExportAvailable } from "@/lib/business";
+import { loadEe } from "@/lib/ee";
+import { licenceStatus } from "@/lib/licence";
 import { pageAccess, requireViewer, settingsChrome } from "@/lib/server/page";
 import { getSystemFor } from "@/lib/system";
 
@@ -13,7 +16,10 @@ export default async function SystemSettingsPage() {
     return (
       <NoAccessSettings chrome={chrome} section="system" what="System" admins={access.admins} />
     );
-  const s = await getSystemFor(access.ctx);
+  const [s, licence] = await Promise.all([
+    getSystemFor(access.ctx),
+    licenceStatus(access.ctx.container.database),
+  ]);
   const { database, engine } = s.health.checks;
   return (
     <SystemSettings
@@ -47,6 +53,17 @@ export default async function SystemSettingsPage() {
           })),
           verify: s.audit.verify,
         },
+        ...(s.edition !== "hosted"
+          ? {
+              licence: {
+                available: loadEe() !== null,
+                status: licence,
+                members: chrome.members,
+                canManage: access.ctx.role === "owner",
+              },
+            }
+          : {}),
+        auditExport: auditExportAvailable(licence),
       }}
     />
   );

@@ -39,6 +39,29 @@ jobs:
       - name: AI eval (recorded mode; fails on any confident-wrong outline)
         run: pnpm --filter @dueproof/ai run eval
 
+  free-build:
+    # Self-hosted Free must build, typecheck and pass its tests with the
+    # Business directory deleted (AGENTS rule 12, ee/README.md).
+    name: free build without ee/
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Remove ee/
+        run: rm -rf ee
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Typecheck (packages and app)
+        run: npx turbo run typecheck --filter="./packages/*" --filter=@dueproof/app
+      - name: Tests (app)
+        run: pnpm --filter @dueproof/app test
+      - name: Build (app)
+        run: pnpm --filter @dueproof/app build
+
   engine:
     name: engine tests (Python)
     runs-on: ubuntu-latest
