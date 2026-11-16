@@ -23,6 +23,10 @@ const config: VercelConfig = {
     "app/api/v1/documents/[id]/events/route.ts": { maxDuration: 300 },
     // Completing an upload hashes the stored file and starts the workflow.
     "app/api/v1/uploads/**/*": { maxDuration: 60 },
+    // Morning digest, notifications and escalation for every organisation.
+    "app/api/cron/daily/route.ts": { maxDuration: 300 },
   },
+  // 06:45 IST (01:15 UTC): before the working day. Vercel sends CRON_SECRET as a bearer token.
+  crons: [{ path: "/api/cron/daily", schedule: "15 1 * * *" }],
 };
 export default config;

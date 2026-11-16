@@ -108,6 +108,31 @@ const Env = z
      */
     BACKUP_STATUS_FILE: z.string().optional(),
 
+    /**
+     * Web Push (03 §5): this install's own VAPID key pair (base64url, P-256).
+     * Unset: a pair is derived from AUTH_SECRET, so it is stable per install
+     * without extra setup. PUSH_ENABLED=0 switches Web Push off for the
+     * whole install (the email digest then covers the need).
+     */
+    VAPID_PUBLIC_KEY: z.string().optional(),
+    VAPID_PRIVATE_KEY: z.string().optional(),
+    /** Contact for push services: "mailto:admin@example.com" or the app URL. */
+    VAPID_SUBJECT: z.string().optional(),
+    PUSH_ENABLED: bool.default(true),
+
+    /** Outbound mail for the morning digest: smtp (self-hosted), resend (hosted), log (stub). */
+    MAIL_DRIVER: z.enum(["smtp", "resend", "log"]).optional(),
+    /** smtp://user:pass@host:587 */
+    SMTP_URL: z.string().optional(),
+    RESEND_API_KEY: z.string().optional(),
+    MAIL_FROM: z.string().default("Dueproof <no-reply@dueproof.local>"),
+
+    /** Reports without "Prepared with Dueproof" (white-label, licensed). A flag until licence checks land. */
+    REPORT_WHITE_LABEL: bool.default(false),
+
+    /** Bearer secret for GET /api/cron/daily (Vercel Cron sends it as CRON_SECRET). */
+    CRON_SECRET: secret.optional(),
+
     /** Bare pages under /dev that exercise sign-in and upload. On by default outside production. */
     DUEPROOF_DEV_PAGES: bool.optional(),
   })
@@ -180,6 +205,13 @@ const Env = z
       env.STORAGE_SIGNING_SECRET ??
       createHmac("sha256", env.AUTH_SECRET).update("dueproof:storage").digest("hex"),
     DUEPROOF_DEV_PAGES: env.DUEPROOF_DEV_PAGES ?? env.NODE_ENV !== "production",
+    MAIL_DRIVER:
+      env.MAIL_DRIVER ??
+      (env.RESEND_API_KEY
+        ? ("resend" as const)
+        : env.SMTP_URL
+          ? ("smtp" as const)
+          : ("log" as const)),
   }));
 
 export type Env = z.output<typeof Env>;
