@@ -7,172 +7,135 @@
 **Every due date in your notices, with proof from the page.**
 
 Dueproof reads tax, regulatory and court notices in English and 22 Indian
-languages, typed or photographed, and keeps one register of what is owed and
-by when. Every entry is outlined on the page it came from.
-It runs on your own server: no cloud, no API keys, no language model.
+languages, typed or photographed, finds what is owed and by when, and proves
+every finding on the page it came from. Cases, deadlines, the statutory
+calendar and demand exposure live in one register your whole firm works from.
 
 [![tests](https://github.com/MaanavKrishna/dueproof/actions/workflows/ci.yml/badge.svg)](https://github.com/MaanavKrishna/dueproof/actions/workflows/ci.yml)
 [![licence: FSL-1.1-ALv2](https://img.shields.io/badge/licence-FSL--1.1--ALv2-4f46e5)](LICENSE)
-[![python 3.12+](https://img.shields.io/badge/python-3.12%2B-121a3b)](pyproject.toml)
 [![languages: 23](https://img.shields.io/badge/languages-English%20%2B%2022%20Indian-6b4cf6)](docs/languages.md)
 
 [Website](https://maanavkrishna.github.io/dueproof/) ·
 [Install](docs/install.md) ·
-[Quickstart](docs/quickstart.md) ·
 [Documentation](docs/index.md) ·
+[Changelog](CHANGELOG.md) ·
 [Roadmap](ROADMAP.md)
 
 </div>
 
-![A GST notice open in Dueproof: its reference, issuing office, amount demanded, the reply deadline counted from receipt, and the hearing date, each outlined on the page](docs/images/notice.png)
+![A GST notice open in Dueproof: the case page with its reference, issuing office, amount demanded and the reply deadline, and the page beside it with the sentence outlined](planning/design/app-case.png)
 
-## Why it exists
+## What it is
 
 A notice arrives by email, through a tax portal, or as a phone photo of a
 posted letter. Somewhere in it is a sentence that says what you must do, and a
 date, often *"within 30 days of receipt"*, counted from a day nobody wrote
-down. Someone copies it into a spreadsheet. Months later an auditor asks how
-you knew, and the answer is a cell with no source.
+down. Dueproof reads the notice, opens a case for it, and puts each duty in
+the deadline register, with the sentence outlined on the page.
 
-Dueproof keeps that register for you, and every row points back to the line on
-the page that set it.
+- **Finds what you owe, and by when.** Duties, deadlines, hearings, amounts
+  demanded, references, the issuing office and the sections cited.
+- **Dates are computed, never guessed.** A rule ("30 days from receipt")
+  becomes a date in one date engine, with the holiday calendar and its working
+  shown. No model output is ever a date.
+- **The page is the proof.** Each finding is outlined on its page and graded
+  *exact*, *strong* or *approximate*. A finding that can't be located is
+  marked *unlocated* and waits for a person.
+- **Runs the work.** Cases with stages, threads and approval; a review queue;
+  deadlines by week, in a calendar and as an iCal feed; clients with their
+  registrations and statutory calendar; demand, interest and penalty
+  estimates; reports, including an evidence report with page crops.
+- **AI is optional.** Rules read every notice. With your own key or a local
+  model, AI helps where the rules aren't confident, and its findings pass the
+  same proof gate.
+- **Reads Indian languages and phone photos.** All 22 scheduled languages,
+  translated offline; scans go through an OCR ladder.
 
-## Who it is for
-
-- **CA and CS firms** juggling GST, income-tax, TDS and MCA notices across
-  hundreds of clients.
-- **Company secretaries** handling ROC letters, stock-exchange queries, and SEBI
-  and RBI circulars.
-- **Compliance teams at lenders and NBFCs** with circulars in English and
-  orders and summons in regional languages, and no permission to send any of it
-  to a cloud service.
-
-The default profile knows Indian tax, corporate, labour, regulatory and court
-notices. Starter profiles cover hospitals, municipalities and metro rail, and a
-profile for your own work is a file of word lists.
-
-## What it does
+## Editions
 
 | | |
 |---|---|
-| **Finds what you owe, and by when** | Duties, deadlines, hearings, amounts demanded, reference numbers, the issuing office and the sections cited |
-| **Counts from your receipt** | "Within 30 days of receipt" is counted from the day the notice reached you, which you can correct |
-| **Shows its work** | Each finding is outlined on its page and graded *exact*, *strong* or *approximate*. If a passage can't be located, it says so instead of guessing |
-| **Reads Indian languages** | All 22 scheduled languages, translated into English on your machine by IndicTrans2. The original wording stays the proof |
-| **Reads phone photos** | Skewed scans and forwarded JPEGs go through OCR, and the outlines still land on the right words |
-| **Runs the work** | Owners, statuses, corrected dates and desks, notes, full history, and a weekly email of what is due |
-| **Hands you the evidence** | Full-text search in every script, a printable evidence report with each passage cropped from its page, and CSV |
-| **Stays in the building** | Sign-in or your own SSO, an append-only audit trail, backups with verify and restore |
+| **Self-hosted Free** | Everything that reads, proves and tracks notices, on your own server with Docker Compose. No telemetry, no phone-home. |
+| **Self-hosted Business** | Free plus SAML single sign-on, signed audit export and white-label reports, unlocked by an offline licence key ([`ee/`](ee/)). |
+| **Hosted** | Run by us on Vercel, Neon and Cloudflare R2 in Mumbai ([Deployment](docs/deployment.md)). |
+| **Desktop** | Windows, macOS and Linux app that connects to your server, with OS notifications and a tray ([Desktop app](docs/desktop.md)). |
+| **Phone** | The web app installs as a PWA, with camera capture and Web Push. |
 
-## How it works
+## Quick start with Docker
 
-```mermaid
-flowchart LR
-    A[PDF or photo] --> B[Read<br/>text layer or OCR]
-    B --> C[Translate<br/>IndicTrans2, offline]
-    C --> D[Find<br/>rules from the profile]
-    D --> E[Prove<br/>locate each quote on its page]
-    E --> F[(Register<br/>SQLite)]
-    F --> G[Owners, history,<br/>weekly digest]
-```
-
-No language model decides anything. Rules find the findings, so for any entry
-someone can say which words caused it. The translation model only helps the
-rules read other languages.
-
-## Try it in five minutes
-
-You need Python 3.12+ and [Tesseract](https://tesseract-ocr.github.io/)
-(`brew install tesseract tesseract-lang`, or
-`apt install tesseract-ocr tesseract-ocr-hin`).
+On a Linux server with Docker Engine 24+ and the Compose plugin:
 
 ```bash
-git clone https://github.com/MaanavKrishna/dueproof && cd dueproof
+git clone https://github.com/MaanavKrishna/dueproof && cd dueproof/infra/docker
+cp .env.example .env
+for k in AUTH_SECRET ENGINE_SHARED_SECRET POSTGRES_PASSWORD; do
+  sed -i "s|^$k=.*|$k=$(openssl rand -hex 32)|" .env
+done
+# set DUEPROOF_DOMAIN in .env to your domain, or localhost for a trial
+docker compose up -d --build
 ```
+
+Open `https://<your domain>` and sign up: the first account owns the
+organisation, and after that sign-up is by invitation. The full guide, with
+offline translation, backups and upgrades, is [Install](docs/install.md).
+
+## Development
+
+You need Node 22+, pnpm 10 and, for the engine, Python with
+[uv](https://docs.astral.sh/uv/).
 
 ```bash
-python3 -m venv .venv && .venv/bin/pip install -e .
+pnpm install
+cp apps/app/.env.example apps/app/.env.local   # set AUTH_SECRET (openssl rand -hex 32)
+pnpm dev
 ```
+
+The app runs at <http://localhost:3000> on embedded Postgres (PGlite) with a
+fake engine that answers from the real engine's recordings, so no other
+service is needed. To read real documents, run the engine
+(`services/engine`) and set `ENGINE_MODE=http`.
 
 ```bash
-.venv/bin/dueproof users add you@example.org --admin
+pnpm lint && pnpm typecheck && pnpm test     # every package
+pnpm --filter @dueproof/app e2e              # Playwright, on a production build
+cd services/engine && uv run python -m unittest discover -s tests -t . -v
 ```
 
-```bash
-.venv/bin/dueproof serve
+Read [AGENTS.md](AGENTS.md) before changing anything: it holds the house
+rules (frozen contracts, computed dates, the proof gate, org-scoped queries).
+
+## Repository layout
+
 ```
-
-Open <http://127.0.0.1:8000>, sign in, and drop in a PDF or a photo of a
-notice. `dueproof doctor` checks the setup and tells you what is missing.
-Docker and systemd setups are in [Deployment](docs/deployment.md).
-
-<table>
-<tr>
-<td><img src="docs/images/deadlines.png" alt="The deadline list: obligations in date order, overdue ones marked, each linked to its page"></td>
-<td><img src="docs/images/bilingual.png" alt="A circular with Malayalam text: findings translated into English, the Malayalam passage outlined on its page"></td>
-</tr>
-<tr>
-<td align="center"><sub>Every deadline, in the order it falls due</sub></td>
-<td align="center"><sub>A Malayalam passage, translated, and outlined in the original</sub></td>
-</tr>
-</table>
-
-## Languages
-
-English, plus Assamese, Bengali, Bodo, Dogri, Gujarati, Hindi, Kannada,
-Kashmiri, Konkani, Maithili, Malayalam, Manipuri, Marathi, Nepali, Odia,
-Punjabi, Sanskrit, Santali, Sindhi, Tamil, Telugu and Urdu.
-
-- **Scans and photos** are read in 15 of them. The other 7 are read from typed
-  PDFs, because no OCR model exists for them yet.
-- **Tested end to end** with the translation model: Hindi, Tamil, Bengali,
-  Urdu, Telugu and Malayalam. The others use the same path; reports welcome.
-- Switch them on with `DUEPROOF_LANGUAGES=hi,ta,bn` or `all`. Details in
-  [Languages](docs/languages.md).
-
-## What it will never do
-
-- **Send your documents anywhere.** Running on your own machine is the point.
-- **Act on its own.** It never files a reply or makes a payment. It proposes;
-  a person decides.
-- **Replace the rules with a model.** Being able to say why a sentence was
-  flagged is the product.
-- **Rewrite a translation to "fix" it.** A doubtful translation is flagged,
-  and the original is shown.
-- **Guess where a passage is.** No outline is better than a wrong one.
-
-## Status
-
-This is the **demo** (0.0.1), a working proof of concept; version 0.1 is the
-full rebuild now being planned in [planning/v0.1-plan.md](planning/v0.1-plan.md).
-The demo works end to end and is tested: 265 tests, plus an accuracy gate in CI that fails if any finding is outlined confidently in the
-wrong place. It has been measured only on a small, fictional set of notices.
-Before you rely on it for real deadlines, run it beside your current process
-and measure it on your own documents with `dueproof eval`.
-
-What comes next, and in what order, is in the [roadmap](ROADMAP.md).
+apps/app            the product (Next.js)
+apps/site           website and docs (Next.js)
+apps/desktop        desktop shell (Tauri 2)
+services/engine     Python engine: read, OCR, translate, rules, proof
+packages/*          contracts, db, core (date engine, policy), ui, tokens,
+                    icons, ai, auth, storage, engine-client, i18n, plugins
+ee/                 Business features, under a commercial licence
+infra/              Docker Compose, Vercel and Sandbox setups
+docs/               documentation (also rendered on the website)
+planning/           the v0.1 plan and design screenshots
+```
 
 ## Documentation
 
 | Start | Use | Run | Reference |
 |---|---|---|---|
-| [Install](docs/install.md) | [Notices](docs/notices.md) | [Accounts and SSO](docs/accounts-and-sso.md) | [Evaluation](docs/evaluation.md) |
-| [Quickstart](docs/quickstart.md) | [Workflow and reminders](docs/workflow-and-reminders.md) | [Deployment](docs/deployment.md) | [API](docs/api.md) |
-| [Overview](docs/index.md) | [Languages](docs/languages.md) | [Configuration](docs/configuration.md) | [Architecture](docs/architecture.md) |
-| | [Profiles](docs/profiles.md) | [Security](docs/security.md) | [FAQ](docs/faq.md) |
+| [Overview](docs/index.md) | [Notices](docs/notices.md) | [Deployment](docs/deployment.md) | [API](docs/api.md) |
+| [Install](docs/install.md) | [Workflow and reminders](docs/workflow-and-reminders.md) | [Desktop app](docs/desktop.md) | [Architecture](docs/architecture.md) |
+| [Quickstart](docs/quickstart.md) | [Languages](docs/languages.md) | [Backup and restore](docs/backup-and-restore.md) | [Evaluation](docs/evaluation.md) |
+| | [Profiles](docs/profiles.md) | [Upgrading](docs/upgrading.md) | [FAQ](docs/faq.md) |
+| | | [Accounts and SSO](docs/accounts-and-sso.md) · [Configuration](docs/configuration.md) · [Security](docs/security.md) | |
 
-The same pages, easier to read, are on the [website](https://maanavkrishna.github.io/dueproof/docs/).
+## Status
 
-## Repository layout
-
-```
-dueproof/      the product: pipeline/, profiles/, web/ (API and browser app), tools/
-tests/         unittest suite, sample notices, the golden file
-docs/          documentation (also rendered on the website)
-deploy/        systemd units and a Caddy example
-scripts/       serve.sh and test.sh for development
-website/       the project website (Next.js), not part of the product
-```
+v0.1 is being built and is not yet released; see the
+[changelog](CHANGELOG.md). Statutory periods and interest rates are data with
+a source, and each is marked "verify" until a chartered accountant signs it
+off. Interest and penalty figures are estimates, not advice. Before you rely
+on Dueproof for real deadlines, run it beside your current process.
 
 ## Contributing
 
