@@ -64,16 +64,12 @@ export function ProfilesSettings({
           <Banner tone="danger" role="alert">
             {error}
           </Banner>
-        ) : value.length === 0 ? (
-          <Banner tone="warning">
-            With no notice types on, notices are still stored, but no rules or calendars run.
-          </Banner>
         ) : undefined
       }
     >
       <SettingsSection
         title="Notice types"
-        description="Dueproof turns on the matching rules and statutory calendars. Every period and rate is data with a source, marked “verify” until a CA signs it off."
+        description="The kinds of notice your firm handles. In this version the choice is recorded but doesn't change what Dueproof reads: every notice is read with the full set of rules for Indian notices, whatever is ticked, and statutory deadlines come from each client's registrations."
       >
         <SettingsRow label="Turned on" stacked>
           <div className={styles.stack}>

@@ -49,7 +49,8 @@ const STEPS: WizardStep[] = [
     id: "profiles",
     label: "Notice types",
     title: "Which notices do you handle?",
-    description: "Dueproof turns on the matching rules and statutory calendars.",
+    description:
+      "Every notice is read in full whatever you tick. Statutory deadlines come from each client's registrations.",
   },
   {
     id: "ai",
