@@ -29,7 +29,7 @@ documents with the [evaluation tool](evaluation.md).
 **Can it read notices in Hindi, Tamil and other Indian languages?**
 Yes, from PDFs with a text layer; with offline translation set up, the rules
 read them too. For scans, tick your notice languages in **Settings →
-Profiles** so they're read with those languages' OCR packs; scans are
+Notice types** so they're read with those languages' OCR packs; scans are
 less reliable than text-layer PDFs, so check their findings against the
 page. See [Languages](languages.md).
 

@@ -25,7 +25,7 @@ The list lives in `services/engine/dueproof_engine/languages.py`.
 ## Your notice languages
 
 Tell Dueproof which Indian languages your notices come in: tick them under
-**Notice languages** in **Settings → Profiles**, or on the setup wizard's
+**Notice languages** in **Settings → Notice types**, or on the setup wizard's
 **Notice types** step. Owners and admins can change them. English is always
 read.
 

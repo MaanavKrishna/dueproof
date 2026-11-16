@@ -9,7 +9,7 @@ calendar and demand exposure live in one register your whole firm works from.
 
 This is the first release of v0.1, and it is a **beta**. Use it hosted at
 <https://dueproof-app.vercel.app>, or self-host it with Docker Compose
-([Install](docs/install.md)); there is also a desktop app that connects to
+([Install](https://github.com/MaanavKrishna/dueproof/blob/main/docs/install.md)); there is also a desktop app that connects to
 your server. Run it beside your current process before you rely on it for
 real deadlines: statutory periods and rates are marked "verify" until a
 chartered accountant signs them off, and interest and penalty figures are
@@ -59,7 +59,7 @@ proof-linking.
   page with registrations, contacts, cases, deadlines and exposure).
 - Reports: evidence report with page crops, client statement, workload,
   exposure and hearing pack, for A4 print and CSV.
-- Settings: Me, Organisation, Team and access, AI, Profiles, Intake, System.
+- Settings: Me, Organisation, Team and access, AI, Notice types, Intake, System.
 - Notifications, a morning digest by email and escalation, from a daily job.
 
 **Editions**
@@ -68,8 +68,9 @@ proof-linking.
 - Self-hosted Business (`ee/`, commercial licence): offline licence keys, SAML
   single sign-on, signed audit export and white-label reports.
 - Hosted: Vercel, Neon and Cloudflare R2.
-- Desktop: a Tauri 2 app for Windows, macOS and Linux that connects to one
-  server, with OS notifications, a tray, deep links and start at login.
+- Desktop: a Tauri 2 app that connects to one server, with OS notifications,
+  a tray, deep links and start at login. Built for Linux in this beta;
+  Windows and macOS builds are coming.
 - Phone: the web app installs as a PWA, with camera capture and Web Push.
 
 **Licence**
@@ -88,7 +89,7 @@ proof-linking.
 **Known limitations**
 
 Read these before you rely on the beta. Most are on the
-[roadmap](ROADMAP.md)'s list for leaving beta.
+[roadmap](https://github.com/MaanavKrishna/dueproof/blob/main/ROADMAP.md)'s list for leaving beta.
 
 - **Statutory data is not yet verified.** Every statutory period and rate is
   data with a source, marked "verify" until a chartered accountant signs it

@@ -1,7 +1,7 @@
 # Notice types
 
 In v0.1 an organisation says which kinds of notice it handles in the setup
-wizard (**Notice types**) or in **Settings → Profiles**. Owners and admins
+wizard (**Notice types**) or in **Settings → Notice types**. Owners and admins
 can change it.
 
 | Notice type | Covers |

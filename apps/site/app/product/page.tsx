@@ -198,10 +198,10 @@ export default function Product() {
             </p>
           </div>
           <div className="card-flat">
-            <h3 className="h3">Made for your profile</h3>
+            <h3 className="h3">Made for Indian notices</h3>
             <p className="muted small">
-              Profiles hold the notice vocabularies you receive. The default covers Indian tax,
-              corporate, labour, regulatory and court notices.
+              The rules read Indian tax, corporate, labour, regulatory and court notices, in English
+              and the 22 scheduled Indian languages.
             </p>
           </div>
         </div>

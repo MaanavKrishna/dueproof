@@ -54,7 +54,7 @@ export function settingsSections(chrome: SettingsChrome): SettingsNavItem[] {
     { id: "ai", label: "AI", icon: AiSuggestedIcon, href: "/settings/ai", admin: true },
     {
       id: "profiles",
-      label: "Profiles",
+      label: "Notice types",
       icon: ListChecksIcon,
       href: "/settings/profiles",
       admin: true,
