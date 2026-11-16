@@ -69,7 +69,8 @@ docs/               documentation (also rendered on the website)
 
 ## House rules
 
-These hold for every change, by a person or an AI coding tool. Code comments
+These hold for every change, by a person or an AI coding tool, which should
+be told to follow this file. Code comments
 cite them by number ("house rule 4"). Using an AI tool? Point it at this file.
 
 1. **Contracts are frozen.** Don't change `packages/contracts` or

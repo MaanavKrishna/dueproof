@@ -37,8 +37,7 @@ Thumbs.db
 *.swp
 
 # Local agent state
-.claude/*
-!.claude/CLAUDE.md
+.claude/
 .playwright-mcp/
 
 # Licence signing keys (ee/licence): never commit a real private key. The
