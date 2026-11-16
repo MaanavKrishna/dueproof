@@ -43,6 +43,13 @@
       "when": 1794845863322,
       "tag": "0005_contract_sso_provider",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794845995060,
+      "tag": "0006_contract_document_passwords",
+      "breakpoints": true
     }
   ]
 }

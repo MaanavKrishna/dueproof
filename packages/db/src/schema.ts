@@ -440,6 +440,24 @@ export const savedViews = pgTable(
   (t) => [index("saved_views_org_screen").on(t.orgId, t.screen)],
 );
 
+/**
+ * The password of a protected PDF, for one processing run (01 §4, 05 §4).
+ * AES-256-GCM under a key derived from AUTH_SECRET, with the org and
+ * document bound in as AAD. Kept at most 15 minutes and deleted when the run
+ * finishes or fails. Shared table so any instance can run the pipeline.
+ */
+export const documentPasswords = pgTable(
+  "document_passwords",
+  {
+    orgId: orgId(),
+    documentId: text("document_id").notNull(),
+    ciphertext: text("ciphertext").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.orgId, t.documentId] })],
+);
+
 export const pushSubscriptions = pgTable("push_subscriptions", {
   id: id(),
   orgId: orgId(),
@@ -534,6 +552,7 @@ export const TENANT_TABLES = [
   "comments",
   "notifications",
   "saved_views",
+  "document_passwords",
   "push_subscriptions",
   "ai_settings",
   "ai_runs",
