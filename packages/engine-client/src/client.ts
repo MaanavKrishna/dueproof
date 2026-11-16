@@ -17,6 +17,8 @@ export type AnalyzeRequest = z.input<typeof engine.AnalyzeRequest>;
 export type AnalyzeResponse = z.output<typeof engine.AnalyzeResponse>;
 export type LinkRequest = z.input<typeof engine.LinkRequest>;
 export type LinkResponse = z.output<typeof engine.LinkResponse>;
+export type PageText = z.output<typeof engine.PageText>;
+export type EngineFinding = z.output<typeof engine.EngineFinding>;
 
 /** The engine as the workflow sees it. The HTTP client and the fake both implement this. */
 export interface EngineClient {

@@ -1,0 +1,4 @@
+.data/
+.workflow-data/
+.swc/
+next-env.d.ts
