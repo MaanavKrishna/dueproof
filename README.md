@@ -12,7 +12,7 @@ every finding on the page it came from. Cases, deadlines, the statutory
 calendar and demand exposure live in one register your whole firm works from.
 
 [![tests](https://github.com/MaanavKrishna/dueproof/actions/workflows/ci.yml/badge.svg)](https://github.com/MaanavKrishna/dueproof/actions/workflows/ci.yml)
-[![licence: FSL-1.1-ALv2](https://img.shields.io/badge/licence-FSL--1.1--ALv2-4f46e5)](LICENSE)
+[![licence: PolyForm Shield 1.0.0](https://img.shields.io/badge/licence-PolyForm_Shield_1.0.0-1F3A8A)](LICENSE)
 [![languages: 23](https://img.shields.io/badge/languages-English%20%2B%2022%20Indian-6b4cf6)](docs/languages.md)
 
 [Website](https://dueproof.vercel.app) ·
@@ -148,12 +148,11 @@ Found a security problem? Please report it privately. See [SECURITY.md](SECURITY
 
 ## Licence
 
-[Functional Source License 1.1, ALv2 Future License](LICENSE) (FSL-1.1-ALv2),
-from version 0.1. Dueproof is source-available: you may use, change and
-self-host it for free, but not offer it as a competing product or service.
-Each version becomes Apache 2.0 two years after its release. The demo
-(0.0.1) and earlier commits stay under Apache 2.0. Third-party components are
-listed in [NOTICE](NOTICE).
+[PolyForm Shield License 1.0.0](LICENSE), from version 0.1.0. Dueproof is
+source-available: you may use it, self-host it, change it and improve it for
+free, but not sell it or offer it as a competing product or service, changed
+or not. Earlier versions keep the licence they were published under.
+Third-party components are listed in [NOTICE](NOTICE).
 
 The exception is the [`ee/`](ee/) directory: the Business features (SAML
 single sign-on, audit export, white-label reports and the offline licence
