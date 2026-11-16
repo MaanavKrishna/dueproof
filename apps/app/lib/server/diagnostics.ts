@@ -100,11 +100,15 @@ export async function health(c: Container, doFetch: typeof fetch = fetch): Promi
 
 // ---------------------------------------------------------------- metrics
 
+const LOOPBACK = /^(127\.\d+\.\d+\.\d+|::1|::ffff:127\.\d+\.\d+\.\d+|localhost)$/i;
+
 /**
  * /api/metrics is for the operator's own Prometheus. With METRICS_TOKEN set
  * it needs `Authorization: Bearer <token>`. Without one it answers only
- * requests that did not come through a reverse proxy (no forwarding
- * headers): Caddy and Vercel always add them, so from outside it is refused.
+ * requests from this machine: every address in the forwarding headers must
+ * be loopback (the Next.js server fills x-forwarded-for with the socket's
+ * address; Caddy and Vercel put the real client there), and nothing may
+ * have come through Vercel.
  */
 export function metricsAllowed(request: Request, env: Env): boolean {
   if (env.METRICS_TOKEN) {
@@ -113,10 +117,14 @@ export function metricsAllowed(request: Request, env: Env): boolean {
     const b = Buffer.from(env.METRICS_TOKEN);
     return a.length === b.length && timingSafeEqual(a, b);
   }
-  const forwarded = ["x-forwarded-for", "x-real-ip", "forwarded", "x-vercel-id"].some((h) =>
-    request.headers.has(h),
+  if (request.headers.has("x-vercel-id") || request.headers.has("forwarded")) return false;
+  const hops = ["x-forwarded-for", "x-real-ip"].flatMap((h) =>
+    (request.headers.get(h) ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
   );
-  return !forwarded;
+  return hops.every((ip) => LOOPBACK.test(ip));
 }
 
 type Sample = {

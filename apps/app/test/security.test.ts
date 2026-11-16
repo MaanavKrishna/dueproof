@@ -217,9 +217,14 @@ describe("rate limits on Postgres", () => {
     const err = await enforce(c, "upload.user", "user-1", { now }).catch((e) => e);
     expect(err).toBeInstanceOf(RateLimitedError);
     expect(err).toMatchObject({ status: 429, rule: "upload.user", retryAfterSeconds: 3600 });
-    // Another user, and the next window, are unaffected.
+    // Another user is unaffected.
     await enforce(c, "upload.user", "user-2", { now });
-    await enforce(c, "upload.user", "user-1", { now: now + 3_600_000 });
+    // Sliding: right after the window ends the last one still counts in full...
+    await expect(enforce(c, "upload.user", "user-1", { now: now + 3_600_000 })).rejects.toThrow(
+      RateLimitedError,
+    );
+    // ...and a window later it has slid out.
+    await enforce(c, "upload.user", "user-1", { now: now + 2 * 3_600_000 });
     expect(rateLimitCounters().get("upload.user")).toBeGreaterThanOrEqual(1);
   });
 
@@ -370,6 +375,19 @@ describe("health and metrics", () => {
     });
     expect(metricsAllowed(local, c.env)).toBe(true);
     expect(metricsAllowed(viaProxy, c.env)).toBe(false);
+    // The Next.js server itself fills x-forwarded-for with the socket address.
+    const loopback = new Request("http://127.0.0.1:3000/api/metrics", {
+      headers: { "x-forwarded-for": "::ffff:127.0.0.1" },
+    });
+    expect(metricsAllowed(loopback, c.env)).toBe(true);
+    const spoofed = new Request("http://x", {
+      headers: { "x-forwarded-for": "127.0.0.1, 203.0.113.5" },
+    });
+    expect(metricsAllowed(spoofed, c.env)).toBe(false);
+    const vercel = new Request("http://x", {
+      headers: { "x-forwarded-for": "127.0.0.1", "x-vercel-id": "bom1::abc" },
+    });
+    expect(metricsAllowed(vercel, c.env)).toBe(false);
 
     const withToken = { ...c.env, METRICS_TOKEN: "m".repeat(40) };
     expect(metricsAllowed(local, withToken)).toBe(false);

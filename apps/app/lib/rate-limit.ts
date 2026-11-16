@@ -1,8 +1,8 @@
 /**
  * Rate limits (05 §3a), backed by Postgres so they hold across processes and
  * instances on every edition (self-hosted Postgres, Neon, PGlite on the
- * desktop). Fixed windows: one counter row per key and window, bumped with an
- * upsert. Hosted also has Vercel Firewall rules at the edge; this is the
+ * desktop). Sliding windows, approximated from two fixed ones: a counter row
+ * per key and window, bumped with an upsert. Hosted also has Vercel Firewall rules at the edge; this is the
  * layer both editions share.
  *
  *   await enforce(c, "upload.user", ctx.userId);           // throws 429
@@ -135,7 +135,7 @@ export class PostgresRateLimitStore implements RateLimitStore {
   async hit(key: string, windowStart: number, windowMs: number): Promise<number> {
     await this.ensure();
     const db = unsafeRawDb(this.database);
-    const expires = new Date(windowStart + windowMs).toISOString();
+    const expires = new Date(windowStart + 2 * windowMs).toISOString();
     const [row] = rowsOf<{ count: number }>(
       await db.execute(sql`
         insert into ops.rate_limits (key, window_start, count, expires_at)
@@ -233,14 +233,22 @@ export async function enforce(
 ): Promise<void> {
   if (!c.env.RATE_LIMIT_ENABLED) return;
   const rule = rulesFor(c.env)[ruleName];
-  const { start, retryAfter } = windowOf(rule, options.now ?? Date.now());
+  const now = options.now ?? Date.now();
+  const { start, retryAfter } = windowOf(rule, now);
   const store = storeFor(c);
   const key = keyFor(ruleName, subject);
+  // Sliding window, approximated: the previous window's count, weighted by how
+  // much of it still overlaps the last `windowMs`, so a burst can't straddle
+  // a window boundary to get twice the limit.
+  const overlap = 1 - (now - start) / rule.windowMs;
+  const carried = Math.floor((await store.peek(key, start - rule.windowMs)) * overlap);
   if (options.peekOnly) {
-    if ((await store.peek(key, start)) >= rule.limit) refuse(ruleName, retryAfter);
+    if ((await store.peek(key, start)) + carried >= rule.limit) refuse(ruleName, retryAfter);
     return;
   }
-  if ((await store.hit(key, start, rule.windowMs)) > rule.limit) refuse(ruleName, retryAfter);
+  if ((await store.hit(key, start, rule.windowMs)) + carried > rule.limit) {
+    refuse(ruleName, retryAfter);
+  }
 }
 
 /** Count a hit without enforcing (e.g. a failed sign-in, checked by the next attempt). */
