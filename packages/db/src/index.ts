@@ -1,5 +1,5 @@
 // Query helpers, re-exported so every package uses the one drizzle-orm instance.
-export { and, asc, desc, eq, gt, gte, inArray, isNull, lt, lte, ne, or, sql } from "drizzle-orm";
+export { and, asc, count, desc, eq, gt, gte, inArray, isNull, lt, lte, ne, or, sql } from "drizzle-orm";
 export { type AuditEntry, type AuditRecord, audit, auditHash, type VerifyResult } from "./audit";
 export * from "./auth-schema";
 export {
