@@ -114,7 +114,9 @@ items marked **verify in M0** need a real account.
    | `ENGINE_MAX_RUNG` | `paddleocr` | engine-fast stops there; harder pages go to engine-heavy |
    | `HEAVY_ENGINE_SNAPSHOT_ID` | from step 4 | unset = no engine-heavy |
    | `HEAVY_ENGINE_REGION` | `bom1` | **verify in M0** that Sandbox runs there |
-   | `AI_GATEWAY_API_KEY` | AI Gateway key | only when the AI plans ship (packages/ai); on Vercel, OIDC can replace it |
+   | `ANTHROPIC_API_KEY` | Claude API key | the Dueproof AI plan calls the Claude API directly with this key. Unset: the plan has no provider and AI stays off for organisations on it |
+   | `AI_GATEWAY_API_KEY` | optional | an alternative plan path through Vercel AI Gateway, used only when `ANTHROPIC_API_KEY` is unset |
+   | `AI_KEY_MASTER` | optional secret | 32 random bytes, base64 (`openssl rand -base64 32`). Encrypts each organisation's own AI key ("Your own key" mode). Unset: those keys can't be saved |
    | `METRICS_TOKEN` | optional secret | to scrape `/api/metrics` |
    | `DUEPROOF_DEV_PAGES` | `0` | |
 
