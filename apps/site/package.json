@@ -1,5 +1,5 @@
 {
-  "name": "dueproof-website",
+  "name": "@dueproof/site",
   "private": true,
   "scripts": {
     "predev": "node scripts/copy-docs-images.mjs",

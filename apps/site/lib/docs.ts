@@ -1,11 +1,11 @@
-// The documentation pages are the Markdown files in ../docs, rendered at
+// The documentation pages are the Markdown files in ../../docs, rendered at
 // build time, so the site and the repository never disagree.
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { Marked, type Token, type Tokens } from "marked";
 import { REPO, asset } from "./site";
 
-const DOCS = path.join(process.cwd(), "..", "docs");
+const DOCS = path.join(process.cwd(), "..", "..", "docs");
 
 /** Reading order, grouped the way people look for things. */
 export const SECTIONS: { title: string; pages: string[] }[] = [

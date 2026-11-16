@@ -9,3 +9,16 @@ dueproof/profiles/zz_*.py
 *.egg-info/
 build/
 dist/
+node_modules/
+.next/
+.turbo/
+out/
+storybook-static/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+coverage/
+playwright-report/
+test-results/
+pgdata/
