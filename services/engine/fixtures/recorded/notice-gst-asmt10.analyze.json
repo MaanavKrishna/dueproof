@@ -1,0 +1,93 @@
+{
+ "docType": "GST notice",
+ "title": "Notice under Section 61 for intimating discrepancies in the return (Form GST ASMT-10)",
+ "reference": "ZD2910260012345",
+ "issuingOffice": "Assistant Commissioner of State Tax",
+ "issuedOn": "2026-10-20",
+ "sections": [
+  "Section 61",
+  "Section 73(1)"
+ ],
+ "findings": [
+  {
+   "kind": "deadline",
+   "text": "You are hereby directed to explain the discrepancies and pay the tax of Rs. 4,52,300 with interest within 30 days of receipt of this notice.",
+   "textEn": "You are hereby directed to explain the discrepancies and pay the tax of Rs. 4,52,300 with interest within 30 days of receipt of this notice.",
+   "quote": "You are hereby directed to explain the discrepancies and pay the tax of Rs. 4,52,300 with interest within 30 days of receipt of this notice.",
+   "quoteLang": "en",
+   "pageHint": 1,
+   "confidence": 0.9,
+   "dueRule": {
+    "type": "relative",
+    "anchor": "receipt",
+    "amount": 30,
+    "unit": "days"
+   },
+   "engineDueOn": "2026-11-23",
+   "desk": "GST & Indirect Tax",
+   "severity": "medium"
+  },
+  {
+   "kind": "hearing",
+   "text": "A personal hearing is fixed on 18 November 2026 at 11:00 AM before the undersigned at the Division office.",
+   "textEn": "A personal hearing is fixed on 18 November 2026 at 11:00 AM before the undersigned at the Division office.",
+   "quote": "A personal hearing is fixed on 18 November 2026 at 11:00 AM before the undersigned at the Division office.",
+   "quoteLang": "en",
+   "pageHint": 1,
+   "confidence": 0.9,
+   "dueRule": {
+    "type": "fixed",
+    "date": "2026-11-18"
+   },
+   "engineDueOn": "2026-11-18",
+   "desk": "GST & Indirect Tax",
+   "severity": "medium"
+  },
+  {
+   "kind": "summary",
+   "text": "Failure to reply will attract proceedings under Section 73(1) of the Act, including a penalty of Rs. 2.5 lakh, without further notice.",
+   "textEn": "Failure to reply will attract proceedings under Section 73(1) of the Act, including a penalty of Rs. 2.5 lakh, without further notice.",
+   "quote": "Failure to reply will attract proceedings under Section 73(1) of the Act, including a penalty of Rs. 2.5 lakh, without further notice.",
+   "quoteLang": "en",
+   "pageHint": 1,
+   "confidence": 0.6,
+   "desk": "GST & Indirect Tax"
+  },
+  {
+   "kind": "summary",
+   "text": "On scrutiny of the returns filed for the above period, discrepancies were noticed in the input tax credit claimed against the supplier statements.",
+   "textEn": "On scrutiny of the returns filed for the above period, discrepancies were noticed in the input tax credit claimed against the supplier statements.",
+   "quote": "On scrutiny of the returns filed for the above period, discrepancies were noticed in the input tax credit claimed against the supplier statements.",
+   "quoteLang": "en",
+   "pageHint": 1,
+   "confidence": 0.6,
+   "desk": "GST & Indirect Tax"
+  },
+  {
+   "kind": "reference",
+   "text": "ZD2910260012345",
+   "quote": "Reference No: ZD2910260012345",
+   "quoteLang": "en",
+   "pageHint": 1,
+   "confidence": 0.85
+  },
+  {
+   "kind": "office",
+   "text": "Assistant Commissioner of State Tax",
+   "quote": "ASSISTANT COMMISSIONER OF STATE TAX",
+   "quoteLang": "en",
+   "pageHint": 1,
+   "confidence": 0.85
+  },
+  {
+   "kind": "amount",
+   "text": "Rs. 4,52,300",
+   "quote": "You are hereby directed to explain the discrepancies and pay the tax of Rs. 4,52,300 with interest within 30 days of receipt of this notice.",
+   "quoteLang": "en",
+   "pageHint": 1,
+   "confidence": 0.85,
+   "amountMinor": 45230000
+  }
+ ],
+ "confident": true
+}

@@ -8,9 +8,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from dueproof import config
+from dueproof_engine import config
 from tests.support import PKG, REPO
-from dueproof.pipeline import translate
+from dueproof_engine.pipeline import translate
 
 ROOT = REPO
 VENDORED = PKG / "pipeline" / "indictrans2"
@@ -21,14 +21,24 @@ UPSTREAM_BLOBS = {
     "tokenization_indictrans.py": "53c9be07a1dda3273ed8c2af4f30b635edff4b31",
 }
 
+# The engine's only other network code: fetching the caller's signed URLs
+# (never a model, never on its own initiative), and the build-time script that
+# downloads the OCR models from PyPI with pinned digests.
+NETWORK_ALLOWED = {"dueproof_engine/api/storage.py", "scripts/fetch_ocr_models.py"}
+
 def own_sources():
     for path in ROOT.rglob("*.py"):
         rel = path.relative_to(ROOT)
-        if rel.parts[0] in ("tests", "models", ".venv", "data") or VENDORED in path.parents:
+        if (rel.parts[0] in ("tests", "models", ".venv", "data", ".scratch", "fixtures")
+                or VENDORED in path.parents):
             continue
         yield rel, path.read_text(encoding="utf-8")
 
 def weights_present() -> bool:
+    """The heavy engine is installed (torch) and the weights are provisioned."""
+    import importlib.util
+    if importlib.util.find_spec("torch") is None:
+        return False
     try:
         translate.verify(translate.model_dir())
         return True
@@ -43,7 +53,7 @@ class Sovereignty(unittest.TestCase):
                 self.assertIsNone(re.search(r"trust_remote_code\s*=", src))
 
     def test_no_auto_classes(self):
-        """Auto* resolves a class from dueproof.config.json's auto_map — the remote-code path."""
+        """Auto* resolves a class from dueproof_engine.config.json's auto_map — the remote-code path."""
         for rel, src in own_sources():
             with self.subTest(file=str(rel)):
                 self.assertNotRegex(src, r"\bAuto(Model\w*|Tokenizer|Config)\b")
@@ -57,8 +67,10 @@ class Sovereignty(unittest.TestCase):
 
     def test_only_the_fetch_script_can_go_online(self):
         for rel, src in own_sources():
-            if str(rel) == "dueproof/tools/model.py":
+            if str(rel) == "dueproof_engine/tools/model.py":
                 self.assertIn('allow_patterns=sorted(MT_FILES)', src)   # data files only
+                continue
+            if str(rel) in NETWORK_ALLOWED:
                 continue
             with self.subTest(file=str(rel)):
                 self.assertNotRegex(src, r'HF_HUB_OFFLINE"\]\s*=\s*"0"')
@@ -174,7 +186,7 @@ class TerminologyCheck(unittest.TestCase):
         self.assertNotIn("term_flags", out[1])                     # English was never translated
 
     def test_vocabulary_is_well_formed(self):
-        from dueproof import profiles
+        from dueproof_engine import profiles
         for ml, expected in profiles.TERMS.items():
             self.assertRegex(ml, r"[ഀ-ൿ]")
             self.assertTrue(expected and all(e == e.casefold() for e in expected), ml)

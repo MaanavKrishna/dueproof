@@ -1,18 +1,13 @@
-"""Test suite. Importing this package redirects every write to a temp directory,
-selects the bilingual example profile (it exercises everything the general one
-does, plus a second language) and switches translation off, so a test run can
-never touch data/."""
-import atexit
+"""Test suite. Importing this package selects the bilingual example profile
+(it exercises everything the general one does, plus a second language),
+switches translation off and sets a shared secret for the HTTP tests. The
+engine writes nothing to disk, so there is no data folder to redirect."""
 import os
-import shutil
-import tempfile
 
-_TMP = tempfile.mkdtemp(prefix="dueproof-test-")
-os.environ["DUEPROOF_DATA"] = _TMP
 os.environ["DUEPROOF_PROFILE"] = "metro_rail_ml"
-os.environ.pop("DUEPROOF_TZ", None)
-os.environ.pop("DUEPROOF_ORG", None)
+os.environ.pop("DUEPROOF_LANGUAGES", None)
 os.environ.setdefault("DUEPROOF_TRANSLATE", "0")
-os.environ["DUEPROOF_AUTH"] = "none"         # sign-in has its own tests, tests/test_accounts.py
+os.environ["ENGINE_SHARED_SECRET"] = "test-secret-" + "s" * 32
+os.environ.pop("ENGINE_AUTH", None)
+os.environ.pop("DUEPROOF_ALLOWED_HOSTS", None)
 os.environ.setdefault("DUEPROOF_LOG_LEVEL", "CRITICAL")
-atexit.register(shutil.rmtree, _TMP, ignore_errors=True)

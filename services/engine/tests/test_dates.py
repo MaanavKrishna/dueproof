@@ -2,7 +2,7 @@
 import unittest
 from datetime import date
 
-from dueproof.pipeline.analyze import deadline_in, parse_date
+from dueproof_engine.pipeline.analyze import deadline_in, parse_date
 
 BASE = date(2026, 8, 6)
 
@@ -94,6 +94,18 @@ class ParseDate(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertEqual(parse_date(text, BASE), want)
                 self.assertIsNone(parse_date(text))
+
+    def test_the_first_date_in_the_text_wins_not_the_first_pattern(self):
+        # Moved from the demo's test_ops.py. ISO is the first pattern tried; it must not jump the queue.
+        self.assertEqual(parse_date("Dated 16 August 2026, payment due 2026-09-15"), "2026-08-16")
+        self.assertEqual(parse_date("2026 ഓഗസ്റ്റ് 6-ന് പുറപ്പെടുവിച്ചു; due 21/08/2026"), "2026-08-06")
+        self.assertEqual(parse_date("due 21/08/2026 (issued 2026-08-06)"), "2026-08-21")
+        self.assertEqual(parse_date("ref 31/02/2026 then 5 March 2026 then 2026-01-01"), "2026-03-05")
+
+    def test_ocr_glued_day_and_month(self):
+        # PP-OCR often drops the space between a day and its month.
+        self.assertEqual(parse_date("on or before 21August 2026."), "2026-08-21")
+        self.assertIsNone(parse_date("2026August 3"))
 
     def test_absolute_beats_relative(self):
         self.assertEqual(parse_date("within 15 days, i.e. by 30 August 2026", BASE), "2026-08-30")

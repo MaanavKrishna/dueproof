@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "python scripts/fetch_ocr_models.py",
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 300,
+      "memory": 3009,
+      "includeFiles": "{dueproof_engine/**,models/ppocr/**}",
+      "excludeFiles": "{tests/**,fixtures/**,scripts/**,.venv/**,.scratch/**,**/__pycache__/**,dueproof_engine/pipeline/indictrans2/**}"
+    }
+  },
+  "rewrites": [{ "source": "/(.*)", "destination": "/api/index" }]
+}

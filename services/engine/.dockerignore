@@ -1,7 +1,10 @@
 data/
 models/
 .venv/
-__pycache__/
+**/__pycache__/
 .git/
 tests/
-.playwright-mcp/
+fixtures/
+.scratch/
+api/
+vercel.json

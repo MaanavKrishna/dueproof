@@ -3,9 +3,10 @@ A change to the pipeline that alters them has to be deliberate — regenerate
 with `python -m tests.make_golden` and read the diff."""
 import unittest
 
-from tests.support import CIRCULAR, SCAN, golden, snapshot
+from tests.support import CIRCULAR, SCAN, golden, snapshot, tesseract_present
 
 
+@unittest.skipUnless(tesseract_present(), "the golden file was recorded with Tesseract reading the scan")
 class GoldenCorpus(unittest.TestCase):
     maxDiff = None
 
@@ -60,7 +61,7 @@ class GoldenCorpus(unittest.TestCase):
         self.assertLessEqual({"2026-08-21", "2026-08-31"}, dates(scan) & dates(native))
 
     def test_duplicate_pair_separates_from_the_rest(self):
-        from dueproof.pipeline.link import near_duplicate_score
+        from dueproof_engine.pipeline.link import near_duplicate_score
         snap = snapshot()
         names = sorted(snap)
         scores = {(a, b): near_duplicate_score(snap[a]["full_text"], snap[b]["full_text"])

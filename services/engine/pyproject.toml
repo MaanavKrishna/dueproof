@@ -2,60 +2,71 @@
 requires = ["setuptools>=69"]
 build-backend = "setuptools.build_meta"
 
+# Dueproof engine: a stateless HTTP service that reads, OCRs, translates,
+# finds obligations in and proves quotes on notices. The TypeScript app calls
+# it (packages/contracts/src/engine.ts is the contract).
+#
+# One codebase, two deployment shapes (planning/v0.1/03-architecture.md §3a):
+#
+#   engine-fast   the base install (`uv sync --no-default-groups`): PDFium text
+#                 layer, page images, PaddleOCR on ONNX Runtime (numpy + Pillow,
+#                 no OpenCV), rules, linking. No torch. Sized for a Vercel Python
+#                 Function (< 250 MB unpacked; see README.md for the measurement).
+#   engine-heavy  `uv sync --group heavy`: adds Tesseract's wrapper with OpenCV
+#                 and IndicTrans2 (torch CPU, transformers). Docker / Vercel Sandbox.
+#
+# `fast` is declared as an empty group so `--group fast` reads the same as
+# `--group heavy`; the base install *is* engine-fast.
 [project]
-name = "dueproof"
+name = "dueproof-engine"
 dynamic = ["version"]
-description = "Every due date in your documents, with proof from the page. Self-hosted, 22 Indian languages, no cloud."
-readme = "README.md"
+description = "Dueproof's engine: read notices, find what is owed and by when, and prove every finding on its page."
 license = "LicenseRef-FSL-1.1-ALv2"
-license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.12"
 authors = [{ name = "The Dueproof Authors" }]
-keywords = ["document-ai", "compliance", "deadlines", "ocr", "indic", "self-hosted"]
-classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Framework :: FastAPI",
-    "Intended Audience :: Legal Industry",
-    "Natural Language :: Hindi",
-    "Natural Language :: Bengali",
-    "Natural Language :: Tamil",
-    "Natural Language :: Telugu",
-    "Natural Language :: Urdu",
-    "Programming Language :: Python :: 3",
-    "Topic :: Office/Business",
-]
 dependencies = [
-    "fastapi==0.141.1",
-    "indictranstoolkit==1.1.1",
-    "numpy==2.5.1",
-    "opencv-python-headless==5.0.0.93",
+    "fastapi>=0.141,<1",
+    "httpx>=0.28,<1",
+    "numpy>=2.2,<3",
+    "onnxruntime>=1.22,<2",
+    "pillow>=11",
     "pypdfium2>=5,<6",
+    "rapidfuzz>=3.14,<4",
+    "uvicorn>=0.34,<1",
+]
+
+[dependency-groups]
+fast = []
+# Rung 3 of the OCR ladder. Also needs the tesseract binary and language packs.
+tesseract = [
+    "opencv-python-headless>=4.11",
     "pytesseract==0.3.13",
-    "python-multipart==0.0.32",
-    "RapidFuzz==3.14.5",
-    "sentencepiece==0.2.2",
-    "torch==2.13.0",
+]
+heavy = [
+    { include-group = "tesseract" },
+    "huggingface-hub",
+    "indictranstoolkit==1.1.1",
+    "sentencepiece>=0.2.0",
+    # Install the CPU build (see Dockerfile): the CUDA one is gigabytes the engine does not need.
+    "torch>=2.7",
     # <5: IndicTransToolkit needs transformers.tokenization_utils.PreTrainedTokenizerBase
     "transformers==4.57.6",
-    "uvicorn==0.52.1",
+]
+dev = [
+    { include-group = "tesseract" },
+    "pyflakes",
+    "pytest>=8",
 ]
 
-[project.optional-dependencies]
-dev = ["httpx==0.28.1", "pyflakes"]
-
-[project.scripts]
-dueproof = "dueproof.cli:main"
-
-[project.urls]
-Homepage = "https://dueproof.github.io"
-Documentation = "https://github.com/dueproof/dueproof/tree/main/docs"
-Source = "https://github.com/dueproof/dueproof"
+[tool.uv]
+default-groups = ["dev"]
 
 [tool.setuptools.dynamic]
-version = { attr = "dueproof.__version__" }
+version = { attr = "dueproof_engine.__version__" }
 
 [tool.setuptools.packages.find]
-include = ["dueproof*"]
+include = ["dueproof_engine*"]
 
-[tool.setuptools.package-data]
-dueproof = ["web/static/*", "web/static/fonts/*"]
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]

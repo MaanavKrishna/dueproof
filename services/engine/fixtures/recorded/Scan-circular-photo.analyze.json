@@ -1,0 +1,111 @@
+{
+ "docType": "Regulatory circular",
+ "title": "Fire safety audit of all elevated stations and compliance reporting",
+ "issuingOffice": "Safety Department ·NMR/SAF/2026/041·Dated: 6 August 2026",
+ "issuedOn": "2026-08-06",
+ "sections": [],
+ "findings": [
+  {
+   "kind": "deadline",
+   "text": "The Operations Control Centre must complete the pending drills and report to the Chief Safety Officer not later than 31 August 2026.",
+   "textEn": "The Operations Control Centre must complete the pending drills and report to the Chief Safety Officer not later than 31 August 2026.",
+   "quote": "The Operations Control Centre must complete the pending drills and report to the Chief Safety Officer not later than 31 August 2026.",
+   "quoteLang": "en",
+   "pageHint": 2,
+   "confidence": 0.9,
+   "dueRule": {
+    "type": "fixed",
+    "date": "2026-08-31"
+   },
+   "engineDueOn": "2026-08-31",
+   "desk": "Regulatory",
+   "severity": "medium"
+  },
+  {
+   "kind": "deadline",
+   "text": "Every Station Controller shall replace all expired portable extinguishers and certify the replacement to the Safety Department on or before 21 August 2026.",
+   "textEn": "Every Station Controller shall replace all expired portable extinguishers and certify the replacement to the Safety Department on or before 21 August 2026.",
+   "quote": "Every Station Controller shall replace all expired portable extinguishers and certify the replacement to the Safety Department on or before 21 August 2026.",
+   "quoteLang": "en",
+   "pageHint": 1,
+   "confidence": 0.9,
+   "dueRule": {
+    "type": "fixed",
+    "date": "2026-08-21"
+   },
+   "engineDueOn": "2026-08-21",
+   "desk": "Regulatory",
+   "severity": "medium"
+  },
+  {
+   "kind": "obligation",
+   "text": "This circular sets out what each department must do and by when.",
+   "textEn": "This circular sets out what each department must do and by when.",
+   "quote": "This circular sets out what each department must do and by when.",
+   "quoteLang": "en",
+   "pageHint": 1,
+   "confidence": 0.75,
+   "desk": "Regulatory",
+   "severity": "medium"
+  },
+  {
+   "kind": "summary",
+   "text": "Non-compliance with this statutory reporting requirement attracts a penalty under the Metro Railways Act, and the audit findings will be reviewed by the Board.",
+   "textEn": "Non-compliance with this statutory reporting requirement attracts a penalty under the Metro Railways Act, and the audit findings will be reviewed by the Board.",
+   "quote": "Non-compliance with this statutory reporting requirement attracts a penalty under the Metro Railways Act, and the audit findings will be reviewed by the Board.",
+   "quoteLang": "en",
+   "pageHint": 3,
+   "confidence": 0.6,
+   "desk": "Regulatory"
+  },
+  {
+   "kind": "summary",
+   "text": "The annual fire safety audit of the elevated corridor found expired portable extinguishers at eleven stations and two partially functional smoke detection loops.",
+   "textEn": "The annual fire safety audit of the elevated corridor found expired portable extinguishers at eleven stations and two partially functional smoke detection loops.",
+   "quote": "The annual fire safety audit of the elevated corridor found expired portable extinguishers at eleven stations and two partially functional smoke detection loops.",
+   "quoteLang": "en",
+   "pageHint": 1,
+   "confidence": 0.6,
+   "desk": "Regulatory"
+  },
+  {
+   "kind": "summary",
+   "text": "Station staff were retrained on extinguisher handling in July, and attendance records are held by HumanResources for inspection.",
+   "textEn": "Station staff were retrained on extinguisher handling in July, and attendance records are held by HumanResources for inspection.",
+   "quote": "Station staff were retrained on extinguisher handling in July, and attendance records are held by HumanResources for inspection.",
+   "quoteLang": "en",
+   "pageHint": 2,
+   "confidence": 0.6,
+   "desk": "Regulatory"
+  },
+  {
+   "kind": "summary",
+   "text": "The Signalling and Telecom department is responsible for restoring both faulty smoke detection loops.",
+   "textEn": "The Signalling and Telecom department is responsible for restoring both faulty smoke detection loops.",
+   "quote": "The Signalling and Telecom department is responsible for restoring both faulty smoke detection loops.",
+   "quoteLang": "en",
+   "pageHint": 2,
+   "confidence": 0.6,
+   "desk": "Regulatory"
+  },
+  {
+   "kind": "summary",
+   "text": "Until restoration, a fire watch is required at the affected platforms during all service hours.",
+   "textEn": "Until restoration, a fire watch is required at the affected platforms during all service hours.",
+   "quote": "Until restoration, a fire watch is required at the affected platforms during all service hours.",
+   "quoteLang": "en",
+   "pageHint": 2,
+   "confidence": 0.6,
+   "desk": "Regulatory"
+  },
+  {
+   "kind": "office",
+   "text": "Safety Department ·NMR/SAF/2026/041·Dated: 6 August 2026",
+   "quote": "Safety Department ·NMR/SAF/2026/041·Dated: 6 August 2026",
+   "quoteLang": "en",
+   "pageHint": 1,
+   "confidence": 0.85
+  }
+ ],
+ "confident": false
+}

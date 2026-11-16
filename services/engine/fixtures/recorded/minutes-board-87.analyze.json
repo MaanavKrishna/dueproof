@@ -1,0 +1,64 @@
+{
+ "docType": "Notice",
+ "title": "Minutes of the 87th meeting of the Board of Directors, held on 30 July 2026 at the Corporate Office.",
+ "issuingOffice": "Northline Metro Rail Corporation",
+ "issuedOn": "2026-07-30",
+ "sections": [],
+ "findings": [
+  {
+   "kind": "deadline",
+   "text": "The Board noted that civil works on the Phase II viaduct are 62% complete against a planned 70%, and resolved that the Director (Projects) shall submit a recovery schedule to the Board by 30 September 2026.",
+   "textEn": "The Board noted that civil works on the Phase II viaduct are 62% complete against a planned 70%, and resolved that the Director (Projects) shall submit a recovery schedule to the Board by 30 September 2026.",
+   "quote": "The Board noted that civil works on the Phase II viaduct are 62% complete against a planned 70%, and resolved that the Director (Projects) shall submit a recovery schedule to the Board by 30 September 2026.",
+   "quoteLang": "en",
+   "pageHint": 1,
+   "confidence": 0.9,
+   "dueRule": {
+    "type": "fixed",
+    "date": "2026-09-30"
+   },
+   "engineDueOn": "2026-09-30",
+   "desk": "Administration",
+   "severity": "medium"
+  },
+  {
+   "kind": "summary",
+   "text": "Minutes of the 87th meeting of the Board of Directors, held on 30 July 2026 at the Corporate Office.",
+   "textEn": "Minutes of the 87th meeting of the Board of Directors, held on 30 July 2026 at the Corporate Office.",
+   "quote": "Minutes of the 87th meeting of the Board of Directors, held on 30 July 2026 at the Corporate Office.",
+   "quoteLang": "en",
+   "pageHint": 1,
+   "confidence": 0.6,
+   "desk": "Administration"
+  },
+  {
+   "kind": "summary",
+   "text": "The revised budget of 412 crore for rolling stock procurement was approved, subject to the tender being re-issued with the amended technical specification.",
+   "textEn": "The revised budget of 412 crore for rolling stock procurement was approved, subject to the tender being re-issued with the amended technical specification.",
+   "quote": "The revised budget of 412 crore for rolling stock procurement was approved, subject to the tender being re-issued with the amended technical specification.",
+   "quoteLang": "en",
+   "pageHint": 1,
+   "confidence": 0.6,
+   "desk": "Corporate Secretarial"
+  },
+  {
+   "kind": "summary",
+   "text": "The next meeting of the Board will be convened in October at a date to be notified by the Company Secretary.",
+   "textEn": "The next meeting of the Board will be convened in October at a date to be notified by the Company Secretary.",
+   "quote": "The next meeting of the Board will be convened in October at a date to be notified by the Company Secretary.",
+   "quoteLang": "en",
+   "pageHint": 1,
+   "confidence": 0.6,
+   "desk": "Corporate Secretarial"
+  },
+  {
+   "kind": "office",
+   "text": "Northline Metro Rail Corporation",
+   "quote": "NORTHLINE METRO RAIL CORPORATION",
+   "quoteLang": "en",
+   "pageHint": 1,
+   "confidence": 0.85
+  }
+ ],
+ "confident": false
+}

@@ -3,20 +3,15 @@ analysis — a language with no vocabulary of its own still yields dated,
 routed, provable obligations."""
 import json
 import re
-import tempfile
-from pathlib import Path
 import unittest
-from unittest import mock
 
-from dueproof import db
-from dueproof.languages import LANGUAGES, enabled
-from dueproof.pipeline import translate
-from dueproof.pipeline.analyze import analyze
-from tests.support import CIRCULAR, corpus, wait_done
+from dueproof_engine.languages import LANGUAGES, enabled
+from dueproof_engine.pipeline import translate
+from dueproof_engine.pipeline.analyze import analyze
+from tests.support import CIRCULAR, corpus
 from tests.test_profiles import run
 from tests.test_translate import weights_present
 
-from dueproof import ingest as ingestion
 
 # One duty, one deadline, in five languages and five scripts (Urdu is
 # right-to-left; the Bengali uses its own digits).
@@ -30,7 +25,7 @@ SENTENCES = {
 
 DETECT = """
     import json
-    from dueproof.pipeline.analyze import analyze, detect_lang
+    from dueproof_engine.pipeline.analyze import analyze, detect_lang
     S = json.loads(%r)
     gloss = "All departments shall submit the fire safety report on or before 21 August 2026."
     fake = lambda items: [gloss for _ in items]
@@ -47,8 +42,8 @@ DETECT = """
 
 REAL = """
     import json
-    from dueproof.pipeline import translate
-    from dueproof.pipeline.analyze import analyze
+    from dueproof_engine.pipeline import translate
+    from dueproof_engine.pipeline.analyze import analyze
     S = json.loads(%r)
     tr = translate.translator()
     out = {}
@@ -145,31 +140,26 @@ class Numbers(unittest.TestCase):
         self.assertEqual(translate.check_terms("২১ আগস্ট ২০২৬", "12 August 2026"), ["number 21"])
 
 
-class InTheApp(unittest.TestCase):
-    def test_translate_first_reaches_the_card_and_the_search_index(self):
-        """With a translator available, local-language findings arrive already
-        translated, flagged where a number was lost, and searchable in English."""
-        fake = lambda items: [f"Zanzibar gloss {n}: shall submit by 2031-01-0{n + 1}."
-                              for n, _ in enumerate(items)]
-        src = Path(tempfile.mkdtemp()) / "circular-with-translator.pdf"
-        src.write_bytes((corpus() / CIRCULAR).read_bytes() + b"\n% a different file\n")
-        with mock.patch.object(ingestion, "translator", return_value=fake):
-            doc_id = ingestion.enqueue(src.name, src, "Email", None)["doc_id"]
-            self.assertEqual(wait_done(doc_id)["status"], "done")
-        rows = db.q("SELECT * FROM findings WHERE doc_id=? AND orig_lang='ml'", (doc_id,))
-        self.assertTrue(rows)
-        for r in rows:
-            self.assertEqual(r["translated"], 1)
-            self.assertTrue(r["text_en"].startswith("Zanzibar gloss"))
-            self.assertRegex(r["text_local"], "[ഀ-ൿ]")
-            self.assertEqual(r["evidence_quote"], r["text_local"])      # the proof is the original
-            self.assertEqual(r["match_score"], 100.0)
-            self.assertTrue(json.loads(r["term_flags"]))                # the gloss dropped its numbers
-        english = db.q("SELECT * FROM findings WHERE doc_id=? AND orig_lang='en'", (doc_id,))
-        self.assertTrue(english and all(not r["translated"] for r in english))
-        found = db.q("SELECT finding_id FROM search WHERE search MATCH '\"Zanzibar\"' AND doc_id=?",
-                     (doc_id,))
-        self.assertEqual({f["finding_id"] for f in found}, {r["id"] for r in rows})
+class Glosses(unittest.TestCase):
+    def test_line_translations_reach_the_findings_and_the_quote_stays_original(self):
+        """/v1/analyze is given English per line ("page:line"), not a
+        translator: local-language findings carry it, and the proof is still
+        the original sentence."""
+        from dueproof_engine.pipeline.read import read_pdf
+        doc = read_pdf(corpus() / CIRCULAR, max_rung="text_layer")
+        glosses = {(p, n): f"Zanzibar gloss: shall submit by 2031-01-0{n % 9 + 1}."
+                   for p, text in enumerate(doc["page_texts"], 1)
+                   for n, _ in enumerate(text.split("\n"))}
+        found = analyze(doc["page_texts"], CIRCULAR, line_glosses=glosses)
+        local = [f for f in found["obligations"] + found["summary"] if f["orig_lang"] == "ml"]
+        self.assertTrue(local)
+        for f in local:
+            self.assertTrue(f["translated"])
+            self.assertTrue(f["text_en"].startswith("Zanzibar gloss"))
+            self.assertEqual(f["evidence_quote"], f["text_local"])
+            self.assertRegex(f["text_local"], "[ഀ-ൿ]")
+        english = [f for f in found["obligations"] + found["summary"] if f["orig_lang"] == "en"]
+        self.assertTrue(english and not any(f["translated"] for f in english))
 
     def test_no_translator_means_no_glosses(self):
         self.assertIsNone(translate.translator())                # the suite runs with MT off
