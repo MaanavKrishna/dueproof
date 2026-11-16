@@ -4,6 +4,7 @@
  * audit trail (whose chain still verifies), and client-level access limits
  * what a member may do.
  */
+import { existsSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -35,7 +36,7 @@ import {
 import { authorize } from "../lib/authorize";
 import { parseEnv } from "../lib/env";
 import type { MailMessage } from "../lib/mail";
-import { activeNavId } from "../lib/nav";
+import { activeNavId, MOBILE_NAV, NAV_ITEMS } from "../lib/nav";
 import { clientIdsFor, parseOrgMetadata } from "../lib/org-metadata";
 import { noFlashScript, readPreferences } from "../lib/preferences";
 import {
@@ -166,6 +167,13 @@ describe("pure helpers", () => {
     expect(activeNavId("/settings/team")).toBe("settings");
     expect(activeNavId("/notices/abc")).toBe("notices");
     expect(activeNavId("/")).toBeUndefined();
+  });
+
+  it("has a page for every navigation item (no dead links)", () => {
+    const appDir = join(__dirname, "..", "app", "(app)");
+    for (const item of [...NAV_ITEMS, ...MOBILE_NAV.filter((m) => m.href)]) {
+      expect(existsSync(join(appDir, item.href ?? "", "page.tsx")), item.href).toBe(true);
+    }
   });
 
   it("recognises logos by their bytes", () => {
