@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./dates": "./src/dates/index.ts",
+    "./identifiers": "./src/identifiers/index.ts",
     "./statutory": "./src/statutory/index.ts",
     "./money": "./src/money/index.ts",
     "./policy": "./src/policy.ts",
