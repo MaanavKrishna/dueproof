@@ -11,8 +11,10 @@ const config: VercelConfig = {
   // pnpm finds the workspace root (pnpm-workspace.yaml) from apps/app.
   installCommand: "pnpm install --frozen-lockfile",
   buildCommand: "pnpm run build",
-  // Functions next to the database (Neon aws-ap-south-1) and the data: Mumbai (03 §9).
-  regions: ["bom1"],
+  // Functions next to the database. Neon through the Vercel Marketplace offers
+  // Singapore (aws-ap-southeast-1) as the closest region to India, so the app
+  // runs in sin1. Move both to Mumbai (bom1) if Neon offers it there later.
+  regions: ["sin1"],
   fluid: true,
   functions: {
     // Workflow DevKit routes: steps call engine-fast and start engine-heavy
