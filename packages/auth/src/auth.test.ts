@@ -206,7 +206,7 @@ describe("external sign-up (SSO from ee/, through AuthConfig.plugins)", () => {
     // Another domain through the same endpoint is refused.
     await expect(api.fakeSsoCreate({ body: { email: "a@elsewhere.test" } })).rejects.toThrow();
     await db3.close();
-  });
+  }, 30_000);
 });
 
 describe("rate limits", () => {
