@@ -1,0 +1,241 @@
+/* Reports: A4 sheets on screen, and only the sheet when printed. */
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-16);
+  padding: var(--dp-space-16) var(--dp-space-24) var(--dp-space-48);
+  background: var(--dp-bg-sunken);
+  min-height: 100%;
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dp-space-8);
+  align-items: center;
+  justify-content: space-between;
+  max-width: 210mm;
+  width: 100%;
+  margin-inline: auto;
+}
+
+.barActions {
+  display: flex;
+  gap: var(--dp-space-8);
+}
+
+.sheet {
+  width: 100%;
+  max-width: 210mm;
+  min-height: 297mm;
+  margin-inline: auto;
+  padding: 18mm 16mm;
+  background: var(--dp-bg-surface);
+  color: var(--dp-fg-primary);
+  box-shadow: var(--dp-shadow-page);
+  border-radius: var(--dp-radius-sm);
+  font: var(--dp-text-callout-font);
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--dp-space-16);
+  align-items: flex-start;
+  padding-bottom: var(--dp-space-12);
+  border-bottom: var(--dp-border-thick) solid var(--dp-fg-primary);
+  margin-bottom: var(--dp-space-16);
+}
+
+.logo {
+  max-height: var(--dp-space-48);
+  max-width: 50mm;
+  object-fit: contain;
+}
+
+.orgName {
+  font: var(--dp-text-headline-font);
+}
+
+.title {
+  margin: 0;
+  font: var(--dp-text-title2-font, var(--dp-text-headline-font));
+  font-weight: var(--dp-font-weight-semibold);
+}
+
+.meta {
+  color: var(--dp-fg-secondary);
+  font: var(--dp-text-footnote-font);
+  text-align: end;
+}
+
+.h2 {
+  margin: var(--dp-space-20) 0 var(--dp-space-8);
+  font: var(--dp-text-headline-font);
+  break-after: avoid;
+}
+
+.item {
+  break-inside: avoid;
+  padding-block: var(--dp-space-12);
+  border-bottom: var(--dp-border-hairline) solid var(--dp-separator-default);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--dp-space-16);
+}
+
+.itemText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-6);
+}
+
+.kind {
+  font: var(--dp-text-overline-font);
+  text-transform: uppercase;
+  color: var(--dp-fg-tertiary);
+}
+
+.quote {
+  margin: 0;
+  padding-inline-start: var(--dp-space-8);
+  border-inline-start: var(--dp-border-thick) solid var(--dp-proof-stroke);
+  color: var(--dp-fg-secondary);
+  font-style: italic;
+}
+
+.small {
+  font: var(--dp-text-footnote-font);
+  color: var(--dp-fg-secondary);
+}
+
+/* The cropped page region. Positions are percentages of the band, set inline. */
+.crop {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: var(--dp-bg-page);
+  border: var(--dp-border-hairline) solid var(--dp-separator-default);
+  border-radius: var(--dp-radius-xs);
+}
+
+.cropImage {
+  position: absolute;
+  left: 0;
+  width: 100%;
+}
+
+.mark {
+  position: absolute;
+  background: var(--dp-proof-highlight-alpha);
+  outline: var(--dp-border-thick) solid var(--dp-proof-stroke);
+  border-radius: var(--dp-radius-xs);
+}
+
+.noImage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--dp-fg-quaternary);
+  font: var(--dp-text-footnote-font);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.table th,
+.table td {
+  text-align: start;
+  padding: var(--dp-space-6) var(--dp-space-8);
+  border-bottom: var(--dp-border-hairline) solid var(--dp-separator-default);
+  vertical-align: top;
+}
+
+.table th {
+  font: var(--dp-text-footnote-font);
+  font-weight: var(--dp-font-weight-semibold);
+  color: var(--dp-fg-secondary);
+}
+
+.table .num {
+  text-align: end;
+}
+
+.foot {
+  margin-top: var(--dp-space-24);
+  padding-top: var(--dp-space-8);
+  border-top: var(--dp-border-hairline) solid var(--dp-separator-default);
+  font: var(--dp-text-footnote-font);
+  color: var(--dp-fg-tertiary);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--dp-space-16);
+}
+
+.contents {
+  margin: 0;
+  padding-inline-start: var(--dp-space-20);
+}
+
+.pageBreak {
+  break-before: page;
+}
+
+.index {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: var(--dp-space-16);
+  padding: var(--dp-space-16) var(--dp-space-24) var(--dp-space-32);
+}
+
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-12);
+}
+
+@page {
+  size: A4;
+  margin: 12mm;
+}
+
+/* On screen the print copy is hidden; when printing, only it shows (it is portalled to <body>, outside the app frame). */
+.printRoot {
+  display: none;
+}
+
+@media print {
+  :global(body) > *:not(.printRoot) {
+    display: none;
+  }
+  :global(body) {
+    background: none;
+  }
+  .printRoot {
+    display: block;
+  }
+  .printRoot .sheet {
+    max-width: none;
+    min-height: 0;
+    padding: 0;
+    box-shadow: none;
+    border-radius: 0;
+  }
+}
+
+@media (max-width: 40rem) {
+  .screen {
+    padding-inline: var(--dp-space-8);
+  }
+  .sheet {
+    padding: var(--dp-space-16);
+  }
+  .item {
+    grid-template-columns: 1fr;
+  }
+}
