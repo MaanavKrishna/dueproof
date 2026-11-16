@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
-// GitHub Pages serves a project site under /<repo>/; set PAGES_BASE_PATH=/dueproof
-// there. Locally, on Vercel and on a custom domain it stays empty.
+// The site is served from the root on Vercel. PAGES_BASE_PATH is only for
+// hosting the static export under a sub-path; leave it unset.
 const basePath = process.env.PAGES_BASE_PATH ?? "";
 
 const config: NextConfig = {

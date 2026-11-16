@@ -15,7 +15,7 @@ calendar and demand exposure live in one register your whole firm works from.
 [![licence: FSL-1.1-ALv2](https://img.shields.io/badge/licence-FSL--1.1--ALv2-4f46e5)](LICENSE)
 [![languages: 23](https://img.shields.io/badge/languages-English%20%2B%2022%20Indian-6b4cf6)](docs/languages.md)
 
-[Website](https://maanavkrishna.github.io/dueproof/) ·
+[Website](https://dueproof-site.vercel.app) ·
 [Install](docs/install.md) ·
 [Documentation](docs/index.md) ·
 [Changelog](CHANGELOG.md) ·
