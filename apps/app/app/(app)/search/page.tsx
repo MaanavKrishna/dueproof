@@ -2,7 +2,7 @@ import { PermissionDenied } from "@/components/PermissionDenied";
 import { search } from "@/features/search/queries";
 import { SearchView } from "@/features/search/SearchView";
 import { HttpError } from "@/lib/errors";
-import { gatePage } from "@/lib/page";
+import { pageAccess } from "@/lib/server/page";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Search · Dueproof" };
@@ -13,7 +13,7 @@ export default async function SearchPage({
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q = "" } = await searchParams;
-  const gate = await gatePage("case.view", undefined, `/search?q=${encodeURIComponent(q)}`);
+  const gate = await pageAccess("case.view");
   if (!gate.ok) return <PermissionDenied admins={gate.admins} what="search" />;
   try {
     return <SearchView query={q.trim()} hits={await search(gate.ctx, q)} error={null} />;

@@ -28,8 +28,6 @@ import { unsafeRawDb } from "@dueproof/db/internal";
 import { handleLocalStorageRequest, LocalDiskStorage } from "@dueproof/storage";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { getProof } from "../app/actions/proof";
-import { openCase } from "../features/inbox/actions";
-import { loadInbox } from "../features/inbox/queries";
 import {
   addComment,
   approveCase,
@@ -40,6 +38,8 @@ import {
   saveDemand,
 } from "../features/cases/actions";
 import { loadCase } from "../features/cases/queries";
+import { openCase } from "../features/inbox/actions";
+import { loadInbox } from "../features/inbox/queries";
 import { bulkUpdate, exportNoticesCsv, saveView, undoBulk } from "../features/notices/actions";
 import { applyFilters, type NoticeRow, toCsv } from "../features/notices/model";
 import { loadNoticeRows, loadNotices } from "../features/notices/queries";
@@ -50,8 +50,7 @@ import { parseEnv } from "../lib/env";
 import { confirmFinding, dismissFinding, editFinding, restoreFinding } from "../lib/findings";
 import { reviewReasons } from "../lib/review";
 import { type Container, createEngine, setContainer } from "../lib/server/container";
-import { initUpload } from "../lib/upload";
-import { completeUpload } from "../lib/upload";
+import { completeUpload, initUpload } from "../lib/upload";
 import { processDocument } from "../workflows/process-document";
 
 const FIXTURE = new URL(
@@ -262,9 +261,9 @@ describe("review and append-only edits", () => {
       tx
         .select()
         .from(findings)
-        .where(and(eq(findings.documentId, documentId), eq(findings.kind, "obligation"))),
+        .where(and(eq(findings.documentId, documentId), eq(findings.kind, "deadline"))),
     );
-    if (!f) throw new Error("no obligation");
+    if (!f) throw new Error("no deadline finding");
     const review = await authorize("finding.review", { headers: owner });
     const confirmed = await confirmFinding(review, f.id);
     expect(confirmed.deadlineId).toBeTruthy(); // already a deadline from the pipeline
@@ -411,7 +410,7 @@ describe("Notices", () => {
   it("one row per case with next due and demand", async () => {
     const rows = await loadNoticeRows(ctxA, NOW);
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ type: "GST · ASMT-10", demandMinor: 45230000 });
+    expect(rows[0]).toMatchObject({ type: "GST notice", demandMinor: 45230000 });
     expect(await loadNoticeRows(ctxB, NOW)).toEqual([]);
   });
 
@@ -468,6 +467,16 @@ describe("Notices", () => {
     const csv = await exportNoticesCsv({ stage: ["approval"] });
     if (!csv.ok) throw new Error(csv.message);
     expect(csv.data.count).toBe(1);
+  });
+});
+
+describe("client-level access", () => {
+  it("a member limited to other clients sees none of this client's work", async () => {
+    const limited = { ...ctxA, role: "member" as const, clientIds: ["some-other-client"] };
+    expect(await loadNoticeRows(limited, NOW)).toEqual([]);
+    expect((await loadToday(limited, "everyone", NOW)).hearings).toEqual([]);
+    await expect(loadCase(limited, caseId, NOW)).rejects.toThrow(/wasn't found/);
+    expect(await search(limited, "discrepancies")).toEqual([]);
   });
 });
 

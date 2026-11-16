@@ -71,6 +71,14 @@ export const NAV: NavSection[] = [
         keywords: ["calendar", "due", "hearings"],
       },
       { id: "clients", label: "Clients", href: "/clients", icon: ClientIcon, shortcut: "G C" },
+      {
+        id: "search",
+        label: "Search",
+        href: "/search",
+        icon: SearchIcon,
+        shortcut: "/",
+        keywords: ["find", "full text", "reference", "gstin"],
+      },
     ],
   },
   {

@@ -50,7 +50,7 @@ test("Today → Inbox → case page → proof → search", async ({ page, reques
   // Open a case for the notice, with a new client.
   await filing
     .getByRole("listitem")
-    .filter({ hasText: "ASMT-10" })
+    .filter({ hasText: "ZD2910260012345" })
     .getByRole("button", { name: "Open case" })
     .click();
   const dialog = page.getByRole("dialog", { name: "Open a case" });

@@ -29,6 +29,7 @@ import type { AuthContext } from "@/lib/authorize";
 import { computeDemand } from "@/lib/demands";
 import { notFound } from "@/lib/errors";
 import {
+  clientAllowed,
   type DueState,
   dueState,
   fmtDate,
@@ -229,7 +230,7 @@ export async function loadCase(
       .from(cases)
       .where(and(eq(cases.orgId, ctx.orgId), eq(cases.id, caseId)))
       .limit(1);
-    if (!c) throw notFound("That case");
+    if (!c || !clientAllowed(ctx, c.clientId)) throw notFound("That case");
     const [client] = c.clientId
       ? await tx
           .select()

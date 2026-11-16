@@ -5,13 +5,17 @@
  * rungs come from @dueproof/core's ladder.
  */
 import "server-only";
-import { listOrgMembers } from "@dueproof/auth";
 import type { Role } from "@dueproof/contracts";
 import { dueBucket } from "@dueproof/core";
+import { inArray, isNull, or } from "@dueproof/db";
+
+type Column = Parameters<typeof isNull>[0];
+
 import { formatDate } from "@dueproof/i18n";
 import type { AuthContext } from "./authorize";
 import { loadOrgCalendar, type OrgCalendar } from "./calendar";
 import { todayIn } from "./pipeline/status";
+import { listMembers } from "./server/directory";
 
 export interface Person {
   id: string;
@@ -22,7 +26,7 @@ export interface Person {
 }
 
 export async function loadPeople(ctx: AuthContext): Promise<Person[]> {
-  const members = await listOrgMembers(ctx.container.database, ctx.orgId);
+  const members = await listMembers(ctx.container.database, ctx.orgId);
   return members.map((m) => ({
     id: m.userId,
     name: m.name,
@@ -69,4 +73,25 @@ export function fmtInstant(at: Date | string, timezone: string): string {
 /** Who to ask when access is refused (01 §4 "No permission": "Ask an admin (named)"). */
 export function adminsOf(people: Person[]): string[] {
   return people.filter((p) => p.role === "owner" || p.role === "admin").map((p) => p.name);
+}
+
+/**
+ * Client-level access (Settings → Team): a member limited to some clients
+ * sees those clients' work, and work not tied to any client yet (an inbox
+ * upload), as core's policy allows. Undefined = no limit.
+ */
+export function clientScope(
+  ctx: Pick<AuthContext, "clientIds">,
+  column: Column,
+): ReturnType<typeof or> {
+  if (!ctx.clientIds) return undefined;
+  if (!ctx.clientIds.length) return isNull(column);
+  return or(isNull(column), inArray(column, [...ctx.clientIds]));
+}
+
+export function clientAllowed(
+  ctx: Pick<AuthContext, "clientIds">,
+  clientId: string | null,
+): boolean {
+  return !ctx.clientIds || clientId === null || ctx.clientIds.includes(clientId);
 }

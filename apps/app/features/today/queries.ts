@@ -31,7 +31,15 @@ import {
   withOrg,
 } from "@dueproof/db";
 import type { AuthContext } from "@/lib/authorize";
-import { type DueState, dueState, fmtDate, fmtInstant, loadClock, loadPeople } from "@/lib/org";
+import {
+  clientScope,
+  type DueState,
+  dueState,
+  fmtDate,
+  fmtInstant,
+  loadClock,
+  loadPeople,
+} from "@/lib/org";
 import { reviewReasons } from "@/lib/review";
 
 export type TodayScope = "mine" | "team" | "everyone";
@@ -165,6 +173,7 @@ export async function loadToday(
       .where(
         and(
           eq(deadlines.orgId, ctx.orgId),
+          clientScope(ctx, deadlines.clientId),
           eq(deadlines.status, "open"),
           lte(deadlines.dueOn, weekEnd),
           owner(deadlines.ownerUserId),
@@ -217,6 +226,7 @@ export async function loadToday(
       .where(
         and(
           eq(findings.orgId, ctx.orgId),
+          clientScope(ctx, documents.clientId),
           eq(findings.status, "open"),
           isNull(findings.confirmedBy),
         ),
@@ -242,6 +252,7 @@ export async function loadToday(
       .where(
         and(
           eq(documents.orgId, ctx.orgId),
+          clientScope(ctx, documents.clientId),
           gte(documents.createdAt, new Date(now.getTime() - 7 * 86_400_000)),
         ),
       )
@@ -259,7 +270,13 @@ export async function loadToday(
         })
         .from(cases)
         .leftJoin(clients, eq(clients.id, cases.clientId))
-        .where(and(eq(cases.orgId, ctx.orgId), eq(cases.stage, "approval")))
+        .where(
+          and(
+            eq(cases.orgId, ctx.orgId),
+            eq(cases.stage, "approval"),
+            clientScope(ctx, cases.clientId),
+          ),
+        )
         .limit(10);
       approvals = rows;
     }
@@ -282,7 +299,7 @@ export async function loadToday(
         })
         .from(demands)
         .leftJoin(cases, eq(cases.id, demands.caseId))
-        .where(eq(demands.orgId, ctx.orgId));
+        .where(and(eq(demands.orgId, ctx.orgId), clientScope(ctx, demands.clientId)));
       const lines = (rs: typeof rowsD): { d: DemandLine[]; c: ComputedLine[] } => ({
         d: rs.map((r) => ({
           clientId: r.clientId ?? "unassigned",

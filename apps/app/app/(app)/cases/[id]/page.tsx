@@ -3,7 +3,7 @@ import { PermissionDenied } from "@/components/PermissionDenied";
 import { CaseView } from "@/features/cases/CaseView";
 import { loadCase } from "@/features/cases/queries";
 import { HttpError } from "@/lib/errors";
-import { gatePage } from "@/lib/page";
+import { pageAccess } from "@/lib/server/page";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Case · Dueproof" };
@@ -16,7 +16,7 @@ export default async function CasePage({
   searchParams: Promise<{ doc?: string; finding?: string; page?: string }>;
 }) {
   const { id } = await params;
-  const gate = await gatePage("case.view", undefined, `/cases/${id}`);
+  const gate = await pageAccess("case.view");
   if (!gate.ok) return <PermissionDenied admins={gate.admins} what="this case" />;
   const sp = await searchParams;
   let data: Awaited<ReturnType<typeof loadCase>>;

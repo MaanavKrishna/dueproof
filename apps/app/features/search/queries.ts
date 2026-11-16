@@ -22,6 +22,14 @@ export async function search(ctx: AuthContext, raw: string, limit = 40): Promise
   const like = `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
   return withOrg(ctx.container.database, ctx.orgId, async (tx) => {
     const tsq = sql`websearch_to_tsquery('simple', ${q})`;
+    // Client-level access: documents with no client yet, or one on the person's list.
+    const ids = ctx.clientIds ? [...ctx.clientIds] : null;
+    const docScope = ids
+      ? sql`and (d.client_id is null or d.client_id = any(${sql.param(ids)}::text[]))`
+      : sql``;
+    const caseScope = ids
+      ? sql`and (k.client_id is null or k.client_id = any(${sql.param(ids)}::text[]))`
+      : sql``;
     const pageRows = rowsOf<{
       document_id: string;
       page: number;
@@ -39,7 +47,7 @@ export async function search(ctx: AuthContext, raw: string, limit = 40): Promise
         from pages p
         join documents d on d.id = p.document_id and d.org_id = p.org_id
         left join clients c on c.id = d.client_id
-        where p.org_id = ${ctx.orgId} and to_tsvector('simple', p.text) @@ ${tsq}
+        where p.org_id = ${ctx.orgId} and to_tsvector('simple', p.text) @@ ${tsq} ${docScope}
         order by rank desc
         limit ${limit}`),
     );
@@ -61,7 +69,7 @@ export async function search(ctx: AuthContext, raw: string, limit = 40): Promise
         join documents d on d.id = f.document_id and d.org_id = f.org_id
         left join clients c on c.id = d.client_id
         left join evidence e on e.finding_id = f.id and e.org_id = f.org_id
-        where f.org_id = ${ctx.orgId} and f.status <> 'dismissed'
+        where f.org_id = ${ctx.orgId} and f.status <> 'dismissed' ${docScope}
           and to_tsvector('simple', f.text || ' ' || f.quote) @@ ${tsq}
         order by rank desc
         limit ${limit}`),
@@ -75,7 +83,7 @@ export async function search(ctx: AuthContext, raw: string, limit = 40): Promise
       await tx.execute(sql`
         select k.id, k.title, k.reference, c.name as client
         from cases k left join clients c on c.id = k.client_id
-        where k.org_id = ${ctx.orgId}
+        where k.org_id = ${ctx.orgId} ${caseScope}
           and (k.reference ilike ${like} or c.name ilike ${like} or ${q}::text = any(c.gstins) or k.title ilike ${like})
         order by k.created_at desc
         limit 10`),

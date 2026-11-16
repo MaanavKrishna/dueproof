@@ -24,7 +24,7 @@ import {
   withOrg,
 } from "@dueproof/db";
 import type { AuthContext } from "@/lib/authorize";
-import { type DueState, dueState, fmtDate, fmtInstant, loadClock } from "@/lib/org";
+import { clientScope, type DueState, dueState, fmtDate, fmtInstant, loadClock } from "@/lib/org";
 import { reviewReasons, reviewReasonText } from "@/lib/review";
 
 export interface ReviewItem {
@@ -91,6 +91,7 @@ export async function loadInbox(ctx: AuthContext, now: Date = new Date()): Promi
       .where(
         and(
           eq(documents.orgId, ctx.orgId),
+          clientScope(ctx, documents.clientId),
           ne(documents.status, "ready"),
           ne(documents.status, "needs_review"),
           gte(documents.createdAt, new Date(now.getTime() - 3 * 86_400_000)),
@@ -131,6 +132,7 @@ export async function loadInbox(ctx: AuthContext, now: Date = new Date()): Promi
       .where(
         and(
           eq(findings.orgId, ctx.orgId),
+          clientScope(ctx, documents.clientId),
           eq(findings.status, "open"),
           isNull(findings.confirmedBy),
         ),
@@ -202,6 +204,7 @@ export async function loadInbox(ctx: AuthContext, now: Date = new Date()): Promi
       .where(
         and(
           eq(documents.orgId, ctx.orgId),
+          clientScope(ctx, documents.clientId),
           eq(documents.status, "needs_review"),
           isNull(findings.id),
         ),
@@ -247,6 +250,7 @@ export async function loadInbox(ctx: AuthContext, now: Date = new Date()): Promi
       .where(
         and(
           eq(documents.orgId, ctx.orgId),
+          clientScope(ctx, documents.clientId),
           isNull(documents.caseId),
           inArray(documents.status, [...SETTLED]),
         ),
@@ -264,7 +268,7 @@ export async function loadInbox(ctx: AuthContext, now: Date = new Date()): Promi
       })
       .from(cases)
       .leftJoin(clients, eq(clients.id, cases.clientId))
-      .where(eq(cases.orgId, ctx.orgId))
+      .where(and(eq(cases.orgId, ctx.orgId), clientScope(ctx, cases.clientId)))
       .orderBy(desc(cases.openedAt))
       .limit(500);
     const byRef = new Map(
@@ -276,7 +280,9 @@ export async function loadInbox(ctx: AuthContext, now: Date = new Date()): Promi
     const clientRows = await tx
       .select({ id: clients.id, name: clients.name, gstins: clients.gstins })
       .from(clients)
-      .where(and(eq(clients.orgId, ctx.orgId), isNull(clients.archivedAt)))
+      .where(
+        and(eq(clients.orgId, ctx.orgId), isNull(clients.archivedAt), clientScope(ctx, clients.id)),
+      )
       .orderBy(asc(clients.name))
       .limit(1000);
 

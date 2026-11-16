@@ -43,7 +43,13 @@ interface OrgFacts {
 async function withCase<T>(
   caseId: string,
   action: Action,
-  fn: (tx: OrgTx, ctx: AuthContext, scope: { orgId: string }, c: CaseRow, org: OrgFacts) => Promise<T>,
+  fn: (
+    tx: OrgTx,
+    ctx: AuthContext,
+    scope: { orgId: string },
+    c: CaseRow,
+    org: OrgFacts,
+  ) => Promise<T>,
 ): Promise<T> {
   const id = Id.parse(caseId);
   // First check the action at all, then again with the case's client once it is known.
@@ -59,8 +65,13 @@ async function withCase<T>(
   if (!c) throw notFound("That case");
   const ctx = c.clientId ? await authorize(action, { resource: { clientId: c.clientId } }) : pre;
   // Read outside the transaction: PGlite has one connection, so no nested reads inside it.
-  const [cal, people] = await Promise.all([loadOrgCalendar(ctx.container, ctx.orgId), loadPeople(ctx)]);
-  return withOrg(ctx.container.database, ctx.orgId, (tx, scope) => fn(tx, ctx, scope, c, { cal, people }));
+  const [cal, people] = await Promise.all([
+    loadOrgCalendar(ctx.container, ctx.orgId),
+    loadPeople(ctx),
+  ]);
+  return withOrg(ctx.container.database, ctx.orgId, (tx, scope) =>
+    fn(tx, ctx, scope, c, { cal, people }),
+  );
 }
 
 /** Like withCase, for a deadline: authorise against its client before the transaction. */

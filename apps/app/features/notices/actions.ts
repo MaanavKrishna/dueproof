@@ -108,6 +108,8 @@ export async function bulkUpdate(
         .select()
         .from(cases)
         .where(and(eq(cases.orgId, ctx.orgId), inArray(cases.id, v.caseIds)));
+      if (rows.some((r) => r.clientId && ctx.clientIds && !ctx.clientIds.includes(r.clientId)))
+        throw forbidden("Some of these cases are for clients you don't have access to.");
       const undo: BulkUndo = {
         items: rows.map((r) => ({ id: r.id, ownerUserId: r.ownerUserId, stage: r.stage })),
       };

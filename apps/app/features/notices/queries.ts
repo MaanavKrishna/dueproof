@@ -15,7 +15,7 @@ import {
   withOrg,
 } from "@dueproof/db";
 import type { AuthContext } from "@/lib/authorize";
-import { dueState, fmtDate, loadClock, loadPeople, type Person } from "@/lib/org";
+import { clientScope, dueState, fmtDate, loadClock, loadPeople, type Person } from "@/lib/org";
 import type { CaseStageId, NoticeRow } from "./model";
 
 const LANGUAGE_NAMES: Record<string, string> = {
@@ -85,7 +85,7 @@ export async function loadNoticeRows(
       })
       .from(cases)
       .leftJoin(clients, eq(clients.id, cases.clientId))
-      .where(eq(cases.orgId, ctx.orgId))
+      .where(and(eq(cases.orgId, ctx.orgId), clientScope(ctx, cases.clientId)))
       .orderBy(desc(cases.openedAt))
       .limit(5000);
     const [docRows, dueRows, demandRows] = await Promise.all([
