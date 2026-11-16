@@ -2,3 +2,6 @@ packages:
   - "apps/*"
   - "packages/*"
   - "infra/sandbox"
+  # Business features under a commercial licence (ee/LICENSE). Optional: the
+  # free build installs, builds and runs with this directory deleted.
+  - "ee"

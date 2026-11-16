@@ -151,7 +151,6 @@ export type SsoRole = (typeof SSO_ROLES)[number];
 
 /** A validated SAML set-up, ready to register. */
 export interface SsoConfig {
-  providerId: string;
   /** The IdP's entity ID. */
   issuer: string;
   /** The IdP's single sign-on URL. */
@@ -196,17 +195,25 @@ export interface SsoRuntime {
 export interface SsoExtension {
   /** Better Auth plugins to add at start-up. They refuse every request while unlicensed. */
   authPlugins(runtime: SsoRuntime): readonly unknown[];
-  /** Whether this email may sign up without an invitation because an IdP vouches for it. */
-  allowsSignUp(database: unknown, email: string): Promise<boolean>;
+  /**
+   * Whether this email may sign up without an invitation because an IdP
+   * vouches for it: only on an SSO endpoint (`path`) and only for a
+   * configured domain.
+   */
+  allowsSignUp(database: unknown, email: string, path: string | undefined): Promise<boolean>;
   /**
    * Validates the form (metadata URL or XML, domains, default role). Fetches
    * the metadata URL only when one is given, https only, size-capped.
    */
   parseConfig(input: unknown, options?: { fetch?: typeof fetch }): Promise<SsoConfig>;
   list(database: unknown, orgId: string, appUrl: string): Promise<SsoProviderView[]>;
-  /** Registers through Better Auth with the admin's own session headers. */
+  /**
+   * Registers the organisation's provider (replacing any earlier one) through
+   * Better Auth, with the admin's own session headers.
+   */
   save(
     auth: unknown,
+    database: unknown,
     headers: Headers,
     orgId: string,
     config: SsoConfig,

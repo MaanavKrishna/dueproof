@@ -1,0 +1,32 @@
+{
+  "name": "@dueproof/ee",
+  "version": "0.1.0",
+  "private": true,
+  "license": "SEE LICENSE IN LICENSE",
+  "type": "module",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "licence": "tsx scripts/issue-licence.ts"
+  },
+  "dependencies": {
+    "@better-auth/sso": "1.7.25",
+    "@dueproof/db": "workspace:*",
+    "@dueproof/plugins": "workspace:*",
+    "better-auth": "1.7.25",
+    "fast-xml-parser": "5.12.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@dueproof/auth": "workspace:*",
+    "@electric-sql/pglite": "0.5.16",
+    "@types/node": "26.6.5",
+    "samlify": "2.15.1",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  }
+}
