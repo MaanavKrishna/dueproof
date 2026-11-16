@@ -131,8 +131,8 @@ planning/           the v0.1 plan and design screenshots
 
 ## Status
 
-v0.1 is being built and is not yet released; see the
-[changelog](CHANGELOG.md). Statutory periods and interest rates are data with
+v0.1 is in beta: hosted at <https://dueproof-app.vercel.app>, or self-hosted
+with Docker. See the [changelog](CHANGELOG.md) and the [roadmap](ROADMAP.md). Statutory periods and interest rates are data with
 a source, and each is marked "verify" until a chartered accountant signs it
 off. Interest and penalty figures are estimates, not advice. Before you rely
 on Dueproof for real deadlines, run it beside your current process.

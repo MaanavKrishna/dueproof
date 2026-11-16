@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BUILDING, NAV, RELEASED, REPO } from "@/lib/site";
+import { APP_URL, NAV, RELEASED, REPO } from "@/lib/site";
 import { Wordmark } from "./Brand";
 import { CloseIcon, MenuIcon } from "./icons";
 
@@ -33,7 +33,8 @@ export function SiteHeader() {
       <div className="status-strip">
         <p className="wrap">
           <span>
-            {BUILDING} is being built. This site describes it; what runs today is the {RELEASED}.
+            Dueproof {RELEASED} is out. Use it hosted at <a href={APP_URL}>dueproof-app.vercel.app</a>,
+            or run it on your own server.
           </span>
           <a href={`${REPO}/blob/main/ROADMAP.md`}>Roadmap</a>
         </p>

@@ -32,8 +32,8 @@ export function DocsShell({ doc }: { doc: Doc }) {
       </nav>
       <div>
         <p className="callout docs-note">
-          <strong>These pages document the {RELEASED}.</strong> The documentation for v0.1 arrives
-          with the release; until then, the plan is in the repository.
+          <strong>These pages document Dueproof {RELEASED}.</strong> It is a beta: run it beside
+          your current process before you rely on it for real deadlines.
         </p>
         <article className="prose">
           <h1>{doc.title}</h1>

@@ -1,8 +1,9 @@
 export const REPO = "https://github.com/MaanavKrishna/dueproof";
 
 /** What people can run today, and what this site describes. */
-export const RELEASED = "0.0.1 demo";
-export const BUILDING = "v0.1";
+export const RELEASED = "v0.1 beta";
+/** The hosted app. */
+export const APP_URL = "https://dueproof-app.vercel.app";
 
 export const LICENCE = {
   name: "FSL-1.1-ALv2",

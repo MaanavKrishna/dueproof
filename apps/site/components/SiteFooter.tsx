@@ -71,7 +71,7 @@ export function SiteFooter() {
         </div>
         <div className="foot-base fine">
           <span>This website sets no cookies and runs no analytics.</span>
-          <span>Available today: the {RELEASED}.</span>
+          <span>Available today: Dueproof {RELEASED}.</span>
         </div>
       </div>
     </footer>
