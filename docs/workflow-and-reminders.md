@@ -1,58 +1,148 @@
 # Workflow and reminders
 
-## Working an obligation
+How a notice moves through Dueproof v0.1, how people work it, and how
+Dueproof reminds them.
 
-Each obligation on a document card has:
+## Reading a notice
 
-| Control | Effect |
-|---|---|
-| **State** | *Open*, *Done*, or *Not a duty* (Dueproof was wrong). Only open items appear on the deadline line by default, count towards the badge, or go into digests. |
-| **Owner** | Any account, shown by name. Owned items go into the owner's digest. |
-| **Due** | Correct the date. The card shows *corrected*, and the document's own date stays recorded. Clear it to go back. |
-| **Desk** | Move it to another desk. Filters, the queue and digests follow. |
-| **Note** | Free text: who is handling it, what was filed. |
-| **History** | Every change: field, old value, new value, who, when. |
+Every upload starts a durable background workflow (Workflow DevKit). Each
+step records the document's status, so the Inbox can follow along, and a
+step that fails is retried before the document is marked failed.
 
-Corrections never overwrite what the pipeline found: the original due date and
-desks are kept beside the correction, and the history table cannot be edited or
-deleted, even by the database user. Corrections are also the cheapest way to
-build an accuracy measure — see [Evaluation](evaluation.md).
+1. **Inspect**: the engine checks what the file really is (not what its
+   name says), counts the pages and spots a password.
+2. **Read**: the text layer first; pages without one go through OCR
+   (PaddleOCR, then Tesseract where it is installed). On hosted, pages the
+   fast engine can't read go to engine-heavy in a Vercel Sandbox.
+3. **Translate**: only pages in an Indian language, and only where offline
+   translation is set up. See [Languages](languages.md).
+4. **Find**: rules find duties, deadlines, hearings, amounts, the
+   reference, the issuing office, the sections cited and a summary. Each
+   comes with a verbatim quote and a date *rule* ("30 days from receipt"),
+   never a bare date. See [Notices](notices.md).
+5. **AI assist**: only if the organisation turned AI on, and only where the
+   rules weren't confident.
+6. **Prove**: each quote is looked for on its page and graded *exact*,
+   *strong*, *approximate* or *not located*.
+7. **Reconcile and date**: rule and AI findings are merged, and Dueproof's
+   date engine (`packages/core`) turns each rule into a date, using the
+   organisation's working days and holidays.
+8. **Write**: findings, their proof and deadlines are saved. The document
+   ends **Ready** or **Needs review**.
 
-The **received** date of a document can be corrected on its card. Deadlines
-that run "from receipt" move with it; nothing else does.
+A finding becomes a deadline straight away only when its quote is on the
+page and nothing about it is doubtful. Otherwise it waits in **Needs
+review** until a person confirms it. A finding that isn't on the page never
+becomes a deadline on its own.
 
-## The deadline line
+## Working a case
 
-The **Deadlines** tab lists dated obligations in the order they fall due:
-*Open* by default, or *Done*, *Not a duty*, *All*. *Viewing as* filters to a
-desk. **Spreadsheet (CSV)** and **Evidence report** export exactly what is
-shown; the report is a printable page with every obligation above a crop of the
-page it came from — print it to PDF.
+A notice is filed in a **case**, with its client. The case moves through
+stages:
+
+**Received → Documents gathered → Draft reply → Partner approval → Filed on
+portal → Order received → Appeal → Closed**
+
+- Moving to the next stage needs nothing more. Skipping a stage, or going
+  back, needs a reason.
+- **Ask for approval** moves a case to Partner approval. Someone who may
+  approve replies, and didn't ask, chooses **Approve reply**. Going on
+  without approval needs a reason.
+- **Filed on portal** needs the acknowledgement or ARN number, and the
+  acknowledgement uploaded to the case's **Thread**. Dueproof never files
+  anything.
+- Every move is in the case's **Activity**, with who and when.
+
+## Working a deadline
+
+| Action | Where | Effect |
+|---|---|---|
+| **Mark done** / **Reopen** | Deadlines row ⋯; case duty's More actions | Done items leave the open list, the digest and reminders |
+| **Assign to** | Deadlines row ⋯ | The deadline's owner is told straight away, and gets its reminders. (**Assign** on a case page sets the case's owner, which is separate) |
+| **Snooze** | Deadlines row ⋯ | Until tomorrow, for 3 days or for a week. A snoozed item stays out of the digest and reminders until then |
+| **Dismiss** | Deadlines row ⋯ | It wasn't a real deadline |
+| **Correct due date** | Case duty's More actions | Needs a reason. The original date is kept beside the correction |
+| **Correct the received date** | Case header or More actions | Every open deadline counted from receipt is worked out again |
+| **Add a deadline** | Deadlines, or **Add a deadline by hand** on a case | For a date agreed with an officer, a hearing, or anything the notices don't show |
+
+Nothing Dueproof found is overwritten. Corrections sit beside it, and the
+audit trail records every change, chained so an edit or a deletion shows
+(**Settings → System → Audit trail**).
+
+## Statutory deadlines
+
+Add a client's registrations (GST, TDS, income tax, ROC) on its
+**Registrations** tab and choose **Save and rebuild calendar**. Dueproof
+adds that client's recurring returns and payments to **Deadlines**, marked
+*Statutory*. Each period and due day is data with a source, and is marked
+"Rule not yet checked by a CA" until a CA signs it off.
 
 ## Reminders
 
-```bash
-dueproof digest                       # print every person's digest
-dueproof digest --to asha@example.org # just one
-dueproof digest --days 14             # look two weeks ahead
-dueproof digest --send                # email them
-```
+### The daily run
 
-A person's digest holds the open obligations **assigned to them**, plus
-**unassigned** ones on **their desk**, due within the window — and everything
-overdue. Done and dismissed items never appear. With no accounts (sign-in
-switched off) there is one digest for everything.
+One job, once a day, does three things for every organisation:
 
-Email settings:
+1. **Due soon and overdue.** A deadline's owner is told when it is due
+   within two days, and again when it is overdue.
+2. **Escalation.** An item overdue for 3 days goes to the managers (or, if
+   there are none, the owners and admins); after 7 days, to the client's
+   partner (or the owners). Change the days in **Settings → Organisation →
+   Escalation**. Each escalation is noted in the case's Activity.
+3. **The morning digest.** Each person with something to see gets one
+   email: what is overdue, due today and due this week among the deadlines
+   they own, and, for owners, admins and managers, cases awaiting
+   approval. Nobody gets an empty digest.
 
-| Variable | |
+Running it twice in a day sends nothing new.
+
+The job is `GET /api/cron/daily`, called with
+`Authorization: Bearer <CRON_SECRET>`. Without `CRON_SECRET` the route
+doesn't exist.
+
+- **Hosted:** Vercel Cron calls it at 01:15 UTC (06:45 in India), from
+  `apps/app/vercel.ts`. Set `CRON_SECRET`, and `RESEND_API_KEY` for email.
+- **Self-hosted:** nothing calls it yet in v0.1, and `compose.yaml` doesn't
+  pass `CRON_SECRET` or the mail settings to the app. To turn it on, add
+  `CRON_SECRET`, `SMTP_URL` and `MAIL_FROM` to the `app` service's
+  `environment` in `compose.yaml` (with their values in `.env`), restart,
+  and call the route every morning from the server's crontab, for example:
+
+  ```bash
+  30 6 * * * cd /path/to/dueproof/infra/docker && docker compose exec -T app node -e "fetch('http://127.0.0.1:3000/api/cron/daily',{headers:{authorization:'Bearer '+process.env.CRON_SECRET}}).then(r=>process.exit(r.ok?0:1))"
+  ```
+
+  `/api/cron/daily` is reachable through Caddy too, but the call above
+  stays on the server.
+
+With no mail settings, `MAIL_DRIVER` is `log`: nothing is emailed, but each
+digest still counts as sent for that day.
+
+### Notifications
+
+| Notification | When |
 |---|---|
-| `DUEPROOF_SMTP_HOST` | required to send |
-| `DUEPROOF_SMTP_PORT` | default 587 |
-| `DUEPROOF_SMTP_USER`, `DUEPROOF_SMTP_PASSWORD` | if the server needs them |
-| `DUEPROOF_SMTP_FROM` | sender address |
-| `DUEPROOF_SMTP_STARTTLS` | `0` to disable STARTTLS |
-| `DUEPROOF_URL` | Dueproof's address, so each item links back |
+| A deadline is coming up | Due within two days (daily run) |
+| A deadline needs attention | Overdue (daily run) |
+| An overdue item needs attention | Escalated to you (daily run) |
+| Something was assigned to you | Someone assigns you a deadline (straight away) |
+| You were mentioned | Someone @mentions you in a case's Activity (straight away) |
 
-Schedule it with cron (`30 8 * * 1-5 dueproof digest --send`) or the systemd
-timer in `deploy/dueproof-digest.timer`.
+Each is sent once per person and item.
+
+- **Web Push**, per device: **Settings → Me → Notifications → Notifications
+  on this device**. On an iPhone, add Dueproof to the Home Screen first.
+  `PUSH_ENABLED=0` turns it off for the whole install. A push carries only
+  the generic line above: no client names, amounts or notice text.
+- **The desktop app**: while it is open, it looks for new notifications
+  every minute and shows each as a system alert. See
+  [Desktop app](desktop.md).
+
+The bell in the sidebar doesn't list notifications yet in v0.1.
+
+### Calendar feeds
+
+**Deadlines → Subscribe (iCal)** makes a private link for **My deadlines**
+or **All deadlines**. Add it to Google Calendar, Outlook or Apple Calendar
+as a subscription. It holds titles and dates only. **Turn off my feed
+links** stops every link you made.
