@@ -1,0 +1,14 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "setup",
+  "description": "The app's own screens (first launch, Change server). Local pages only: never granted to the server's origin.",
+  "local": true,
+  "windows": ["main"],
+  "permissions": [
+    "allow-get-settings",
+    "allow-check-server",
+    "allow-connect",
+    "allow-set-autostart",
+    "allow-set-updates"
+  ]
+}

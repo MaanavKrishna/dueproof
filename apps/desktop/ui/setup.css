@@ -1,0 +1,195 @@
+/* Setup screen. Only @dueproof/tokens variables: no raw colours or pixel values. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--dp-bg-canvas);
+  color: var(--dp-fg-primary);
+  font: var(--dp-text-body-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--dp-space-32) var(--dp-space-24);
+}
+
+.setup {
+  width: 100%;
+  max-width: 30rem;
+  display: grid;
+  gap: var(--dp-space-16);
+}
+
+.setup-header {
+  display: grid;
+  justify-items: start;
+  gap: var(--dp-space-8);
+}
+
+.mark {
+  border-radius: var(--dp-radius-md);
+}
+
+h1 {
+  font: var(--dp-text-title1-font);
+  margin: 0;
+}
+
+h2 {
+  font: var(--dp-text-headline-font);
+  margin: 0 0 var(--dp-space-4);
+}
+
+.lede {
+  margin: 0;
+  color: var(--dp-fg-secondary);
+}
+
+.card {
+  display: grid;
+  gap: var(--dp-space-8);
+  padding: var(--dp-space-20);
+  background: var(--dp-bg-surface);
+  border: var(--dp-border-hairline) solid var(--dp-separator-default);
+  border-radius: var(--dp-radius-lg);
+  box-shadow: var(--dp-shadow-1);
+}
+
+label {
+  font: var(--dp-text-headline-font);
+}
+
+input[type="url"] {
+  font: var(--dp-text-body-font);
+  color: var(--dp-fg-primary);
+  background: var(--dp-bg-surface);
+  height: var(--dp-size-control-lg);
+  padding: 0 var(--dp-space-12);
+  border: var(--dp-border-hairline) solid var(--dp-separator-control);
+  border-radius: var(--dp-radius-md);
+}
+
+input[aria-invalid="true"] {
+  border-color: var(--dp-feedback-danger-border);
+}
+
+input:focus-visible,
+button:focus-visible {
+  outline: var(--dp-focus-width) solid var(--dp-focus-ring);
+  outline-offset: var(--dp-focus-offset);
+}
+
+.hint {
+  margin: 0;
+  font: var(--dp-text-footnote-font);
+  color: var(--dp-fg-tertiary);
+}
+
+.status {
+  margin: 0;
+  padding: var(--dp-space-8) var(--dp-space-12);
+  border-radius: var(--dp-radius-md);
+  border: var(--dp-border-hairline) solid transparent;
+  font: var(--dp-text-callout-font);
+}
+
+.status[data-tone="success"] {
+  color: var(--dp-feedback-success-fg);
+  background: var(--dp-feedback-success-bg);
+  border-color: var(--dp-feedback-success-border);
+}
+
+.status[data-tone="warning"] {
+  color: var(--dp-feedback-warning-fg);
+  background: var(--dp-feedback-warning-bg);
+  border-color: var(--dp-feedback-warning-border);
+}
+
+.status[data-tone="danger"] {
+  color: var(--dp-feedback-danger-fg);
+  background: var(--dp-feedback-danger-bg);
+  border-color: var(--dp-feedback-danger-border);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--dp-space-8);
+  margin-top: var(--dp-space-8);
+}
+
+/* Windows puts the primary button first; macOS and Linux last. */
+:root[data-platform="windows"] .actions {
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+}
+
+.button {
+  font: var(--dp-text-headline-font);
+  height: var(--dp-size-control-md);
+  padding: 0 var(--dp-space-16);
+  border-radius: var(--dp-radius-md);
+  border: var(--dp-border-hairline) solid transparent;
+  cursor: pointer;
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.button.primary {
+  color: var(--dp-accent-on-solid);
+  background: var(--dp-accent-solid);
+}
+
+.button.primary:hover:not(:disabled) {
+  background: var(--dp-accent-hover);
+}
+
+.button.secondary {
+  color: var(--dp-fg-primary);
+  background: var(--dp-bg-surface);
+  border-color: var(--dp-separator-control);
+}
+
+.button.secondary:hover:not(:disabled) {
+  background: var(--dp-bg-hover);
+}
+
+.check {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: var(--dp-space-8);
+  font: var(--dp-text-body-font);
+}
+
+.check input {
+  margin: var(--dp-space-2) 0 0;
+  accent-color: var(--dp-accent-solid);
+}
+
+.check small {
+  display: block;
+}
+
+.foot {
+  font: var(--dp-text-footnote-font);
+  color: var(--dp-fg-quaternary);
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .button {
+    transition: background-color var(--dp-duration-snap) ease;
+  }
+}
