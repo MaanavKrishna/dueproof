@@ -26,12 +26,16 @@ items marked **verify in M0** need a real account.
   anyone**: Hobby is for non-commercial use).
 - A Cloudflare account for R2.
 - The Vercel CLI (`npm i -g vercel`) and `pnpm`.
-- Generate two secrets now and keep them in your password manager:
+- Generate three secrets now and keep them in your password manager:
 
   ```bash
   openssl rand -hex 32   # AUTH_SECRET (app)
   openssl rand -hex 32   # ENGINE_SHARED_SECRET (app and engine-fast: the same value)
+  openssl rand -hex 32   # CRON_SECRET (app; Vercel Cron sends it to the daily run)
   ```
+
+- A [Resend](https://resend.com) account with your sending domain verified
+  (for example `mail.dueproof.in`), and an API key with sending access only.
 
 ## 1. Cloudflare R2
 
@@ -123,6 +127,12 @@ items marked **verify in M0** need a real account.
    | `ANTHROPIC_API_KEY` | Claude API key | the Dueproof AI plan calls the Claude API directly with this key. Unset: the plan has no provider and AI stays off for organisations on it |
    | `AI_GATEWAY_API_KEY` | optional | an alternative plan path through Vercel AI Gateway, used only when `ANTHROPIC_API_KEY` is unset |
    | `AI_KEY_MASTER` | optional secret | 32 random bytes, base64 (`openssl rand -base64 32`). Encrypts each organisation's own AI key ("Your own key" mode). Unset: those keys can't be saved |
+   | `CRON_SECRET` | secret | Vercel Cron sends it as `Authorization: Bearer …` when it calls `/api/cron/daily` every morning (01:15 UTC, from `apps/app/vercel.ts`): the morning digest, due-soon and overdue notifications, and escalation. Unset: the route answers 404 and the daily run never happens |
+   | `MAIL_DRIVER` | `resend` | picked automatically when `RESEND_API_KEY` is set. `log` sends nothing |
+   | `RESEND_API_KEY` | Resend API key (sending access) | sends invitations, password reset links and the morning digest. Unset: no email at all, so invitees need a copied link and nobody can reset a password |
+   | `MAIL_FROM` | `Dueproof <no-reply@mail.dueproof.in>` | the sender; its domain must be verified in Resend |
+   | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | optional | this install's Web Push key pair (base64url, P-256; `npx web-push generate-vapid-keys`). Unset: a pair derived from `AUTH_SECRET`. Changing them ends every existing push subscription |
+   | `VAPID_SUBJECT` | `mailto:support@dueproof.in` | a contact the push services can reach |
    | `METRICS_TOKEN` | optional secret | to scrape `/api/metrics` |
    | `DUEPROOF_DEV_PAGES` | `0` | |
 
