@@ -1,0 +1,18 @@
+{
+ "pages": [
+  {
+   "page": 1,
+   "width": 14400.0,
+   "height": 14400.0,
+   "rotation": 0.0,
+   "text": "",
+   "words": [],
+   "engine": "paddleocr",
+   "confidence": 1.0,
+   "languages": [
+    "en"
+   ]
+  }
+ ],
+ "needsEscalation": []
+}

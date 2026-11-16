@@ -1,0 +1,45 @@
+{
+ "docType": "Notice",
+ "title": "TAX INVOICE · Invoice No: HVC/INV/2026/1183 · Dated: 16 August 2026",
+ "issuedOn": "2026-08-16",
+ "sections": [],
+ "findings": [
+  {
+   "kind": "deadline",
+   "text": "Finance must clear this invoice on or before 15 September 2026 to retain the negotiated early-settlement discount of 1.5%.",
+   "textEn": "Finance must clear this invoice on or before 15 September 2026 to retain the negotiated early-settlement discount of 1.5%.",
+   "quote": "Finance must clear this invoice on or before 15 September 2026 to retain the negotiated early-settlement discount of 1.5%.",
+   "quoteLang": "en",
+   "pageHint": 1,
+   "confidence": 0.9,
+   "dueRule": {
+    "type": "fixed",
+    "date": "2026-09-15"
+   },
+   "engineDueOn": "2026-09-15",
+   "desk": "Finance & Accounts",
+   "severity": "medium"
+  },
+  {
+   "kind": "summary",
+   "text": "Payment is due within 30 days of the invoice date.",
+   "textEn": "Payment is due within 30 days of the invoice date.",
+   "quote": "Payment is due within 30 days of the invoice date.",
+   "quoteLang": "en",
+   "pageHint": 1,
+   "confidence": 0.6,
+   "desk": "Finance & Accounts"
+  },
+  {
+   "kind": "summary",
+   "text": "Two line items were delivered short against the purchase order quantity, and the vendor will supply the balance with the next consignment at no additional cost.",
+   "textEn": "Two line items were delivered short against the purchase order quantity, and the vendor will supply the balance with the next consignment at no additional cost.",
+   "quote": "Two line items were delivered short against the purchase order quantity, and the vendor will supply the balance with the next consignment at no additional cost.",
+   "quoteLang": "en",
+   "pageHint": 1,
+   "confidence": 0.6,
+   "desk": "Administration"
+  }
+ ],
+ "confident": false
+}

@@ -1,0 +1,121 @@
+{
+ "docType": "Regulatory circular",
+ "title": "Fire safety audit of all elevated stations and compliance reporting",
+ "issuingOffice": "Northline Metro Rail Corporation",
+ "issuedOn": "2026-08-06",
+ "sections": [],
+ "findings": [
+  {
+   "kind": "deadline",
+   "text": "The Operations Control Centre must complete the pending drills and report to the Chief Safety Officer not later than 31 August 2026.",
+   "textEn": "The Operations Control Centre must complete the pending drills and report to the Chief Safety Officer not later than 31 August 2026.",
+   "quote": "The Operations Control Centre must complete the pending drills and report to the Chief Safety Officer not later than 31 August 2026.",
+   "quoteLang": "en",
+   "pageHint": 2,
+   "confidence": 0.9,
+   "dueRule": {
+    "type": "fixed",
+    "date": "2026-08-31"
+   },
+   "engineDueOn": "2026-08-31",
+   "desk": "Regulatory",
+   "severity": "medium"
+  },
+  {
+   "kind": "deadline",
+   "text": "Every Station Controller shall replace all expired portable extinguishers and certify the replacement to the Safety Department on or before 21 August 2026.",
+   "textEn": "Every Station Controller shall replace all expired portable extinguishers and certify the replacement to the Safety Department on or before 21 August 2026.",
+   "quote": "Every Station Controller shall replace all expired portable extinguishers and certify the replacement to the Safety Department on or before 21 August 2026.",
+   "quoteLang": "en",
+   "pageHint": 1,
+   "confidence": 0.9,
+   "dueRule": {
+    "type": "fixed",
+    "date": "2026-08-21"
+   },
+   "engineDueOn": "2026-08-21",
+   "desk": "Regulatory",
+   "severity": "medium"
+  },
+  {
+   "kind": "obligation",
+   "text": "This circular sets out what each department must do and by when.",
+   "textEn": "This circular sets out what each department must do and by when.",
+   "quote": "This circular sets out what each department must do and by when.",
+   "quoteLang": "en",
+   "pageHint": 1,
+   "confidence": 0.75,
+   "desk": "Regulatory",
+   "severity": "medium"
+  },
+  {
+   "kind": "summary",
+   "text": "മുഴുവൻ എലിവേറ്റഡ് സ്റ്റേഷനുകളിലെയും സമഗ്ര അഗ്നിസുരക്ഷാ ഓഡിറ്റ് റിപ്പോർട്ട് 2026 സെപ്റ്റംബർ 5-ന് മുമ്പ് ചീഫ് സേഫ്റ്റി ഓഫീസർ മുഖേന കമ്മീഷണർ ഓഫ് മെട്രോറെയിൽ സേഫ്റ്റിക്ക് സമർപ്പിക്കണം.",
+   "textEn": "മുഴുവൻ എലിവേറ്റഡ് സ്റ്റേഷനുകളിലെയും സമഗ്ര അഗ്നിസുരക്ഷാ ഓഡിറ്റ് റിപ്പോർട്ട് 2026 സെപ്റ്റംബർ 5-ന് മുമ്പ് ചീഫ് സേഫ്റ്റി ഓഫീസർ മുഖേന കമ്മീഷണർ ഓഫ് മെട്രോറെയിൽ സേഫ്റ്റിക്ക് സമർപ്പിക്കണം.",
+   "quote": "മുഴുവൻ എലിവേറ്റഡ് സ്റ്റേഷനുകളിലെയും സമഗ്ര അഗ്നിസുരക്ഷാ ഓഡിറ്റ് റിപ്പോർട്ട് 2026 സെപ്റ്റംബർ 5-ന് മുമ്പ് ചീഫ് സേഫ്റ്റി ഓഫീസർ മുഖേന കമ്മീഷണർ ഓഫ് മെട്രോറെയിൽ സേഫ്റ്റിക്ക് സമർപ്പിക്കണം.",
+   "quoteLang": "en",
+   "pageHint": 3,
+   "confidence": 0.6,
+   "desk": "Regulatory"
+  },
+  {
+   "kind": "summary",
+   "text": "എല്ലാ എലിവേറ്റഡ് സ്റ്റേഷനുകളിലെയും പോർട്ടബിൾ അഗ്നിശമന ഉപകരണങ്ങൾ 2026 ഓഗസ്റ്റ് 21-ന് മുമ്പ് പരിശോധിച്ച് സാക്ഷ്യപത്രം സഹിതം സുരക്ഷാ വിഭാഗത്തിന് നൽകണം.",
+   "textEn": "എല്ലാ എലിവേറ്റഡ് സ്റ്റേഷനുകളിലെയും പോർട്ടബിൾ അഗ്നിശമന ഉപകരണങ്ങൾ 2026 ഓഗസ്റ്റ് 21-ന് മുമ്പ് പരിശോധിച്ച് സാക്ഷ്യപത്രം സഹിതം സുരക്ഷാ വിഭാഗത്തിന് നൽകണം.",
+   "quote": "എല്ലാ എലിവേറ്റഡ് സ്റ്റേഷനുകളിലെയും പോർട്ടബിൾ അഗ്നിശമന ഉപകരണങ്ങൾ 2026 ഓഗസ്റ്റ് 21-ന് മുമ്പ് പരിശോധിച്ച് സാക്ഷ്യപത്രം സഹിതം സുരക്ഷാ വിഭാഗത്തിന് നൽകണം.",
+   "quoteLang": "en",
+   "pageHint": 1,
+   "confidence": 0.6,
+   "desk": "Regulatory"
+  },
+  {
+   "kind": "summary",
+   "text": "നടപ്പുപാദത്തിലെ ഒഴിപ്പിക്കൽ പരിശീലനം 2026 ഓഗസ്റ്റ് 31-ന് മുമ്പ് പൂർത്തിയാക്കി ഓപ്പറേഷൻസ് കൺട്രോൾ സെന്ററിന് റിപ്പോർട്ട് ചെയ്യണം.",
+   "textEn": "നടപ്പുപാദത്തിലെ ഒഴിപ്പിക്കൽ പരിശീലനം 2026 ഓഗസ്റ്റ് 31-ന് മുമ്പ് പൂർത്തിയാക്കി ഓപ്പറേഷൻസ് കൺട്രോൾ സെന്ററിന് റിപ്പോർട്ട് ചെയ്യണം.",
+   "quote": "നടപ്പുപാദത്തിലെ ഒഴിപ്പിക്കൽ പരിശീലനം 2026 ഓഗസ്റ്റ് 31-ന് മുമ്പ് പൂർത്തിയാക്കി ഓപ്പറേഷൻസ് കൺട്രോൾ സെന്ററിന് റിപ്പോർട്ട് ചെയ്യണം.",
+   "quoteLang": "en",
+   "pageHint": 2,
+   "confidence": 0.6,
+   "desk": "Regulatory"
+  },
+  {
+   "kind": "summary",
+   "text": "റിപ്പോർട്ട് തയ്യാറാക്കുന്നതിന് മുന്നോടിയായി ഓരോ വിഭാഗവും അവരവരുടെ ഭാഗം 2026 ഓഗസ്റ്റ് 28-നകം സുരക്ഷാ വിഭാഗത്തിന് കൈമാറേണ്ടതാണ്.",
+   "textEn": "റിപ്പോർട്ട് തയ്യാറാക്കുന്നതിന് മുന്നോടിയായി ഓരോ വിഭാഗവും അവരവരുടെ ഭാഗം 2026 ഓഗസ്റ്റ് 28-നകം സുരക്ഷാ വിഭാഗത്തിന് കൈമാറേണ്ടതാണ്.",
+   "quote": "റിപ്പോർട്ട് തയ്യാറാക്കുന്നതിന് മുന്നോടിയായി ഓരോ വിഭാഗവും അവരവരുടെ ഭാഗം 2026 ഓഗസ്റ്റ് 28-നകം സുരക്ഷാ വിഭാഗത്തിന് കൈമാറേണ്ടതാണ്.",
+   "quoteLang": "en",
+   "pageHint": 3,
+   "confidence": 0.6,
+   "desk": "Regulatory"
+  },
+  {
+   "kind": "summary",
+   "text": "Non-compliance with this statutory reporting requirement attracts a penalty under the Metro Railways Act, and the audit findings will be reviewed by the Board.",
+   "textEn": "Non-compliance with this statutory reporting requirement attracts a penalty under the Metro Railways Act, and the audit findings will be reviewed by the Board.",
+   "quote": "Non-compliance with this statutory reporting requirement attracts a penalty under the Metro Railways Act, and the audit findings will be reviewed by the Board.",
+   "quoteLang": "en",
+   "pageHint": 3,
+   "confidence": 0.6,
+   "desk": "Regulatory"
+  },
+  {
+   "kind": "summary",
+   "text": "The annual fire safety audit of the elevated corridor found expired portable extinguishers at eleven stations and two partially functional smoke detection loops.",
+   "textEn": "The annual fire safety audit of the elevated corridor found expired portable extinguishers at eleven stations and two partially functional smoke detection loops.",
+   "quote": "The annual fire safety audit of the elevated corridor found expired portable extinguishers at eleven stations and two partially functional smoke detection loops.",
+   "quoteLang": "en",
+   "pageHint": 1,
+   "confidence": 0.6,
+   "desk": "Regulatory"
+  },
+  {
+   "kind": "office",
+   "text": "Northline Metro Rail Corporation",
+   "quote": "NORTHLINE METRO RAIL CORPORATION",
+   "quoteLang": "en",
+   "pageHint": 1,
+   "confidence": 0.85
+  }
+ ],
+ "confident": false
+}
