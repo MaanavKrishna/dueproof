@@ -3,7 +3,7 @@
   "regions": [
     "bom1"
   ],
-  "buildCommand": "python scripts/fetch_ocr_models.py",
+  "buildCommand": "python scripts/fetch_ocr_models.py && mkdir -p public",
   "functions": {
     "api/index.py": {
       "maxDuration": 300,
@@ -17,5 +17,6 @@
       "source": "/(.*)",
       "destination": "/api/index"
     }
-  ]
+  ],
+  "outputDirectory": "public"
 }
