@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
@@ -5,6 +6,14 @@ import { withWorkflow } from "workflow/next";
 
 const appDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(appDir, "..", "..");
+
+// Business features (ee/, commercial licence) are linked in only when the
+// directory is there; without it the app builds as Self-hosted Free.
+// DUEPROOF_EE=off builds the free edition from a full checkout. See lib/ee.ts.
+const eeEntry =
+  process.env.DUEPROOF_EE !== "off" && existsSync(join(repoRoot, "ee", "index.ts"))
+    ? "../../ee/index.ts"
+    : "./lib/ee-absent.ts";
 
 // Headers that don't depend on the runtime environment, on every response
 // (including build assets, which proxy.ts skips). proxy.ts adds the CSP, HSTS
@@ -20,7 +29,7 @@ const config: NextConfig = {
   // traced node_modules; the workspace root is the trace root (monorepo).
   output: "standalone",
   outputFileTracingRoot: repoRoot,
-  turbopack: { root: repoRoot },
+  turbopack: { root: repoRoot, resolveAlias: { "@dueproof/ee-entry": eeEntry } },
   transpilePackages: [
     "@dueproof/ai",
     "@dueproof/auth",
@@ -30,6 +39,7 @@ const config: NextConfig = {
     "@dueproof/engine-client",
     "@dueproof/i18n",
     "@dueproof/icons",
+    "@dueproof/plugins",
     "@dueproof/storage",
     "@dueproof/tokens",
     "@dueproof/ui",

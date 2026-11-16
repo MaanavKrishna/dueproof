@@ -20,6 +20,7 @@
     "@dueproof/engine-client": "workspace:*",
     "@dueproof/i18n": "workspace:*",
     "@dueproof/icons": "workspace:*",
+    "@dueproof/plugins": "workspace:*",
     "@dueproof/storage": "workspace:*",
     "@dueproof/tokens": "workspace:*",
     "@dueproof/ui": "workspace:*",

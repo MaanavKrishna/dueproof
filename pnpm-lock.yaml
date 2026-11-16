@@ -44,6 +44,9 @@ importers:
       '@dueproof/icons':
         specifier: workspace:*
         version: link:../../packages/icons
+      '@dueproof/plugins':
+        specifier: workspace:*
+        version: link:../../packages/plugins
       '@dueproof/storage':
         specifier: workspace:*
         version: link:../../packages/storage
