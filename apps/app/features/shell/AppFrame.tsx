@@ -33,7 +33,6 @@ import {
   MenuRadioItem,
   MenuSeparator,
   MenuTrigger,
-  NotificationCenter,
   SidebarNav,
   type SidebarNavSection,
   useAppShell,
@@ -49,6 +48,7 @@ import { Wordmark } from "@/components/Wordmark";
 import { activeNavId, MOBILE_NAV, NAV, NAV_ITEMS } from "@/lib/nav";
 import { PREFS_STORAGE_KEY, type Preferences } from "@/lib/preferences";
 import styles from "./AppFrame.module.css";
+import { NotificationBell } from "./NotificationBell";
 
 export interface FrameViewer {
   name: string;
@@ -291,8 +291,7 @@ export function AppFrame({
           footer={
             <div className={styles.footer}>
               <UserMenu viewer={viewer} prefs={prefs} />
-              <NotificationCenter
-                notifications={[]}
+              <NotificationBell
                 footer={<span className={styles.muted}>Reminders and mentions appear here.</span>}
               />
             </div>

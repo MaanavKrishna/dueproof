@@ -25,7 +25,11 @@ import {
 import { unsafeRawDb } from "@dueproof/db/internal";
 import { handleLocalStorageRequest, LocalDiskStorage } from "@dueproof/storage";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { newNotifications } from "../app/actions/notifications";
+import {
+  listNotifications,
+  markNotificationsRead,
+  newNotifications,
+} from "../app/actions/notifications";
 import { GET as cronRoute } from "../app/api/cron/daily/route";
 import { GET as feedRoute } from "../app/api/v1/calendar/[token]/route";
 import { GET as reportRoute } from "../app/api/v1/reports/[name]/route";
@@ -316,10 +320,29 @@ describe("deadlines", () => {
     expect(ok(await newNotifications(new Date(Date.now() + 60_000).toISOString()))).toEqual([]);
     expect(await newNotifications("yesterday")).toMatchObject({ ok: false });
 
+    // The bell: the owner's own notifications, newest first, with the in-app title.
+    const bell = ok(await listNotifications());
+    const assigned = bell.find((n) => n.kind === "deadline.assigned");
+    expect(assigned).toMatchObject({ read: false, href: expect.stringMatching(/^\//) });
+    expect(bell.every((n) => notes.some((x) => x.id === n.id && x.userId === owner.userId))).toBe(
+      true,
+    );
+    expect(ok(await markNotificationsRead([assigned?.id ?? ""]))).toEqual({ marked: 1 });
+    expect(ok(await listNotifications()).find((n) => n.id === assigned?.id)?.read).toBe(true);
+    expect(await markNotificationsRead("all" as never)).toMatchObject({ ok: false });
+
     // A viewer-like outsider org can't touch it.
     const outsider = await signUp("nina@northline.test", "Nina");
     as(outsider);
     expect(await markDeadlineDone(manualId)).toMatchObject({ ok: false, error: "not_found" });
+    // Nor see or clear the owner's notifications.
+    expect(ok(await listNotifications())).toEqual([]);
+    expect(ok(await markNotificationsRead([assigned?.id ?? ""]))).toEqual({ marked: 0 });
+    expect(ok(await markNotificationsRead(null))).toEqual({ marked: 0 });
+    as(ownerCookie);
+    const left = ok(await listNotifications()).filter((n) => !n.read).length;
+    expect(ok(await markNotificationsRead(null))).toEqual({ marked: left });
+    expect(ok(await listNotifications()).every((n) => n.read)).toBe(true);
   });
 
   it("serves a signed iCal feed and stops it when revoked", async () => {

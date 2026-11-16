@@ -139,7 +139,11 @@ Each is sent once per person and item.
   every minute and shows each as a system alert. See
   [Desktop app](desktop.md).
 
-The bell in the sidebar doesn't list notifications yet in v0.1.
+- **The bell** in the sidebar lists your latest 30 notifications in this
+  organisation, newest first, with a count of the unread ones. It checks
+  for new ones every minute and when you open it. Choosing one opens its
+  page and marks it read; **Mark all read** clears the rest. Nobody else
+  sees or clears yours.
 
 ### Calendar feeds
 
