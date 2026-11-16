@@ -4,6 +4,8 @@
  * browser (05 §3).
  */
 import { createHmac } from "node:crypto";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { z } from "zod";
 
 const bool = z
@@ -30,11 +32,13 @@ const Env = z
 
     DATABASE_DRIVER: z.enum(["pglite", "postgres", "neon"]).optional(),
     DATABASE_URL: z.string().optional(),
-    PGLITE_DATA_DIR: z.string().default(".data/pglite"),
+    // Outside the repository by default: Turbopack watches the repo, and a
+    // database or file write inside it makes `next dev` reload every page.
+    PGLITE_DATA_DIR: z.string().default(join(homedir(), ".dueproof", "dev", "pglite")),
     DB_MIGRATE_ON_START: bool.default(true),
 
     STORAGE_DRIVER: z.enum(["local", "s3", "vercel-blob"]).default("local"),
-    STORAGE_LOCAL_DIR: z.string().default(".data/files"),
+    STORAGE_LOCAL_DIR: z.string().default(join(homedir(), ".dueproof", "dev", "files")),
     /** HMAC key for local signed URLs. Defaults to one derived from AUTH_SECRET. */
     STORAGE_SIGNING_SECRET: secret.optional(),
     /** Base URL the engine uses to reach local signed URLs (e.g. http://app:3000 in Compose). */
