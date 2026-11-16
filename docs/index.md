@@ -8,7 +8,8 @@ where every entry is outlined on its source page.
 **Using it:** [Notices](notices.md) · [Workflow and reminders](workflow-and-reminders.md) ·
 [Languages](languages.md)
 
-**Running it:** [Accounts and SSO](accounts-and-sso.md) · [Deployment](deployment.md) ·
+**Running it:** [Deployment](deployment.md) · [Backup and restore](backup-and-restore.md) ·
+[Upgrading](upgrading.md) · [Accounts and SSO](accounts-and-sso.md) ·
 [Configuration](configuration.md) · [Security](security.md)
 
 **Making it yours:** [Profiles](profiles.md) · [Evaluation](evaluation.md)

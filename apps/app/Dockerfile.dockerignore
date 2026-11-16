@@ -1,0 +1,30 @@
+# Build context for apps/app/Dockerfile is the repository root. Send only
+# what the app build needs: the workspace manifests, apps/app and packages.
+**/node_modules
+**/.next
+**/.turbo
+**/.swc
+**/dist
+**/coverage
+**/storybook-static
+**/*.tsbuildinfo
+**/.env
+**/.env.*
+!**/.env.example
+.git
+.github
+.claude
+planning
+docs
+services
+infra/**
+!infra/sandbox/package.json
+**/.data
+**/test-results
+**/playwright-report
+
+# Other workspace apps: their package.json stays (the lockfile lists them).
+apps/site/**
+!apps/site/package.json
+apps/desktop/**
+!apps/desktop/package.json

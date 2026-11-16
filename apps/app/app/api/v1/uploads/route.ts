@@ -1,6 +1,7 @@
 /** POST /api/v1/uploads — start an upload: dedupe by sha256, get a signed PUT URL. */
 import { authorizeRequest } from "@/lib/authorize";
 import { badRequest, errorResponse } from "@/lib/errors";
+import { limitRequest } from "@/lib/rate-limit";
 import { initUpload } from "@/lib/upload";
 
 export const runtime = "nodejs";
@@ -8,6 +9,7 @@ export const runtime = "nodejs";
 export async function POST(request: Request): Promise<Response> {
   try {
     const ctx = await authorizeRequest(request, "document.upload");
+    await limitRequest(request, "upload", ctx);
     const body = await request.json().catch(() => {
       throw badRequest("expected a JSON body");
     });

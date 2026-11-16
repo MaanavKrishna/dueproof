@@ -21,7 +21,14 @@ export const badRequest = (message: string, code = "bad_request") =>
 /** Turn any thrown value into a JSON response. Unknown errors become a plain 500. */
 export function errorResponse(e: unknown): Response {
   if (e instanceof HttpError) {
-    return Response.json({ error: e.code, message: e.message }, { status: e.status });
+    const retryAfter = (e as { retryAfterSeconds?: number }).retryAfterSeconds;
+    return Response.json(
+      { error: e.code, message: e.message },
+      {
+        status: e.status,
+        ...(retryAfter ? { headers: { "retry-after": String(retryAfter) } } : {}),
+      },
+    );
   }
   // Production logs only the error's name (messages can quote input); development shows the stack.
   if (process.env.NODE_ENV === "production")

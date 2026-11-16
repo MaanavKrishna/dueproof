@@ -1,78 +1,126 @@
-# Install
+# Install (self-hosted server)
 
-## With Python
+Dueproof v0.1 runs on your own server as four containers, started with Docker
+Compose:
 
-Dueproof needs Python 3.12 or newer and Tesseract.
-
-```bash
-git clone https://github.com/MaanavKrishna/dueproof && cd dueproof
-```
-
-```bash
-python3 -m venv .venv && .venv/bin/pip install -e .
-```
-
-On Linux, install the CPU build of PyTorch first to avoid a multi-gigabyte GPU
-download:
-
-```bash
-.venv/bin/pip install torch==2.13.0 --index-url https://download.pytorch.org/whl/cpu
-```
-
-### Tesseract
-
-| System | Command |
+| Container | What it does |
 |---|---|
-| macOS | `brew install tesseract tesseract-lang` |
-| Debian/Ubuntu | `sudo apt install tesseract-ocr tesseract-ocr-hin` (add `-tam`, `-ben`, … per language) |
-| Windows | the installer from the [UB Mannheim build](https://github.com/UB-Mannheim/tesseract/wiki), with the language packs ticked |
+| `app` | The web app, the API and the background workflow that reads each notice (Next.js, Node 24) |
+| `engine` | Reads PDFs and scans, OCR, offline translation, rules and proof (Python). It is the only part that opens uploaded files, and it has **no network route out** |
+| `postgres` | PostgreSQL 17 with pgvector: all your data, the workflow queue and the rate-limit counters |
+| `caddy` | HTTPS in front of the app, with a certificate it gets and renews by itself |
 
-Only the language packs for the languages you enable are needed. See
-[Languages](languages.md).
+Two small helpers run beside them: `backup` (a nightly backup, see
+[Backup and restore](backup-and-restore.md)) and `pre-upgrade-backup` (a
+database dump before each start that could migrate the database).
 
-## With Docker
+Nothing is sent to us: no telemetry, no usage data, no update check.
 
-```bash
-docker build -t dueproof --build-arg OCR_PACKS="tesseract-ocr-hin tesseract-ocr-tam" .
-```
+> Hosted on Vercel instead? See [Deployment](deployment.md).
 
-```bash
-docker run -d -p 8000:8000 -v dueproof-data:/data --name dueproof dueproof
-```
+## What you need
 
-```bash
-docker exec -it dueproof dueproof users add you@example.org --admin
-```
+- A Linux server with Docker Engine 24+ and the Compose plugin
+  (`docker compose version`).
+- **4 vCPU, 8 GB RAM, 40 GB disk.** 16 GB RAM if you turn on offline
+  translation (to be confirmed by the M0 measurements).
+- A domain name pointing at the server, with ports **80 and 443** open, so
+  Caddy can get a certificate. For a trial on one machine, `localhost` works.
 
-`compose.yaml` runs Dueproof behind Caddy with automatic HTTPS; see
-[Deployment](deployment.md). The image has not yet been published or tested in
-CI — build it yourself for now.
-
-## Translation weights (optional)
-
-Reading Indian languages works best with the local translation model,
-IndicTrans2 (AI4Bharat, MIT). The weights are licence-gated, so they are
-fetched once, by hand:
-
-1. Accept the licence at
-   <https://huggingface.co/ai4bharat/indictrans2-indic-en-dist-200M>.
-2. `hf auth login` with a read token.
-3. `dueproof fetch-model`
-
-The weights (about 1 GB) land in `<data>/models/indictrans2`. Every file is
-checked against a pinned SHA-256 each time it is loaded; the app itself never
-downloads anything. For an air-gapped server, run step 3 on a connected
-machine and copy the folder across.
-
-Without the weights Dueproof still works: other-language text is read, searched
-and shown, and the profile's own-language vocabulary (if any) finds
-obligations. See [Languages](languages.md).
-
-## Check
+## 1. Get the files
 
 ```bash
-dueproof doctor
+git clone https://github.com/MaanavKrishna/dueproof && cd dueproof/infra/docker
+cp .env.example .env
 ```
 
-It checks Python, Tesseract and each language pack, the translation weights,
-the data folder, the database and sign-in, and says what to fix.
+## 2. Fill in `.env`
+
+```bash
+# three secrets, 32+ characters each
+for k in AUTH_SECRET ENGINE_SHARED_SECRET POSTGRES_PASSWORD; do
+  sed -i "s|^$k=.*|$k=$(openssl rand -hex 32)|" .env
+done
+```
+
+Then set `DUEPROOF_DOMAIN` to your domain (for example `dueproof.yourfirm.in`).
+
+**Keep a copy of `.env` somewhere safe, away from the server.** Backups don't
+include it, and without `AUTH_SECRET` nobody can sign in to a restored copy.
+
+Everything else in `.env.example` is optional and explained there: the engine's
+image options, backup time and retention, upload size, rate limits.
+
+## 3. Start it
+
+```bash
+docker compose up -d --build
+```
+
+The first build takes a while (the engine image installs PyTorch and Tesseract).
+When `docker compose ps` shows `app` as `healthy`, open
+`https://<your domain>` and **sign up: the first account owns the
+organisation**. After that, sign-up is by invitation only.
+
+To check the parts from the server:
+
+```bash
+docker compose exec app node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>r.text()).then(console.log)"
+```
+
+This reports the database and the engine (with the OCR rungs it has). The
+health and metrics endpoints are **not** reachable through Caddy.
+
+## Offline translation (optional)
+
+The engine image includes IndicTrans2's code but not its weights (about 1 GB;
+their licence must be accepted). On a machine with internet access:
+
+```bash
+cd services/engine && uv sync --group heavy
+uv run python -m dueproof_engine.tools.model     # downloads and verifies the weights
+```
+
+Copy the folder it fills to the server, set `INDICTRANS2_DIR=/path/to/it` in
+`.env`, and `docker compose up -d engine`. The folder is mounted read-only.
+`/api/health` then shows `"translation": true`.
+
+## Smaller engine images
+
+| `.env` | Engine has | Image size |
+|---|---|---|
+| (default) | Text layer, PaddleOCR, Tesseract (Hindi, Malayalam, Tamil packs), IndicTrans2 code | largest (CPU PyTorch) |
+| `ENGINE_INSTALL_TRANSLATION=0` | Text layer, PaddleOCR, Tesseract | smaller |
+| `ENGINE_INSTALL_TRANSLATION=0` and `ENGINE_INSTALL_TESSERACT=0` | Text layer and PaddleOCR only (about 530 MB) | smallest |
+
+Add Tesseract packs with `ENGINE_OCR_PACKS="tesseract-ocr-hin tesseract-ocr-ben …"`.
+Rebuild with `docker compose build engine && docker compose up -d engine`.
+
+## How it is locked down
+
+- `app` and `engine` run as unprivileged users with **read-only root
+  filesystems**, all Linux capabilities dropped and `no-new-privileges`.
+- The engine sits only on an internal Docker network with no route to the
+  internet, and accepts calls only with a short-lived token signed with
+  `ENGINE_SHARED_SECRET`. It fetches files only from the app, through signed
+  URLs that expire within 5 minutes.
+- Postgres is not published on any port.
+- Caddy refuses `/api/health`, `/api/metrics` and the workflow queue's
+  internal route from outside.
+- The app sends a strict Content Security Policy, HSTS and the other security
+  headers on every response, and rate-limits sign-in, sign-up and uploads.
+
+## Monitoring
+
+- Logs: `docker compose logs -f app engine` (JSON lines, never document text).
+- Metrics: `GET /api/metrics` in Prometheus format, from the server itself, or
+  from another machine with `Authorization: Bearer <METRICS_TOKEN>` if you set
+  one (you then need to publish the app port or add a Caddy route for it).
+- Backups: `infra/docker/backups/last.json` says when the last one ran and
+  whether it verified.
+
+## Next
+
+- [Backup and restore](backup-and-restore.md)
+- [Upgrading](upgrading.md)
+- [Configuration](configuration.md)

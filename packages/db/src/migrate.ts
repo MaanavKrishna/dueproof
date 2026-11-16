@@ -3,11 +3,10 @@
  * as drizzle-kit (`drizzle.__drizzle_migrations`), so `drizzle-kit migrate`
  * and this function agree about what has run. The SQL is embedded at build
  * time (src/migrations.gen.ts) so this works inside bundles and the desktop
- * sidecar, which have no migrations folder on disk.
+ * sidecar, which have no migrations folder on disk. Runs under a Postgres
+ * advisory lock, so concurrent starts are safe (03 §14).
  */
 import { sql } from "drizzle-orm";
-import type { MigrationMeta } from "drizzle-orm/migrator";
-import type { PgDialect, PgSession } from "drizzle-orm/pg-core";
 import { type Database, unsafeRawDb } from "./client";
 import { MIGRATIONS, RLS_SQL } from "./migrations.gen";
 
@@ -15,21 +14,44 @@ export interface MigrateResult {
   applied: string[];
 }
 
+/**
+ * Advisory lock key for migrations ("dueproof" as a 64-bit-safe number). Two
+ * app processes starting together (a rolling upgrade, `docker compose up
+ * --scale app=2`) take turns: the second waits, then finds nothing to do.
+ */
+export const MIGRATION_LOCK_KEY = 0x6475_6570_726f;
+
 export async function migrate(database: Database): Promise<MigrateResult> {
   const db = unsafeRawDb(database);
-  // Drizzle keeps dialect and session on the instance; they're not in its public type.
-  const { dialect, session } = db as unknown as { dialect: PgDialect; session: PgSession };
-
   const before = await appliedHashes(database);
-  const metas: MigrationMeta[] = MIGRATIONS.map((m) => ({
-    sql: m.sql,
-    bps: m.bps,
-    folderMillis: m.folderMillis,
-    hash: m.hash,
-  }));
-  await dialect.migrate(metas, session, { migrationsFolder: "(embedded)" });
 
+  // One transaction under a transaction-scoped advisory lock, so it works through
+  // a pooler (Neon) as well as on a single connection (postgres-js, PGlite). This is
+  // Drizzle's own migrator logic (same bookkeeping table) inlined under the lock.
   await db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(${MIGRATION_LOCK_KEY})`);
+    await tx.execute(sql`create schema if not exists drizzle`);
+    await tx.execute(sql`
+      create table if not exists drizzle.__drizzle_migrations (
+        id serial primary key,
+        hash text not null,
+        created_at bigint
+      )`);
+    const [last] = rowsOf<{ created_at: string | number | null }>(
+      await tx.execute(
+        sql`select created_at from drizzle.__drizzle_migrations order by created_at desc limit 1`,
+      ),
+    );
+    const lastMillis = last?.created_at == null ? undefined : Number(last.created_at);
+    for (const m of MIGRATIONS) {
+      if (lastMillis !== undefined && lastMillis >= m.folderMillis) continue;
+      for (const stmt of m.sql) {
+        if (stmt.trim()) await tx.execute(sql.raw(stmt));
+      }
+      await tx.execute(
+        sql`insert into drizzle.__drizzle_migrations (hash, created_at) values (${m.hash}, ${m.folderMillis})`,
+      );
+    }
     for (const stmt of RLS_SQL) {
       if (stmt.trim()) await tx.execute(sql.raw(stmt));
     }

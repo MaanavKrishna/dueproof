@@ -45,6 +45,12 @@ export async function readPages(ref: DocumentRef, pageCount: number): Promise<Re
   return stages.readStage(c, ref, pageCount).catch(classify);
 }
 
+export async function escalatePages(ref: DocumentRef, read: ReadResult): Promise<ReadResult> {
+  "use step";
+  const { c, stages } = await deps();
+  return stages.escalateStage(c, ref, read).catch(classify);
+}
+
 export async function translate(
   ref: DocumentRef,
   languages: string[],
