@@ -174,7 +174,7 @@ export class LocalDiskStorage implements StoragePort {
   async readSignedUrl(url: string): Promise<Uint8Array | null> {
     const token = new URL(url).searchParams.get("token");
     const payload = token ? this.verifyToken(token) : null;
-    if (!payload || payload.m !== "GET") return null;
+    if (payload?.m !== "GET") return null;
     return this.get(payload.k);
   }
 
@@ -182,7 +182,7 @@ export class LocalDiskStorage implements StoragePort {
   async writeSignedUrl(url: string, body: Uint8Array, contentType?: string): Promise<boolean> {
     const token = new URL(url).searchParams.get("token");
     const payload = token ? this.verifyToken(token) : null;
-    if (!payload || payload.m !== "PUT") return false;
+    if (payload?.m !== "PUT") return false;
     if (payload.max !== undefined && body.byteLength > payload.max) return false;
     await this.put(payload.k, body, contentType ? { contentType } : {});
     return true;
