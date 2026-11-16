@@ -12,7 +12,7 @@ by when. Every entry is outlined on the page it came from.
 It runs on your own server: no cloud, no API keys, no language model.
 
 [![tests](https://github.com/MaanavKrishna/dueproof/actions/workflows/ci.yml/badge.svg)](https://github.com/MaanavKrishna/dueproof/actions/workflows/ci.yml)
-[![licence: Apache 2.0](https://img.shields.io/badge/licence-Apache%202.0-4f46e5)](LICENSE)
+[![licence: FSL-1.1-ALv2](https://img.shields.io/badge/licence-FSL--1.1--ALv2-4f46e5)](LICENSE)
 [![python 3.12+](https://img.shields.io/badge/python-3.12%2B-121a3b)](pyproject.toml)
 [![languages: 23](https://img.shields.io/badge/languages-English%20%2B%2022%20Indian-6b4cf6)](docs/languages.md)
 
@@ -185,6 +185,9 @@ Found a security problem? Please report it privately. See [SECURITY.md](SECURITY
 
 ## Licence
 
-[Apache 2.0](LICENSE). Everything one organisation needs to read its notices
-and trust the result is open source, and stays that way. Third-party
-components are listed in [NOTICE](NOTICE).
+[Functional Source License 1.1, ALv2 Future License](LICENSE) (FSL-1.1-ALv2),
+from version 0.1. Dueproof is source-available: you may use, change and
+self-host it for free, but not offer it as a competing product or service.
+Each version becomes Apache 2.0 two years after its release. The demo
+(0.0.1) and earlier commits stay under Apache 2.0. Third-party components are
+listed in [NOTICE](NOTICE).

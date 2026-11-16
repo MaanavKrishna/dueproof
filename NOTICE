@@ -1,7 +1,11 @@
 Dueproof
 Copyright 2026 The Dueproof Authors
 
-This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+From version 0.1, this product is licensed under the Functional Source License,
+Version 1.1, ALv2 Future License (FSL-1.1-ALv2; see LICENSE). Each version
+becomes available under the Apache License, Version 2.0 two years after it is
+made available. The demo (0.0.1) and earlier commits remain available under
+the Apache License, Version 2.0.
 
 It bundles third-party work under its own licences:
 
