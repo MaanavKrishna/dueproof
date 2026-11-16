@@ -73,6 +73,11 @@ describe("migrations", () => {
     }
   });
 
+  it("serialise concurrent runs under the advisory lock", async () => {
+    const results = await Promise.all([migrate(database), migrate(database), migrate(database)]);
+    expect(results.map((r) => r.applied)).toEqual([[], [], []]);
+  });
+
   it("rls.sql lists exactly TENANT_TABLES", () => {
     const text = RLS_SQL.join("");
     const list = text.match(/tenant_tables text\[\] := ARRAY\[([^\]]+)\]/)?.[1] ?? "";
