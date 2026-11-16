@@ -54,7 +54,7 @@ const config: NextConfig = {
   poweredByHeader: false,
   // The dev-tools badge styles itself with inline <style>, which our CSP blocks.
   devIndicators: false,
-  // The repo has its own AGENTS.md; don't let `next dev` write another one here.
+  // The repo keeps its rules in CONTRIBUTING.md; don't let `next dev` write an AGENTS.md here.
   agentRules: false,
   async headers() {
     return [

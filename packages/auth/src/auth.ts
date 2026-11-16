@@ -65,7 +65,7 @@ export interface AuthConfig {
   /**
    * Extra Better Auth plugins, added after ours. The app passes the Business
    * plugins from `ee/` here (SAML SSO) when that directory is present; this
-   * package never imports `ee/` (AGENTS rule 12).
+   * package never imports `ee/` (house rule 12).
    */
   plugins?: readonly BetterAuthPlugin[];
   /**

@@ -4,7 +4,7 @@
  * is never usable by the person who asked for the approval (D-prod-2).
  *
  * Pure: the caller loads the subject (member row) and the resource facts;
- * this decides. Every server action starts with `authorize(…)` (AGENTS rule 4).
+ * this decides. Every server action starts with `authorize(…)` (house rule 4).
  */
 import type { Role } from "@dueproof/contracts";
 

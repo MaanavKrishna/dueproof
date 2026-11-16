@@ -69,28 +69,37 @@ planning/           the v0.1 plan: the design record
 
 ## House rules
 
-[AGENTS.md](AGENTS.md) holds the rules for humans and AI agents alike. Read it
-before you change anything. The ones contributors meet most:
+These hold for every change, by a person or an AI coding tool. Code comments
+cite them by number ("house rule 4"). Using an AI tool? Point it at this file.
 
-- **Contracts are frozen.** Don't change `packages/contracts` or
-  `packages/db/src/schema.ts` in a feature change. If you need to, make a
-  separate, minimal commit titled `contract: …` and say why.
-- **Dates are computed, never generated.** Only the date engine in
-  `packages/core` turns a rule into a date. No model output is ever a date.
-- **The page is the proof.** Every finding carries a verbatim quote located
-  on its page, or is marked *unlocated* and waits for a person. Never a
-  guessed rectangle.
-- **Every server action and route handler starts with `authorize(…)`,** and
-  every query runs in an organisation-scoped transaction.
-- **Never log document text, keys or tokens.**
-- **The UI uses only `@dueproof/ui`,** and no raw colours or pixel values
-  outside `packages/tokens`.
-- **Statutory periods and rates are data with a source,** marked "verify"
-  until a chartered accountant signs them off.
-- **Code outside `ee/` never imports it.** Self-hosted Free must build with
-  `ee/` deleted; CI checks this.
-- British spelling in anything people read ("organisation", "licence" as a
-  noun). Plain, short sentences.
+1. **Contracts are frozen.** Don't change `packages/contracts` or
+   `packages/db/src/schema.ts` in a feature change. If you need to, make a
+   separate, minimal commit titled `contract: …` and say why.
+2. **Dates are computed, never generated.** Only the date engine in
+   `packages/core` turns a `DateRule` into a date. No model output is ever a
+   date.
+3. **The page is the proof.** A finding without a located quote is
+   *unlocated*, and can't become a deadline until a person confirms it. Never
+   a guessed rectangle.
+4. **Every server action and route handler starts with `authorize(…)`** from
+   the policy module, and every query runs in an organisation-scoped
+   transaction. Never export a raw database handle.
+5. **Never log document text, keys or tokens.**
+6. **The UI uses only `@dueproof/ui`.** Never Radix or Motion directly
+   (Motion through the `@dueproof/ui/motion` presets), and no raw colours or
+   pixel values outside `packages/tokens`.
+7. **`packages/core` has no I/O and no framework imports.** Pure functions,
+   tested from fixtures.
+8. **Features don't import each other.** Shared code moves to a package.
+9. **Tests come with the change.** Don't skip, disable or loosen a test to
+   get green.
+10. **Statutory periods and rates are data with a source,** never code
+    constants, and every value is marked "verify" until a chartered
+    accountant signs it off.
+11. **British spelling** in anything people read ("organisation", "licence"
+    as a noun). Plain, short sentences.
+12. **Code outside `ee/` never imports it.** Self-hosted Free must build with
+    `ee/` deleted; CI checks this.
 
 ## Before you open a pull request
 

@@ -1,5 +1,5 @@
 /**
- * The date engine: the only code that turns a DateRule into a date (AGENTS
+ * The date engine: the only code that turns a DateRule into a date (house
  * rule 2). Pure: the anchors, holidays, working days and "today" all come in
  * through the context.
  *

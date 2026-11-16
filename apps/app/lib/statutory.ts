@@ -10,7 +10,7 @@
  * assignment survives; and it removes open statutory rows in the window that
  * no longer apply (a registration was removed or changed).
  *
- * Callers authorise first (AGENTS rule 4): see app/actions/statutory.ts.
+ * Callers authorise first (house rule 4): see app/actions/statutory.ts.
  */
 import "server-only";
 import {

@@ -1,5 +1,5 @@
 /**
- * Model prices are DATA with a source, not code constants (AGENTS rule 10).
+ * Model prices are DATA with a source, not code constants (house rule 10).
  * USD per million tokens. Every row is "verify" until checked against the
  * provider's price page at release time.
  *

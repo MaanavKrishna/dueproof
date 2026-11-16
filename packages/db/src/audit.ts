@@ -20,7 +20,7 @@ export interface AuditEntry {
   targetType?: string | null;
   targetId?: string | null;
   requestId?: string | null;
-  /** Never document text, keys or tokens (AGENTS rule 5). */
+  /** Never document text, keys or tokens (house rule 5). */
   detail?: unknown;
 }
 

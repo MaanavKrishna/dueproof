@@ -136,7 +136,7 @@ describe("the free build (no ee/)", () => {
   });
 });
 
-describe("the ee/ boundary (AGENTS rule 12)", () => {
+describe("the ee/ boundary (house rule 12)", () => {
   it("nothing outside ee/ imports it, except through @dueproof/ee-entry in lib/ee.ts", () => {
     const root = join(__dirname, "..", "..", "..");
     const eeDir = join(root, "ee");

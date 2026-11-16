@@ -1,7 +1,7 @@
 /**
  * Mail port: SMTP for self-hosted, Resend for hosted, and a stub that only
  * records what would have been sent when neither is configured (dev, tests,
- * a fresh install). Never logs message bodies (AGENTS rule 5).
+ * a fresh install). Never logs message bodies (house rule 5).
  */
 import "server-only";
 import type { Env } from "./env";

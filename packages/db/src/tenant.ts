@@ -1,5 +1,5 @@
 /**
- * `withOrg()` is the only exported way to read or write tenant data (AGENTS
+ * `withOrg()` is the only exported way to read or write tenant data (house
  * rule 4). It opens a transaction, sets `app.org_id` and switches to the
  * non-bypass app role with transaction-local settings (they work through
  * Neon's pooler: 03 §9), and hands the scoped transaction to `fn`.

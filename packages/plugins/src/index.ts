@@ -1,7 +1,7 @@
 /**
  * The extension points for Business features (08 §1, §5).
  *
- * The free product (everything outside `ee/`) never imports `ee/` (AGENTS
+ * The free product (everything outside `ee/`) never imports `ee/` (house
  * rule 12). It talks to Business features only through these interfaces, and
  * it loads `ee/` dynamically when the directory is present (apps/app/lib/ee.ts).
  * With `ee/` deleted, every extension point is simply absent and the product

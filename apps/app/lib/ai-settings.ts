@@ -3,7 +3,7 @@
  * organisation's AI mode, provider, per-tier routing, budget, Opus cap,
  * redaction, per-client exclusion and BYOK key.
  *
- * Callers authorise first (`ai.manage_settings`, AGENTS rule 4): see
+ * Callers authorise first (`ai.manage_settings`, house rule 4): see
  * app/actions/ai-settings.ts. Every change is audited. The provider key is
  * encrypted with the org's data key under AI_KEY_MASTER and is never
  * returned, logged or audited; only its last four characters are kept.

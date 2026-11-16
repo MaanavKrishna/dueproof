@@ -1,5 +1,5 @@
 /**
- * The one place the app reaches Business features (08 §1, AGENTS rule 12).
+ * The one place the app reaches Business features (08 §1, house rule 12).
  *
  * `@dueproof/ee-entry` is an alias, not a package: it resolves to
  * `ee/index.ts` when the directory exists and to `./ee-absent.ts` when it

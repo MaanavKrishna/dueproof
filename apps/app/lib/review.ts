@@ -5,7 +5,7 @@
  * case page:
  *
  * - open, and nobody has confirmed it yet, and
- * - not located on the page (AGENTS rule 3), or
+ * - not located on the page (house rule 3), or
  * - suggested by AI alone and not yet a deadline, or
  * - it carries a date rule that hasn't become a deadline (proposed date
  *   waiting for review, or the receipt date is missing).

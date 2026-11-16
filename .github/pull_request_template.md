@@ -13,5 +13,5 @@
       is explained below
 - [ ] No real notices or client data, and nothing logs document text, keys
       or tokens
-- [ ] Commits are authored by the owner only, with no AI attribution
-      trailers (AGENTS.md rule 13)
+- [ ] Commits carry no AI attribution trailers (`Co-Authored-By` lines for
+      AI tools, session links and the like)

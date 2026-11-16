@@ -10,7 +10,7 @@
  *
  * "Located" means the linker found the quote on the page (grade other than
  * `unlocated`). A finding without a located quote never becomes a deadline
- * until a person confirms it (AGENTS rule 3).
+ * until a person confirms it (house rule 3).
  */
 import type { DateRule, engine, FindingKind, Origin, Verification } from "@dueproof/contracts";
 import { resolveDate } from "./dates/engine";

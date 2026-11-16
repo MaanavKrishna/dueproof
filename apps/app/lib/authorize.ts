@@ -1,5 +1,5 @@
 /**
- * `authorize()` opens every server action and route handler (AGENTS rule 4).
+ * `authorize()` opens every server action and route handler (house rule 4).
  * It resolves the session, the active organisation and the member's role,
  * asks the one policy module (`@dueproof/core`'s `authorize`, deny by
  * default) and returns the context every query needs. Data is then read with

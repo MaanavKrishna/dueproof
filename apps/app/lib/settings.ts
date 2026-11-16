@@ -3,7 +3,7 @@
  * country, time zone, financial year, working days, escalation, holidays,
  * report logo, notice profiles and first-run progress.
  *
- * Callers authorise first (AGENTS rule 4) and pass the context in; every
+ * Callers authorise first (house rule 4) and pass the context in; every
  * change writes an audit entry naming what changed (never the values of
  * anything secret).
  */

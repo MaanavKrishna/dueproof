@@ -2,7 +2,7 @@
 
 Proprietary code under a commercial licence ([`ee/LICENSE`](LICENSE), a
 draft until a lawyer reviews it). Everything outside this directory is
-under the PolyForm Shield License 1.0.0 and never imports it (AGENTS rule 12).
+under the PolyForm Shield License 1.0.0 and never imports it (house rule 12).
 
 | Folder          | Feature                                                                       | Licence feature |
 | --------------- | ----------------------------------------------------------------------------- | --------------- |

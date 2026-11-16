@@ -161,7 +161,7 @@ export async function aiAssistStage(
     }
   }
 
-  // Located only with a page and at least one box, as for rule findings (AGENTS rule 3).
+  // Located only with a page and at least one box, as for rule findings (house rule 3).
   const findings: ProvenFinding[] = result.aiFindings.map((g) => {
     const m = matches.get(matchKey(g.id, g.finding.quote));
     if (g.grade !== "unlocated" && m && m.page !== undefined && m.rects.length > 0)

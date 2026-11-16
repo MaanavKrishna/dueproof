@@ -5,7 +5,7 @@
  * (packages/contracts), with every optional field present and nullable so the
  * same JSON schema works for Anthropic and OpenAI structured outputs.
  *
- * Rules enforced here (04 §1, AGENTS rules 2 and 3):
+ * Rules enforced here (04 §1, house rules 2 and 3):
  *  - a due date is only ever a `DateRule`; any other date-like field rejects the finding;
  *  - a `fixed` rule's day must be written in the quote (the model may copy a date, never compute one);
  *  - an amount must be written in the quote (no model arithmetic);

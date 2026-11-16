@@ -379,7 +379,7 @@ export interface ProvenFinding extends GradedFinding {
 /**
  * Rule findings from analyze, graded by the linker. Exact duplicates (same
  * kind and quote) are dropped. A finding is located only when the linker
- * placed it on a page with at least one box (AGENTS rule 3).
+ * placed it on a page with at least one box (house rule 3).
  */
 export function gradeRuleFindings(analysis: AnalyzeResponse, link: LinkResponse): ProvenFinding[] {
   const byId = new Map(link.matches.map((m) => [m.id, m]));

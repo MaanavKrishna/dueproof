@@ -3,7 +3,7 @@
  * and audit export. Each needs ee/ and a licence that lists the feature; the
  * free build answers "not available" and nothing else changes.
  *
- * Callers authorise first (AGENTS rule 4): SSO with `team.manage`, audit
+ * Callers authorise first (house rule 4): SSO with `team.manage`, audit
  * export with `audit.view` (owners and admins). Every change and every
  * export writes an audit entry.
  */

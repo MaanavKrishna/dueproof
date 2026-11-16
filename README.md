@@ -101,7 +101,7 @@ pnpm --filter @dueproof/app e2e              # Playwright, on a production build
 cd services/engine && uv run python -m unittest discover -s tests -t . -v
 ```
 
-Read [AGENTS.md](AGENTS.md) before changing anything: it holds the house
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before changing anything: it holds the house
 rules (frozen contracts, computed dates, the proof gate, org-scoped queries).
 
 ## Repository layout

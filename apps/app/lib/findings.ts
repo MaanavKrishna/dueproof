@@ -3,7 +3,7 @@
  * the case page. Every change is written to `finding_edits` (append-only:
  * corrections sit beside what was found) and to the audit trail. A finding
  * becomes a deadline only here or in the pipeline, and its date comes only
- * from core's date engine (AGENTS rules 2 and 3).
+ * from core's date engine (house rules 2 and 3).
  */
 import "server-only";
 import { DateRule, Id, IsoDate } from "@dueproof/contracts";

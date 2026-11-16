@@ -41,7 +41,7 @@ jobs:
 
   free-build:
     # Self-hosted Free must build, typecheck and pass its tests with the
-    # Business directory deleted (AGENTS rule 12, ee/README.md).
+    # Business directory deleted (house rule 12, ee/README.md).
     name: free build without ee/
     runs-on: ubuntu-latest
     timeout-minutes: 20
