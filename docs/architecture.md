@@ -1,71 +1,105 @@
 # Architecture
 
+Dueproof v0.1 is a TypeScript monorepo with one Python service. The full
+design is in [`planning/v0.1/03-architecture.md`](../planning/v0.1/03-architecture.md);
+this page is the short version.
+
 ```
-browser ──► dueproof.web (FastAPI) ──► SQLite (WAL) + page JPEGs in <data>
-                  │ dueproof.ingest: two worker threads
-   read ──► translate ──► analyze ──► link ──► duplicates
+browser / desktop app / phone (PWA)
+        │
+        ▼
+apps/app (Next.js) ── Postgres (data, workflow queue, rate limits)
+   │  server actions, /api/v1, Better Auth
+   │  Workflow DevKit: processDocument
+   │        │ signed, short-lived token
+   │        ▼
+   │  services/engine (Python, stateless)
+   │        │ signed links, ≤ 5 minutes
+   ▼        ▼
+file storage (local disk or S3/R2): originals and page images
 ```
 
 ## Where things are
 
 ```
-dueproof/
-  cli.py            the `dueproof` command
-  config.py         settings from the environment and the profile
-  db.py             schema and connections
-  ingest.py         the queue: workers, processing, duplicates, crash recovery
-  records.py        shaping rows for the API; the deadline query; audit writes
-  accounts.py       users, sessions, sign-in
-  digest.py         the reminder email
-  export.py         CSV and the printable evidence report
-  languages.py      the 22 languages
-  logs.py           logging and request ids
-  pipeline/         reading a document (below)
-  profiles/         vocabulary: desks, document types, phrasing
-  tools/            operator commands: backup, doctor, evaluate, model
-  web/
-    app.py          the FastAPI app: middleware, security headers, routers
-    common.py       helpers the routes share
-    routes/         system, accounts, documents, findings
-    static/         the browser app (plain HTML, CSS and JavaScript)
-tests/              unittest suite, fixtures and the golden file
-scripts/            serve.sh and test.sh for development
-deploy/             systemd units and a Caddy example
-website/            the project website (Next.js), not part of the product
+apps/app            The product: Next.js App Router, server actions, /api routes
+  app/              Routes: (auth) sign-in and sign-up, (setup) the wizard, (app) the screens
+  features/         One folder per screen: inbox, cases, deadlines, clients, reports, …
+  workflows/        processDocument, the durable pipeline
+  lib/              Policy checks, pipeline stages, uploads, notifications, mail, env
+apps/site           The website and these docs (it reads docs/*.md at build time)
+apps/desktop        Tauri 2 desktop shell
+services/engine     Python engine: read, OCR, translate, rules, proof
+packages/contracts  Zod schemas: the domain words, DateRule, the engine's API
+packages/db         Drizzle schema, migrations, row-level security
+packages/core       Pure functions: date engine, statutory calendar, interest, reconciliation, policy
+packages/ai         AI providers, model choice, prompts, the proof gate
+packages/auth       Better Auth setup
+packages/storage    Local disk, S3 (R2, MinIO); Vercel Blob is a stub
+packages/engine-client  Typed client for the engine
+packages/ui, tokens, icons, i18n   The design system and English messages
+ee/                 Business features under a commercial licence: SAML SSO, audit export, white-label
+infra/docker        Self-hosted: Compose, Caddy, backups
+infra/vercel        Hosted setup
+infra/sandbox       The engine-heavy snapshot for Vercel Sandbox
 ```
 
-| Module | Job |
-|---|---|
-| `pipeline/pdf.py` | PDFium (pypdfium2): open, render, and group characters into words, lines and blocks, honouring page rotation. PDFium is not thread-safe, so every call goes through one lock |
-| `pipeline/read.py` | Text layer where a page has one, Tesseract where it does not; deskew before OCR and map every box back; images and multi-page TIFFs; reflow into sentences |
-| `pipeline/scripts/` | Script-specific repair (Malayalam today) |
-| `pipeline/translate.py` | IndicTrans2, offline: vendored code, hash-pinned weights, one translation at a time; the terminology check |
-| `pipeline/analyze.py` | Sentences → obligations, deadlines, hearings, desks, notice fields, summary |
-| `pipeline/link.py` | Quote → page and per-line rectangles; MinHash duplicate candidates |
-| `ingest.py` | Worker threads, the processing of one document, de-duplication, recovery after a crash |
-| `web/` | API, sign-in and CSRF checks, search (FTS5 trigram), workflow, audit |
+## A document's journey
+
+1. The browser asks `/api/v1/uploads` for a signed link, puts the file
+   straight into storage, and calls `complete`. The app checks the stored
+   file and starts `processDocument`.
+2. The workflow calls the engine: inspect, read, (translate), analyse,
+   link. The engine fetches the file through a signed link and writes page
+   images back the same way. It never sees the database.
+3. If AI is on, it reads only what the rules weren't confident about.
+   `packages/core` reconciles rule and AI findings and turns each date rule
+   into a date.
+4. Findings, proof rectangles and deadlines are written in one transaction
+   inside the organisation. The Inbox follows along through server-sent
+   events.
 
 ## Decisions worth knowing
 
-**Rules, not a model, decide.** Every finding can be traced to the words that
-caused it. A translation model helps rules read other languages; it never
-decides on its own, and the original wording is always the proof.
+**Dates are computed, never generated.** The engine and AI return date
+*rules* ("30 days from receipt"). Only `packages/core` turns a rule into a
+date, with the organisation's holidays and working days. No model output is
+ever a date.
 
-**Never a guessed rectangle.** Matching ignores spacing (renderers and OCR
-disagree about word boundaries) and produces one box per line — per slice of a
-line on a tilted scan, so a box never reaches into the neighbouring lines.
-Below the match threshold there is no box at all.
+**The page is the proof.** A finding whose quote can't be located on its
+page is *not located* and can't become a deadline until a person confirms
+it. Below the matching threshold there is no box at all.
 
-**Nothing overwritten.** Corrections sit beside what was found; edit history
-and the audit trail are append-only at the database level.
+**Rules first.** The rules read every notice, with or without AI. AI is off
+by default and only adds findings, which are graded against the page like
+any other.
 
-**Offline by construction.** No code path makes a network call; the
-translation model's code is vendored, its weights hash-checked, and the
-Hugging Face libraries are forced offline. The one exception, `dueproof
-fetch-model`, is run by hand.
+**Nothing overwritten.** Corrections sit beside what was found, with a
+reason. The audit trail is chained, so an edit or deletion shows.
 
-**One clock.** Timestamps are UTC; "today" and "overdue" are decided in the
-profile's timezone on the server, and the browser uses the server's date.
+**One organisation per query.** Every server action and route starts with a
+policy check, and every query runs in a transaction scoped to one
+organisation, with Postgres row-level security underneath.
 
-**Small and auditable.** The app has no frontend framework or build step; SQLite; a short
-dependency list. What an operator has to review is what they deploy.
+**The engine is boxed in.** Stateless, no database, no storage keys,
+short-lived tokens, allowed hosts only, and no network route out on a
+self-hosted server.
+
+**Statutory periods are data.** Every period and rate has a source and is
+marked "verify" until a CA signs it off.
+
+**Free core.** Everything that decides whether a finding is correct or
+provable is outside `ee/` and works without a licence.
+
+## Three ways to run
+
+| | Self-hosted | Hosted | Desktop |
+|---|---|---|---|
+| App | Docker (Node 24) | Vercel Functions, Mumbai | Connects to a server in v0.1 |
+| Database | Postgres 17 with pgvector | Neon | (the server's) |
+| Workflow | Postgres World | Vercel World | |
+| Engine | One container with everything | engine-fast (Function) + engine-heavy (Sandbox) | |
+| Files | Local disk | Cloudflare R2 | |
+
+See [Install](install.md), [Deployment](deployment.md) and
+[Desktop app](desktop.md).
