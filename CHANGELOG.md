@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased — 0.1.0
+## 0.1.0-beta — 2026-11-16
+
+The first beta of v0.1: hosted at <https://dueproof-app.vercel.app>, or
+self-hosted with Docker. Run it beside your current process before you rely on
+it for real deadlines; statutory periods and rates are marked "verify" until a
+chartered accountant signs them off.
 
 The full rebuild described in [planning/v0.1-plan.md](planning/v0.1-plan.md).
 Nothing is carried over from the demo's code except the engine's reading,
@@ -65,6 +70,16 @@ OCR, translation, rules and proof-linking.
 - Unit and integration tests in every package, a tenant-isolation suite,
   Playwright end-to-end tests with axe-core accessibility checks on every main
   screen, and an AI eval that fails on any confidently wrong outline.
+
+**Known limitations in this beta**
+- Hosted email (invitations, password resets, the digest) needs a mail
+  provider configured; until then, copy invite links from Team and access.
+- Hosted pages below the OCR confidence bar aren't yet sent to engine-heavy.
+- Notice languages are set per organisation, not per client.
+- Desktop builds are made for Linux; Windows and macOS builds and signing come
+  before the beta ends.
+- Hosted data is stored in Singapore (database) and Asia-Pacific (files), not
+  in India.
 
 ## Demo (0.0.1) — 2026-10-24
 
