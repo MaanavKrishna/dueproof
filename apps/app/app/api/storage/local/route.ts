@@ -5,15 +5,16 @@
  * so this route doesn't call authorize(); the token was minted by code that
  * did.
  */
-import { handleLocalStorageRequest, LocalDiskStorage } from "@dueproof/storage";
+import { handleLocalStorageRequest, type LocalDiskStorage } from "@dueproof/storage";
 import { getContainer } from "@/lib/server/container";
 
 export const runtime = "nodejs";
 
 async function handle(request: Request): Promise<Response> {
   const { storage } = await getContainer();
-  if (!(storage instanceof LocalDiskStorage)) return new Response("not found", { status: 404 });
-  return handleLocalStorageRequest(storage, request);
+  // Check by kind, not instanceof: the container may come from another bundle's copy of the module.
+  if (storage.kind !== "local") return new Response("not found", { status: 404 });
+  return handleLocalStorageRequest(storage as LocalDiskStorage, request);
 }
 
 export { handle as GET, handle as PUT };

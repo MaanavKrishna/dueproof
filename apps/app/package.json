@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev --turbopack -p 3000",
-    "build": "next build --turbopack",
-    "start": "next start -p 3000",
+    "dev": "NEXT_TELEMETRY_DISABLED=1 next dev --turbopack -p 3000",
+    "build": "NEXT_TELEMETRY_DISABLED=1 next build --turbopack",
+    "start": "NEXT_TELEMETRY_DISABLED=1 next start -p 3000",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

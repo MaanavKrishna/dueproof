@@ -2,6 +2,7 @@ export {
   type Auth,
   type AuthConfig,
   createAuth,
+  firstMembershipOrg,
   getMembership,
   isFirstRun,
   type Membership,

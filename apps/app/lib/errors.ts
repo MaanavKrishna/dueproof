@@ -23,6 +23,9 @@ export function errorResponse(e: unknown): Response {
   if (e instanceof HttpError) {
     return Response.json({ error: e.code, message: e.message }, { status: e.status });
   }
-  console.error("unhandled error", e instanceof Error ? e.name : typeof e);
+  // Production logs only the error's name (messages can quote input); development shows the stack.
+  if (process.env.NODE_ENV === "production")
+    console.error("unhandled error", e instanceof Error ? e.name : typeof e);
+  else console.error("unhandled error", e);
   return Response.json({ error: "internal", message: "Something went wrong." }, { status: 500 });
 }

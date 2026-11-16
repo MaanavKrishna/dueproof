@@ -21,6 +21,8 @@ const config: NextConfig = {
     "@neondatabase/serverless",
   ],
   poweredByHeader: false,
+  // The repo has its own AGENTS.md; don't let `next dev` write another one here.
+  agentRules: false,
 };
 
 export default withWorkflow(config);

@@ -43,9 +43,9 @@ let pdf: Uint8Array;
 let sha: string;
 
 async function signUp(email: string, name: string): Promise<Headers> {
-  await container.auth.api.signUpEmail({ body: { email, name, password: "a-long-test-password" } });
-  const res = await container.auth.api.signInEmail({
-    body: { email, password: "a-long-test-password" },
+  // Use the session sign-up itself creates, as a browser would.
+  const res = await container.auth.api.signUpEmail({
+    body: { email, name, password: "a-long-test-password" },
     returnHeaders: true,
   });
   const cookie = (res.headers.get("set-cookie") ?? "").split(";")[0] ?? "";

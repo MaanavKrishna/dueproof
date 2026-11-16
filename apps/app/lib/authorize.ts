@@ -9,7 +9,7 @@
  */
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { getMembership } from "@dueproof/auth";
+import { firstMembershipOrg, getMembership } from "@dueproof/auth";
 import type { Role } from "@dueproof/contracts";
 import { type Action, can, type Resource } from "./core-adapter";
 import { forbidden, HttpError, unauthorised } from "./errors";
@@ -38,7 +38,11 @@ export async function authorize(
   const session = await container.auth.api.getSession({ headers });
   if (!session) throw unauthorised();
 
-  const orgId = (session.session as { activeOrganizationId?: string | null }).activeOrganizationId;
+  // Sign-up's session can be made before the organisation is (Better Auth runs
+  // user "after" hooks late), so fall back to the user's first membership.
+  const orgId =
+    (session.session as { activeOrganizationId?: string | null }).activeOrganizationId ??
+    (await firstMembershipOrg(container.database, session.user.id));
   if (!orgId) throw forbidden("You aren't a member of an organisation yet.");
   const membership = await getMembership(container.database, session.user.id, orgId);
   if (!membership) throw forbidden("You aren't a member of this organisation.");

@@ -42,7 +42,12 @@ interface Internal {
   close: () => Promise<void>;
 }
 
-const internals = new WeakMap<Database, Internal>();
+// Shared through globalThis: bundlers (Next.js route bundles, dev reloads) can load
+// this module more than once, and a Database made by one copy must work in another.
+const INTERNALS = Symbol.for("dueproof.db.internals");
+const registry = globalThis as { [INTERNALS]?: WeakMap<Database, Internal> };
+if (!registry[INTERNALS]) registry[INTERNALS] = new WeakMap<Database, Internal>();
+const internals: WeakMap<Database, Internal> = registry[INTERNALS];
 
 export interface CreateDatabaseOptions {
   /** Defaults to "dueproof_app". Set null only where the login role already lacks BYPASSRLS and owns nothing. */
@@ -58,6 +63,12 @@ export async function createDatabase(
     case "pglite": {
       const { PGlite } = await import("@electric-sql/pglite");
       const { drizzle } = await import("drizzle-orm/pglite");
+      if (config.dataDir && !config.dataDir.includes("://")) {
+        // PGlite creates the data directory but not its parents.
+        const { mkdir } = await import("node:fs/promises");
+        const { dirname } = await import("node:path");
+        await mkdir(dirname(config.dataDir), { recursive: true });
+      }
       const client = config.dataDir ? new PGlite(config.dataDir) : new PGlite();
       await client.waitReady;
       internal = {

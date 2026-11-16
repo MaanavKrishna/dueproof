@@ -316,6 +316,21 @@ export async function getMembership(
   };
 }
 
+/** The organisation a user joined first, for sessions without an active one. */
+export async function firstMembershipOrg(
+  database: Database,
+  userId: string,
+): Promise<string | null> {
+  const raw = unsafeRawDb(database);
+  const [row] = await raw
+    .select({ orgId: member.organizationId })
+    .from(member)
+    .where(eq(member.userId, userId))
+    .orderBy(asc(member.createdAt))
+    .limit(1);
+  return row?.orgId ?? null;
+}
+
 /** Whether the install has an organisation yet (first-run screen). */
 export async function isFirstRun(database: Database): Promise<boolean> {
   const raw = unsafeRawDb(database);
