@@ -54,3 +54,44 @@ jobs:
             --title "Dueproof $TAG" \
             --notes-file "$RUNNER_TEMP/notes.md" \
             "${flags[@]}"
+
+  desktop-linux:
+    name: Desktop app for Linux (.deb and AppImage)
+    needs: release
+    # The oldest supported Ubuntu, so the AppImage and .deb run on as many
+    # distributions as possible (they need this glibc or newer).
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: WebKitGTK and the other Tauri build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential file \
+            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build the .deb and the AppImage
+        run: pnpm --filter @dueproof/desktop build:linux
+      - name: Attach them to the release, with checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          out="$RUNNER_TEMP/desktop"
+          mkdir -p "$out"
+          bundle=apps/desktop/src-tauri/target/release/bundle
+          cp "$bundle"/deb/*.deb "$bundle"/appimage/*.AppImage "$out"/
+          cd "$out"
+          ls -1 | grep -qE '\.deb$' && ls -1 | grep -qE '\.AppImage$'
+          sha256sum *.deb *.AppImage > SHA256SUMS-desktop-linux.txt
+          cat SHA256SUMS-desktop-linux.txt
+          gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber ./*

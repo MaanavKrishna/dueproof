@@ -18,7 +18,10 @@ v0.1 yet.
 
 ## Install
 
-Download the file for your computer from the release page:
+Download the file for your computer from the
+[latest release](https://github.com/MaanavKrishna/dueproof/releases/latest),
+and check it against `SHA256SUMS-desktop-linux.txt` there
+(`sha256sum -c SHA256SUMS-desktop-linux.txt --ignore-missing`):
 
 | Computer | File |
 |---|---|
