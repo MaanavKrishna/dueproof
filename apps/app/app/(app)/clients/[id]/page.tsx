@@ -1,14 +1,18 @@
 import { notFound } from "next/navigation";
+import { NoAccess } from "@/components/NoAccess";
 import { ClientPageView } from "@/features/clients/ClientPageView";
 import { type ClientPageData, getClientPage } from "@/features/clients/queries";
 import { HttpError } from "@/lib/errors";
-import { authorizePage } from "@/lib/page-auth";
+import { pageAccess } from "@/lib/server/page";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Client · Dueproof" };
 
 export default async function ClientPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const ctx = await authorizePage("client.view", `/clients/${id}`);
+  const access = await pageAccess("client.view");
+  if (!access.ok) return <NoAccess what="This client" admins={access.admins} />;
+  const ctx = access.ctx;
   let data: ClientPageData;
   try {
     data = await getClientPage(ctx, id);

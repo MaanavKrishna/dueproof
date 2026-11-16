@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import { PushToggle } from "@/features/push/PushToggle";
 import { MeSettings } from "@/features/settings/MeSettings";
 import { DENSITY_COOKIE, readPreferences, THEME_COOKIE } from "@/lib/preferences";
 import { listPasskeys } from "@/lib/server/directory";
@@ -26,6 +27,7 @@ export default async function MeSettingsPage() {
   return (
     <MeSettings
       chrome={chrome}
+      notifications={<PushToggle />}
       me={{
         name: me.name,
         email: me.email,

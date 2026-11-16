@@ -1,8 +1,10 @@
+import { NoAccess } from "@/components/NoAccess";
 import { one } from "@/features/reports/load";
 import { ExposureReportView } from "@/features/reports/OtherReports";
 import { loadExposureReport } from "@/features/reports/queries";
-import { authorizePage } from "@/lib/page-auth";
+import { pageAccess } from "@/lib/server/page";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Exposure · Dueproof" };
 
 export default async function ExposurePage({
@@ -10,7 +12,9 @@ export default async function ExposurePage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const ctx = await authorizePage("exposure.view", "/reports/exposure");
+  const access = await pageAccess("exposure.view");
+  if (!access.ok) return <NoAccess what="The exposure report" admins={access.admins} />;
+  const ctx = access.ctx;
   const client = one((await searchParams).client);
   return <ExposureReportView report={await loadExposureReport(ctx, client)} />;
 }

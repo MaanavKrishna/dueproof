@@ -30,6 +30,7 @@ import {
   useToast,
 } from "@dueproof/ui";
 import { useRouter } from "next/navigation";
+import type { ReactNode } from "react";
 import { type FormEvent, useState } from "react";
 import { setPreferences, updateProfile } from "@/app/actions/settings";
 import { PREFS_STORAGE_KEY, type Preferences } from "@/lib/preferences";
@@ -56,7 +57,16 @@ const dateFmt = new Intl.DateTimeFormat("en-IN", {
   year: "numeric",
 });
 
-export function MeSettings({ chrome, me }: { chrome: SettingsChrome; me: MeData }) {
+export function MeSettings({
+  chrome,
+  me,
+  notifications,
+}: {
+  chrome: SettingsChrome;
+  me: MeData;
+  /** The Web Push opt-in for this device (features/push/PushToggle), passed in by the page. */
+  notifications?: ReactNode;
+}) {
   const router = useRouter();
   const { toast } = useToast();
   const [name, setName] = useState(me.name);
@@ -151,6 +161,17 @@ export function MeSettings({ chrome, me }: { chrome: SettingsChrome; me: MeData 
           />
         </SettingsRow>
       </SettingsSection>
+
+      {notifications ? (
+        <SettingsSection
+          title="Notifications"
+          description="Phone and browser notifications, per device. The morning digest comes by email."
+        >
+          <SettingsRow label="This device" stacked>
+            {notifications}
+          </SettingsRow>
+        </SettingsSection>
+      ) : null}
 
       <Passkeys passkeys={me.passkeys} onChange={() => router.refresh()} />
       <TwoFactor enabled={me.twoFactorEnabled} onChange={() => router.refresh()} />

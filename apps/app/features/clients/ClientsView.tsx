@@ -27,6 +27,9 @@ export interface ClientsViewProps {
   canEdit: boolean;
   canSeeExposure: boolean;
   duplicates: { key: string; clients: { id: string; name: string }[] }[];
+  /** Open "New client" at once (/clients?new=1, from Today and the palette). */
+  openNew?: boolean;
+  openImport?: boolean;
 }
 
 export function ClientsView({
@@ -35,11 +38,13 @@ export function ClientsView({
   canEdit,
   canSeeExposure,
   duplicates,
+  openNew,
+  openImport,
 }: ClientsViewProps) {
   const router = useRouter();
   const [query, setQuery] = useState("");
-  const [creating, setCreating] = useState(false);
-  const [importing, setImporting] = useState(false);
+  const [creating, setCreating] = useState(Boolean(openNew && canEdit));
+  const [importing, setImporting] = useState(Boolean(openImport && canEdit));
   const [merging, setMerging] = useState<(typeof duplicates)[number] | null>(null);
 
   const filtered = useMemo(() => {

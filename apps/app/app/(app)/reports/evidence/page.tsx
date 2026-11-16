@@ -1,8 +1,10 @@
+import { NoAccess } from "@/components/NoAccess";
 import { EvidenceReportView } from "@/features/reports/EvidenceReportView";
 import { one, orNotFound } from "@/features/reports/load";
 import { loadEvidenceReport } from "@/features/reports/queries";
-import { authorizePage } from "@/lib/page-auth";
+import { pageAccess } from "@/lib/server/page";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Evidence report · Dueproof" };
 
 export default async function EvidenceReportPage({
@@ -21,7 +23,9 @@ export default async function EvidenceReportPage({
       (e): e is [string, string] => Boolean(e[1]),
     ),
   ).toString();
-  const ctx = await authorizePage("report.view", `/reports/evidence?${q}`);
+  const access = await pageAccess("report.view");
+  if (!access.ok) return <NoAccess what="The evidence report" admins={access.admins} />;
+  const ctx = access.ctx;
   const report = await orNotFound(() => loadEvidenceReport(ctx, scope));
   return <EvidenceReportView report={report} csvHref={`/api/v1/reports/evidence.csv?${q}`} />;
 }

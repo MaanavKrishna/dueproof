@@ -1,7 +1,9 @@
+import { NoAccess } from "@/components/NoAccess";
 import { DeadlinesView, type View } from "@/features/deadlines/DeadlinesView";
 import { loadDeadlinesPage } from "@/features/deadlines/queries";
-import { authorizePage } from "@/lib/page-auth";
+import { pageAccess } from "@/lib/server/page";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Deadlines · Dueproof" };
 
 export default async function DeadlinesPage({
@@ -9,7 +11,9 @@ export default async function DeadlinesPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const ctx = await authorizePage("case.view", "/deadlines");
+  const access = await pageAccess("case.view");
+  if (!access.ok) return <NoAccess what="Deadlines" admins={access.admins} />;
+  const ctx = access.ctx;
   const sp = await searchParams;
   const view: View = sp.view === "calendar" || sp.view === "timeline" ? sp.view : "list";
   const data = await loadDeadlinesPage(ctx);

@@ -83,7 +83,14 @@ export const NAV: NavSection[] = [
         label: "Reports",
         href: "/reports",
         icon: DocumentIcon,
-        keywords: ["evidence", "csv"],
+        keywords: ["evidence", "csv", "statement", "workload", "exposure", "hearing pack"],
+      },
+      {
+        id: "capture",
+        label: "Capture",
+        href: "/capture",
+        icon: CameraIcon,
+        keywords: ["camera", "photo", "scan", "upload"],
       },
     ],
   },
@@ -102,7 +109,7 @@ export const NAV_ITEMS: NavItem[] = NAV.flatMap((s) => s.items);
 export const MOBILE_NAV = [
   { id: "today", label: "Today", href: "/today", icon: HomeIcon },
   { id: "deadlines", label: "Deadlines", href: "/deadlines", icon: CalendarDaysIcon },
-  { id: "capture", label: "Capture", href: "/inbox?capture=1", icon: CameraIcon },
+  { id: "capture", label: "Capture", href: "/capture", icon: CameraIcon },
   { id: "inbox", label: "Inbox", href: "/inbox", icon: InboxIcon },
   { id: "more", label: "More", href: "", icon: MenuIcon },
 ] as const;
