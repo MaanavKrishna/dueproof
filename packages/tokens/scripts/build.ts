@@ -9,7 +9,9 @@ const out = (name: string) => fileURLToPath(new URL(`../src/generated/${name}`, 
 writeFileSync(out("tokens.css"), buildCss());
 writeFileSync(out("vars.ts"), buildVarsTs());
 try {
-  execFileSync("biome", ["format", "--write", out("tokens.css"), out("vars.ts")], { stdio: "ignore" });
+  execFileSync("biome", ["format", "--write", out("tokens.css"), out("vars.ts")], {
+    stdio: "ignore",
+  });
 } catch {
   // Formatting is cosmetic; the staleness test ignores layout.
 }

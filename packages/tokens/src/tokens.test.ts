@@ -9,7 +9,11 @@ import { vars } from "./generated/vars";
 const generated = (name: string) =>
   readFileSync(fileURLToPath(new URL(`./generated/${name}`, import.meta.url)), "utf8");
 /** The committed files are run through the formatter; compare ignoring layout and hex case. */
-const normalise = (s: string) => s.replace(/\s+/g, "").replace(/,(?=[)}\]])/g, "").toLowerCase();
+const normalise = (s: string) =>
+  s
+    .replace(/\s+/g, "")
+    .replace(/,(?=[)}\]])/g, "")
+    .toLowerCase();
 
 describe("contrast (WCAG AA) for every brand × mode", () => {
   const results = checkContrast();
