@@ -84,7 +84,7 @@ jobs:
           uv pip install torch==2.13.0 --index-url https://download.pytorch.org/whl/cpu
           uv pip install -e ".[dev]"
       - name: Lint
-        run: .venv/bin/python -m pyflakes dueproof tests
+        run: .venv/bin/python -m pyflakes dueproof_engine tests scripts api
       - name: Tests
         # The translation weights are licence-gated and not available in CI;
         # tests that need the real model skip themselves.

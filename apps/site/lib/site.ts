@@ -13,9 +13,6 @@ export const LICENCE = {
     "Each release becomes Apache-2.0 two years after it is published.",
 } as const;
 
-/** A file in public/, with the base path (if any) in front. */
-export const asset = (path: string) => `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}${path}`;
-
 export const NAV = [
   { href: "/product/", label: "Product" },
   { href: "/use-cases/", label: "Use cases" },

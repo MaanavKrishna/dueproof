@@ -105,7 +105,7 @@ const Env = z
     /** Overrides, e.g. "upload.user=100/1h,search.user=60/1m" (see lib/rate-limit.ts). */
     RATE_LIMITS: z.string().optional(),
     /** Version reported by /api/health and /api/metrics (set by the image build). */
-    DUEPROOF_VERSION: z.string().default("0.1.0-dev"),
+    DUEPROOF_VERSION: z.string().default("0.1.0"),
     /**
      * Self-hosted: the backup container's `last.json`, mounted read-only into
      * the app, so Settings → System can show the last backup. Unset: "unknown".

@@ -40,5 +40,4 @@ The website is at <https://dueproof.vercel.app>.
 
 **Vercel:** create a project with Root Directory `apps/site` and the Next.js
 framework preset; Vercel installs the pnpm workspace from the repository root
-and serves the static export. Leave `PAGES_BASE_PATH` unset (it is only for
-serving the export under a sub-path). No environment variables are needed.
+and serves the static export. No environment variables are needed.

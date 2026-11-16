@@ -7,7 +7,8 @@ DUEPROOF_PROFILE (default: "notices_in"); write your own by copying general.py.
     from dueproof_engine.profiles import ROLES, OBLIGATION_CUES, LANGUAGES   # the default
     from dueproof_engine.profiles import load; load("general").ROLES              # any other
 
-After editing a profile, run scripts/test.sh.
+After editing a profile, run the tests:
+`uv run python -m unittest discover -s tests -t .`
 """
 from __future__ import annotations
 
