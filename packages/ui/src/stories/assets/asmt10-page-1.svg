@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 595 842" width="595" height="842">
+<title>Sample notice page (fictional)</title>
+<rect width="595" height="842" fill="#ffffff"/>
+<g font-family="Helvetica, Arial, sans-serif" fill="#1b1d21" xml:space="preserve">
+<text x="237.0" y="64.0" font-size="10.00" font-weight="bold" textLength="95.0" lengthAdjust="spacingAndGlyphs">GOVERNMENT OF INDIA</text>
+<text x="175.0" y="80.0" font-size="10.00" font-weight="normal" textLength="215.0" lengthAdjust="spacingAndGlyphs">Central Board of Indirect Taxes and Customs</text>
+<text x="224.0" y="112.0" font-size="13.00" font-weight="bold" textLength="104.0" lengthAdjust="spacingAndGlyphs">FORM GST ASMT-10</text>
+<text x="250.0" y="127.0" font-size="9.00" font-weight="normal" textLength="72.0" lengthAdjust="spacingAndGlyphs">[See rule 99(1)]</text>
+<text x="60.0" y="160.0" font-size="9.50" font-weight="normal" textLength="66.5" lengthAdjust="spacingAndGlyphs">Reference No: </text>
+<text x="126.5" y="160.0" font-size="9.50" font-weight="normal" textLength="71.2" lengthAdjust="spacingAndGlyphs">ZD2710260012345</text>
+<text x="400.0" y="160.0" font-size="9.50" font-weight="normal" textLength="76.0" lengthAdjust="spacingAndGlyphs">Date: 21/10/2026</text>
+<text x="60.0" y="176.0" font-size="9.50" font-weight="normal" textLength="23.8" lengthAdjust="spacingAndGlyphs">DIN: </text>
+<text x="83.8" y="176.0" font-size="9.50" font-weight="normal" textLength="95.0" lengthAdjust="spacingAndGlyphs">20261021MH000000A7F3</text>
+<text x="60.0" y="204.0" font-size="9.50" font-weight="normal" textLength="14.2" lengthAdjust="spacingAndGlyphs">To,</text>
+<text x="60.0" y="220.0" font-size="9.50" font-weight="bold" textLength="190.0" lengthAdjust="spacingAndGlyphs">M/s Harbour Valley Foods Private Limited</text>
+<text x="60.0" y="235.0" font-size="9.50" font-weight="normal" textLength="33.2" lengthAdjust="spacingAndGlyphs">GSTIN: </text>
+<text x="93.2" y="235.0" font-size="9.50" font-weight="normal" textLength="71.2" lengthAdjust="spacingAndGlyphs">27AAACH1234M1ZO</text>
+<text x="60.0" y="250.0" font-size="9.50" font-weight="normal" textLength="256.5" lengthAdjust="spacingAndGlyphs">Plot 14, MIDC Andheri East, Mumbai 400093, Maharashtra</text>
+<text x="60.0" y="270.0" font-size="9.50" font-weight="normal" textLength="57.0" lengthAdjust="spacingAndGlyphs">Tax period: </text>
+<text x="117.0" y="270.0" font-size="9.50" font-weight="normal" textLength="175.8" lengthAdjust="spacingAndGlyphs">April 2025 to March 2026 (FY 2025-26)</text>
+<text x="60.0" y="302.0" font-size="9.50" font-weight="bold" textLength="346.8" lengthAdjust="spacingAndGlyphs">Subject: Notice for intimating discrepancies in the return after scrutiny</text>
+<text x="60.0" y="330.0" font-size="9.50" font-weight="normal" textLength="389.5" lengthAdjust="spacingAndGlyphs">This is to inform you that during scrutiny of the returns filed by you for the tax</text>
+<text x="60.0" y="345.0" font-size="9.50" font-weight="normal" textLength="337.2" lengthAdjust="spacingAndGlyphs">period mentioned above, the following discrepancies were noticed under </text>
+<text x="397.2" y="345.0" font-size="9.50" font-weight="normal" textLength="47.5" lengthAdjust="spacingAndGlyphs">section 61</text>
+<text x="60.0" y="360.0" font-size="9.50" font-weight="normal" textLength="304.0" lengthAdjust="spacingAndGlyphs">of the CGST Act, 2017 read with rule 99 of the CGST Rules, 2017:</text>
+<text x="66.0" y="394.0" font-size="9.00" font-weight="bold" textLength="13.5" lengthAdjust="spacingAndGlyphs">Sl.</text>
+<text x="98.0" y="394.0" font-size="9.00" font-weight="bold" textLength="117.0" lengthAdjust="spacingAndGlyphs">Description of discrepancy</text>
+<text x="366.0" y="394.0" font-size="9.00" font-weight="bold" textLength="54.0" lengthAdjust="spacingAndGlyphs">Amount (Rs.)</text>
+<text x="66.0" y="414.0" font-size="9.00" font-weight="normal" textLength="4.5" lengthAdjust="spacingAndGlyphs">1</text>
+<text x="98.0" y="414.0" font-size="9.00" font-weight="normal" textLength="193.5" lengthAdjust="spacingAndGlyphs">ITC availed in GSTR-3B in excess of GSTR-2B</text>
+<text x="366.0" y="414.0" font-size="9.00" font-weight="normal" textLength="36.0" lengthAdjust="spacingAndGlyphs">3,18,400</text>
+<text x="66.0" y="432.0" font-size="9.00" font-weight="normal" textLength="4.5" lengthAdjust="spacingAndGlyphs">2</text>
+<text x="98.0" y="432.0" font-size="9.00" font-weight="normal" textLength="184.5" lengthAdjust="spacingAndGlyphs">Outward supplies in GSTR-1 not in GSTR-3B</text>
+<text x="366.0" y="432.0" font-size="9.00" font-weight="normal" textLength="36.0" lengthAdjust="spacingAndGlyphs">1,33,900</text>
+<text x="66.0" y="450.0" font-size="9.00" font-weight="normal" textLength="0.0" lengthAdjust="spacingAndGlyphs"></text>
+<text x="98.0" y="450.0" font-size="9.00" font-weight="bold" textLength="40.5" lengthAdjust="spacingAndGlyphs">Total tax</text>
+<text x="366.0" y="450.0" font-size="9.00" font-weight="bold" textLength="36.0" lengthAdjust="spacingAndGlyphs">4,52,300</text>
+<text x="60.0" y="492.0" font-size="9.50" font-weight="normal" textLength="370.5" lengthAdjust="spacingAndGlyphs">You are hereby directed to explain the reasons for the aforesaid discrepancies</text>
+<text x="60.0" y="507.0" font-size="9.50" font-weight="normal" textLength="14.2" lengthAdjust="spacingAndGlyphs">by </text>
+<text x="74.2" y="507.0" font-size="9.50" font-weight="normal" textLength="171.0" lengthAdjust="spacingAndGlyphs">reply within a period of thirty days</text>
+<text x="245.2" y="507.0" font-size="9.50" font-weight="normal" textLength="156.8" lengthAdjust="spacingAndGlyphs"> from the date of service of this</text>
+<text x="60.0" y="522.0" font-size="9.50" font-weight="normal" textLength="38.0" lengthAdjust="spacingAndGlyphs">notice. </text>
+<text x="98.0" y="522.0" font-size="9.50" font-weight="normal" textLength="109.2" lengthAdjust="spacingAndGlyphs">(Reply due 20 Nov 2026)</text>
+<text x="60.0" y="550.0" font-size="9.50" font-weight="normal" textLength="370.5" lengthAdjust="spacingAndGlyphs">If no satisfactory explanation is furnished within the period specified above,</text>
+<text x="60.0" y="565.0" font-size="9.50" font-weight="normal" textLength="384.8" lengthAdjust="spacingAndGlyphs">action may be initiated under section 73 or section 74 of the Act without further</text>
+<text x="60.0" y="580.0" font-size="9.50" font-weight="normal" textLength="346.8" lengthAdjust="spacingAndGlyphs">reference to you. You may appear for a personal hearing if you so desire.</text>
+<text x="380.0" y="720.0" font-size="9.50" font-weight="normal" textLength="19.0" lengthAdjust="spacingAndGlyphs">Sd/-</text>
+<text x="330.0" y="736.0" font-size="9.50" font-weight="bold" textLength="66.5" lengthAdjust="spacingAndGlyphs">Superintendent</text>
+<text x="330.0" y="751.0" font-size="9.50" font-weight="normal" textLength="147.2" lengthAdjust="spacingAndGlyphs">CGST Range IV, Division Andheri</text>
+<text x="330.0" y="766.0" font-size="9.50" font-weight="normal" textLength="128.2" lengthAdjust="spacingAndGlyphs">Mumbai East Commissionerate</text>
+<text x="60.0" y="812.0" font-size="7.50" font-weight="normal" textLength="288.8" lengthAdjust="spacingAndGlyphs">This is a system-generated notice. Verify on the common portal using the DIN.</text>
+<rect x="60" y="380" width="420" height="78" fill="none" stroke="#1b1d21" stroke-width="0.6"/>
+<line x1="60" y1="400" x2="480" y2="400" stroke="#1b1d21" stroke-width="0.6"/>
+<line x1="92" y1="380" x2="92" y2="458" stroke="#1b1d21" stroke-width="0.6"/>
+<line x1="360" y1="380" x2="360" y2="458" stroke="#1b1d21" stroke-width="0.6"/>
+<circle cx="110" cy="740" r="34" fill="none" stroke="#2c4f9e" stroke-width="1.2" opacity="0.7"/>
+<circle cx="110" cy="740" r="27" fill="none" stroke="#2c4f9e" stroke-width="0.6" opacity="0.7"/>
+</g>
+</svg>

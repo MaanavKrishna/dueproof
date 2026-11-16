@@ -15,7 +15,7 @@
   position: relative;
   display: flex;
   flex: 1 1 0;
-  min-width: calc(var(--dp-space-96) * 1.1);
+  min-width: var(--dp-space-80);
 }
 
 .compact .stage {

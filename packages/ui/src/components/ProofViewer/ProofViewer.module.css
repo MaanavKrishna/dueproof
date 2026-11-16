@@ -1,6 +1,7 @@
 .viewer {
   container-type: inline-size;
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   min-width: 0;
   height: 100%;
@@ -474,7 +475,7 @@
 }
 
 /* Narrow (an inspector): hide the strip, stack the text under the page. */
-@container (width < 34rem) {
+@container (width < 44rem) {
   .body[data-strip] {
     grid-template-columns: minmax(0, 1fr);
   }

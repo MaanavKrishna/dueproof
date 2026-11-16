@@ -39,7 +39,7 @@ export interface WizardTemplateProps {
   nextLabel?: string;
   finishLabel?: string;
   /** Offer "Skip for now" on optional steps. */
-  onSkip?: () => void;
+  onSkip?: (() => void) | undefined;
   /** Help beside the form (wide screens). */
   aside?: ReactNode;
   className?: string;
