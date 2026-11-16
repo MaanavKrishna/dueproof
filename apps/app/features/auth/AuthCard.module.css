@@ -1,0 +1,105 @@
+.page {
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  padding: var(--dp-space-24) var(--dp-space-16);
+  background: var(--dp-bg-canvas);
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-24);
+  width: 100%;
+  max-width: calc(var(--dp-space-96) * 4 + var(--dp-space-24));
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--dp-space-8);
+  font: var(--dp-text-headline-font);
+}
+
+.mark {
+  flex: none;
+  width: var(--dp-space-24);
+  height: var(--dp-space-24);
+  border-radius: var(--dp-radius-sm);
+  background: linear-gradient(135deg, var(--dp-accent-solid) 60%, var(--dp-proof-highlight) 60%);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-20);
+  padding: var(--dp-space-32);
+  border: var(--dp-border-hairline) solid var(--dp-separator-subtle);
+  border-radius: var(--dp-radius-xl);
+  background: var(--dp-bg-surface);
+  box-shadow: var(--dp-shadow-1);
+}
+
+@media (width < 40rem) {
+  .card {
+    padding: var(--dp-space-24) var(--dp-space-20);
+  }
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-6);
+}
+
+.title {
+  margin: 0;
+  font: var(--dp-text-title1-font);
+  letter-spacing: var(--dp-text-large-title-tracking);
+}
+
+.lede {
+  margin: 0;
+  font: var(--dp-text-callout-font);
+  color: var(--dp-fg-secondary);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-16);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--dp-space-12);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--dp-space-12);
+  font: var(--dp-text-footnote-font);
+  color: var(--dp-fg-tertiary);
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  border-top: var(--dp-border-hairline) solid var(--dp-separator-default);
+}
+
+.foot {
+  margin: 0;
+  font: var(--dp-text-footnote-font);
+  color: var(--dp-fg-secondary);
+  text-align: center;
+}
+
+.code {
+  font: var(--dp-text-mono-font);
+  letter-spacing: var(--dp-text-overline-tracking, normal);
+}
