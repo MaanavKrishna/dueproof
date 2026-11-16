@@ -3,10 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "sideEffects": ["*.css"],
+  "sideEffects": [
+    "*.css"
+  ],
   "exports": {
     ".": "./src/index.ts",
-    "./motion": "./src/motion/index.ts",
+    "./motion": "./src/motion/index.tsx",
     "./styles.css": "./src/styles/global.css"
   },
   "scripts": {
@@ -21,7 +23,10 @@
     "motion": "14.14.0",
     "radix-ui": "1.8.1"
   },
-  "peerDependencies": { "react": "^19.0.0", "react-dom": "^19.0.0" },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
   "devDependencies": {
     "@storybook/addon-a11y": "10.6.7",
     "@storybook/react-vite": "10.6.7",

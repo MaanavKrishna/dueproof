@@ -1,0 +1,117 @@
+.viewport {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  z-index: var(--dp-z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-8);
+  width: calc(var(--dp-space-96) * 4);
+  max-width: 100vw;
+  margin: 0;
+  padding: var(--dp-space-24);
+  list-style: none;
+  outline: none;
+}
+
+@media (width < 40em) {
+  .viewport {
+    width: 100%;
+    padding: var(--dp-space-12) var(--dp-space-12)
+      calc(var(--dp-space-12) + env(safe-area-inset-bottom));
+  }
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--dp-space-12);
+  padding: var(--dp-space-12) var(--dp-space-12) var(--dp-space-12) var(--dp-space-16);
+  border-radius: var(--dp-radius-lg);
+  background: var(--dp-material-thick);
+  -webkit-backdrop-filter: var(--dp-blur-material);
+  backdrop-filter: var(--dp-blur-material);
+  box-shadow: var(--dp-shadow-3);
+  color: var(--dp-fg-primary);
+}
+
+.toast[data-swipe="move"] {
+  transform: translateX(var(--radix-toast-swipe-move-x));
+}
+
+.icon {
+  flex: none;
+  margin-top: var(--dp-space-2);
+}
+
+.success .icon {
+  color: var(--dp-feedback-success-fg);
+}
+.warning .icon {
+  color: var(--dp-feedback-warning-fg);
+}
+.danger .icon {
+  color: var(--dp-feedback-danger-fg);
+}
+.info .icon {
+  color: var(--dp-feedback-info-fg);
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--dp-space-2);
+  min-width: 0;
+  padding-block: var(--dp-space-2);
+}
+
+.title {
+  font: var(--dp-text-headline-font);
+}
+
+.description {
+  font: var(--dp-text-callout-font);
+  color: var(--dp-fg-secondary);
+}
+
+.action {
+  composes: focusRing from "../../styles/shared.module.css";
+  flex: none;
+  height: var(--dp-size-control-sm);
+  margin: 0;
+  padding: 0 var(--dp-space-12);
+  border: 0;
+  border-radius: var(--dp-radius-sm);
+  background: var(--dp-accent-subtle);
+  color: var(--dp-accent-subtle-fg);
+  font: var(--dp-text-subhead-font);
+  font-weight: var(--dp-font-weight-semibold);
+  cursor: pointer;
+}
+
+.action:hover {
+  background-image: linear-gradient(var(--dp-bg-hover), var(--dp-bg-hover));
+}
+
+.close {
+  composes: focusRing from "../../styles/shared.module.css";
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--dp-size-control-sm);
+  height: var(--dp-size-control-sm);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--dp-radius-sm);
+  background: transparent;
+  color: var(--dp-fg-tertiary);
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--dp-bg-hover);
+  color: var(--dp-fg-primary);
+}

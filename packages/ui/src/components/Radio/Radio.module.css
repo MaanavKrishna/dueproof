@@ -1,0 +1,64 @@
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-6);
+}
+
+.legend {
+  font: var(--dp-text-subhead-font);
+}
+
+.hidden {
+  composes: visuallyHidden from "../../styles/shared.module.css";
+}
+
+.items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-12);
+  padding-top: var(--dp-space-4);
+}
+
+.horizontal {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--dp-space-24);
+}
+
+.radio {
+  composes: box from "../Checkbox/Checkbox.module.css";
+  border-radius: var(--dp-radius-pill);
+}
+
+.radio[data-state="checked"] {
+  background: var(--dp-accent-solid);
+  box-shadow: none;
+}
+
+.dot {
+  display: block;
+  width: var(--dp-space-6);
+  height: var(--dp-space-6);
+  border-radius: var(--dp-radius-pill);
+  background: var(--dp-accent-on-solid);
+  animation: grow var(--dp-duration-snap) var(--dp-ease-spring);
+}
+
+@keyframes grow {
+  from {
+    transform: scale(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot {
+    animation: none;
+  }
+}
+
+.error {
+  margin: 0;
+  font: var(--dp-text-footnote-font);
+  font-weight: var(--dp-font-weight-medium);
+  color: var(--dp-feedback-danger-fg);
+}

@@ -1,0 +1,42 @@
+/* Tone variables (--fg, --bg, --solid) come from the Badge tone classes. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--dp-space-6);
+  height: calc(var(--dp-space-24) - var(--dp-space-2));
+  padding: 0 var(--dp-space-8) 0 var(--dp-space-8);
+  border-radius: var(--dp-radius-pill);
+  background: var(--dp-bg-surface);
+  box-shadow: inset 0 0 0 var(--dp-border-hairline) var(--dp-separator-default);
+  color: var(--dp-fg-primary);
+  font: var(--dp-text-footnote-font);
+  font-weight: var(--dp-font-weight-medium);
+  white-space: nowrap;
+}
+
+.dot {
+  width: var(--dp-space-6);
+  height: var(--dp-space-6);
+  border-radius: var(--dp-radius-pill);
+  background: var(--fg, var(--dp-fg-tertiary));
+}
+
+.icon {
+  color: var(--fg);
+}
+
+.live {
+  animation: pulse 1.6s var(--dp-ease-standard) infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live {
+    animation: none;
+  }
+}

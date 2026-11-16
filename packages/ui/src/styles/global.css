@@ -1,0 +1,55 @@
+/*
+ * Ledger base styles. Import once at the app root:
+ *   import "@dueproof/ui/styles.css";
+ * It brings in every token and sets sensible document defaults.
+ */
+@import "@dueproof/tokens/tokens.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font: var(--dp-text-body-font);
+  letter-spacing: var(--dp-text-body-tracking);
+  color: var(--dp-fg-primary);
+  background: var(--dp-bg-canvas);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv11", "ss01";
+}
+
+::selection {
+  background: var(--dp-accent-subtle);
+  color: var(--dp-fg-primary);
+}
+
+:focus-visible {
+  outline: var(--dp-focus-width) solid var(--dp-focus-ring);
+  outline-offset: var(--dp-focus-offset);
+}
+
+/* Indic notice text: per-script faces, taller lines. */
+:lang(hi),
+:lang(mr),
+:lang(bn),
+:lang(ta),
+:lang(te),
+:lang(kn),
+:lang(ml),
+:lang(gu),
+:lang(pa),
+:lang(or),
+:lang(ur) {
+  font-family: var(--dp-font-family-indic);
+  line-height: var(--dp-font-line-height-indic);
+}

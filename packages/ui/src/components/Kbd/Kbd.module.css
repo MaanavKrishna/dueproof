@@ -1,0 +1,23 @@
+.group {
+  display: inline-flex;
+  gap: var(--dp-space-2);
+  font: inherit;
+}
+
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: calc(var(--dp-space-20) - var(--dp-space-2));
+  height: calc(var(--dp-space-20) - var(--dp-space-2));
+  padding: 0 var(--dp-space-4);
+  border-radius: var(--dp-radius-xs);
+  background: var(--dp-bg-surface);
+  box-shadow:
+    inset 0 0 0 var(--dp-border-hairline) var(--dp-separator-default),
+    0 var(--dp-border-hairline) 0 var(--dp-separator-default);
+  color: var(--dp-fg-secondary);
+  font: var(--dp-text-caption-font);
+  font-family: var(--dp-font-family-sans);
+  line-height: 1;
+}

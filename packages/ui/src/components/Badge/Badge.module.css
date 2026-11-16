@@ -1,0 +1,74 @@
+.badge {
+  --fg: var(--dp-fg-secondary);
+  --bg: var(--dp-bg-sunken);
+  --border: var(--dp-separator-default);
+  --solid: var(--dp-fg-secondary);
+  --on-solid: var(--dp-fg-inverse);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--dp-space-4);
+  height: var(--dp-space-20);
+  padding: 0 var(--dp-space-8);
+  border-radius: var(--dp-radius-pill);
+  font: var(--dp-text-caption-font);
+  font-weight: var(--dp-font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.sm {
+  height: var(--dp-space-16);
+  padding: 0 var(--dp-space-6);
+  font-size: var(--dp-text-caption-size);
+}
+
+.accent {
+  --fg: var(--dp-accent-subtle-fg);
+  --bg: var(--dp-accent-subtle);
+  --border: var(--dp-accent-text);
+  --solid: var(--dp-accent-solid);
+  --on-solid: var(--dp-accent-on-solid);
+}
+.danger {
+  --fg: var(--dp-feedback-danger-fg);
+  --bg: var(--dp-feedback-danger-bg);
+  --border: var(--dp-feedback-danger-border);
+  --solid: var(--dp-feedback-danger-solid);
+  --on-solid: var(--dp-feedback-danger-on-solid);
+}
+.warning {
+  --fg: var(--dp-feedback-warning-fg);
+  --bg: var(--dp-feedback-warning-bg);
+  --border: var(--dp-feedback-warning-border);
+  --solid: var(--dp-feedback-warning-solid);
+  --on-solid: var(--dp-feedback-warning-on-solid);
+}
+.success {
+  --fg: var(--dp-feedback-success-fg);
+  --bg: var(--dp-feedback-success-bg);
+  --border: var(--dp-feedback-success-border);
+  --solid: var(--dp-feedback-success-solid);
+  --on-solid: var(--dp-feedback-success-on-solid);
+}
+.info {
+  --fg: var(--dp-feedback-info-fg);
+  --bg: var(--dp-feedback-info-bg);
+  --border: var(--dp-feedback-info-border);
+  --solid: var(--dp-feedback-info-solid);
+  --on-solid: var(--dp-feedback-info-on-solid);
+}
+
+.soft {
+  background: var(--bg);
+  color: var(--fg);
+}
+.solid {
+  background: var(--solid);
+  color: var(--on-solid);
+}
+.outline {
+  background: transparent;
+  box-shadow: inset 0 0 0 var(--dp-border-hairline) var(--border);
+  color: var(--fg);
+}

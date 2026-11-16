@@ -1,0 +1,39 @@
+.link {
+  composes: focusRing from "../../styles/shared.module.css";
+  border-radius: var(--dp-radius-xs);
+  text-decoration-line: underline;
+  text-decoration-thickness: var(--dp-border-hairline);
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+  transition: text-decoration-color var(--dp-duration-fade) var(--dp-ease-out);
+}
+
+/* Always underlined (colour alone must not mark a link), quietly until hover. */
+.standard {
+  color: var(--dp-accent-text);
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+}
+.standard:hover {
+  text-decoration-color: currentColor;
+}
+
+.subtle {
+  color: inherit;
+  text-decoration-color: var(--dp-separator-control);
+}
+.subtle:hover {
+  text-decoration-color: currentColor;
+}
+
+.link:active {
+  opacity: 0.72;
+}
+
+.externalIcon {
+  margin-inline-start: 0.2em;
+  vertical-align: -0.1em;
+}
+
+.hint {
+  composes: visuallyHidden from "../../styles/shared.module.css";
+}

@@ -1,0 +1,93 @@
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--dp-space-8);
+  max-width: calc(var(--dp-space-96) * 5);
+  margin-inline: auto;
+  padding: var(--dp-space-48) var(--dp-space-24);
+  text-align: center;
+}
+
+.art {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--dp-space-48);
+  height: var(--dp-space-48);
+  margin-bottom: var(--dp-space-8);
+  border-radius: var(--dp-radius-lg);
+  background: var(--dp-bg-surface);
+  box-shadow: var(--dp-shadow-1);
+  color: var(--dp-fg-secondary);
+}
+
+.title {
+  margin: 0;
+  font: var(--dp-text-title3-font);
+  color: var(--dp-fg-primary);
+}
+
+.description {
+  margin: 0;
+  max-width: var(--dp-layout-measure);
+  font: var(--dp-text-body-font);
+  color: var(--dp-fg-secondary);
+  text-wrap: pretty;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--dp-space-8);
+  margin-top: var(--dp-space-12);
+}
+
+.compact {
+  gap: var(--dp-space-4);
+  padding: var(--dp-space-24) var(--dp-space-16);
+}
+
+.compact .art {
+  width: var(--dp-space-32);
+  height: var(--dp-space-32);
+  margin-bottom: var(--dp-space-4);
+  border-radius: var(--dp-radius-md);
+  box-shadow: none;
+  background: var(--dp-bg-sunken);
+}
+
+.compact .title {
+  font: var(--dp-text-headline-font);
+}
+
+.compact .description {
+  font: var(--dp-text-callout-font);
+}
+
+/* Editorial: heavy display type, near-black on white. */
+.hero {
+  gap: var(--dp-space-12);
+  max-width: calc(var(--dp-space-96) * 7);
+  padding: var(--dp-space-80) var(--dp-space-24);
+}
+
+.hero .art {
+  width: var(--dp-space-64);
+  height: var(--dp-space-64);
+  border-radius: var(--dp-radius-xl);
+  background: var(--dp-accent-subtle);
+  box-shadow: none;
+  color: var(--dp-accent-subtle-fg);
+}
+
+.hero .title {
+  font: var(--dp-text-large-title-font);
+  letter-spacing: var(--dp-text-large-title-tracking);
+  text-wrap: balance;
+}
+
+.hero .description {
+  font: var(--dp-text-reading-font);
+}

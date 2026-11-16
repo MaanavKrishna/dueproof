@@ -1,0 +1,107 @@
+/* Shared building blocks, used through `composes:` in component modules. */
+
+.focusRing:focus-visible {
+  outline: var(--dp-focus-width) solid var(--dp-focus-ring);
+  outline-offset: var(--dp-focus-offset);
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: var(--dp-border-hairline);
+  height: var(--dp-border-hairline);
+  padding: 0;
+  margin: calc(var(--dp-border-hairline) * -1);
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Floating surfaces: popovers, menus, select and combobox lists. */
+.floating {
+  z-index: var(--dp-z-popover);
+  min-width: calc(var(--dp-space-96) * 2);
+  padding: var(--dp-space-4);
+  border-radius: var(--dp-radius-lg);
+  background: var(--dp-material-thick);
+  -webkit-backdrop-filter: var(--dp-blur-material);
+  backdrop-filter: var(--dp-blur-material);
+  box-shadow: var(--dp-shadow-3);
+  color: var(--dp-fg-primary);
+  transform-origin: var(--radix-popper-transform-origin, top center);
+  animation: dp-pop-in var(--dp-duration-standard) var(--dp-ease-standard);
+}
+
+.floating[data-state="closed"] {
+  animation: dp-pop-out var(--dp-duration-fade) var(--dp-ease-in) forwards;
+}
+
+@keyframes dp-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes dp-pop-out {
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floating {
+    animation-name: dp-fade-in;
+  }
+  .floating[data-state="closed"] {
+    animation-name: dp-fade-out;
+  }
+}
+
+@keyframes dp-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes dp-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Menu-like rows inside floating surfaces. */
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--dp-space-8);
+  min-height: var(--dp-size-control-md);
+  padding: 0 var(--dp-space-8);
+  border-radius: var(--dp-radius-sm);
+  font: var(--dp-text-body-font);
+  color: var(--dp-fg-primary);
+  cursor: default;
+  user-select: none;
+  outline: none;
+}
+
+.item[data-highlighted],
+.item[aria-selected="true"] {
+  background: var(--dp-accent-solid);
+  color: var(--dp-accent-on-solid);
+}
+
+.item[data-disabled],
+.item[aria-disabled="true"] {
+  color: var(--dp-fg-quaternary);
+  pointer-events: none;
+}
+
+.item svg {
+  flex: none;
+}

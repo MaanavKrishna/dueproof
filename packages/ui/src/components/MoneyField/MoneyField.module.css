@@ -1,0 +1,9 @@
+.currency {
+  color: var(--dp-fg-secondary);
+  font-weight: var(--dp-font-weight-medium);
+}
+
+.input {
+  composes: tabular from "../../styles/shared.module.css";
+  text-align: end;
+}

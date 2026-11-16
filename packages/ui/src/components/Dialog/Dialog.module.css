@@ -1,0 +1,121 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--dp-z-overlay);
+  background: var(--dp-bg-scrim);
+}
+
+.positioner {
+  position: fixed;
+  inset: 0;
+  z-index: var(--dp-z-modal);
+  display: grid;
+  place-items: center;
+  padding: var(--dp-space-24);
+  pointer-events: none;
+}
+
+.dialog {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: calc(100dvh - var(--dp-space-48));
+  border-radius: var(--dp-radius-xl);
+  background: var(--dp-bg-elevated);
+  box-shadow: var(--dp-shadow-3);
+  color: var(--dp-fg-primary);
+  pointer-events: auto;
+  outline: none;
+}
+
+.sm {
+  max-width: var(--dp-layout-dialog-sm);
+}
+.md {
+  max-width: var(--dp-layout-dialog-md);
+}
+.lg {
+  max-width: var(--dp-layout-dialog-lg);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-6);
+  padding: var(--dp-space-24) var(--dp-space-24) 0;
+  padding-inline-end: var(--dp-space-48);
+}
+
+.title {
+  margin: 0;
+  font: var(--dp-text-title2-font);
+  letter-spacing: var(--dp-text-title2-tracking);
+}
+
+.description {
+  margin: 0;
+  font: var(--dp-text-body-font);
+  color: var(--dp-fg-secondary);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--dp-space-16) var(--dp-space-24) 0;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--dp-space-8);
+  padding: var(--dp-space-24);
+}
+
+.header:last-child {
+  padding-bottom: var(--dp-space-24);
+}
+.body:last-child {
+  padding-bottom: var(--dp-space-24);
+}
+
+.close {
+  composes: focusRing from "../../styles/shared.module.css";
+  position: absolute;
+  top: var(--dp-space-16);
+  right: var(--dp-space-16);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--dp-space-32);
+  height: var(--dp-space-32);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--dp-radius-pill);
+  background: var(--dp-bg-sunken);
+  color: var(--dp-fg-secondary);
+  cursor: pointer;
+}
+
+.close:hover {
+  color: var(--dp-fg-primary);
+  background-image: linear-gradient(var(--dp-bg-hover), var(--dp-bg-hover));
+}
+
+/* Phones: dialogs become bottom sheets. */
+@media (width < 40em) {
+  .positioner {
+    place-items: end stretch;
+    padding: 0;
+  }
+  .dialog {
+    max-width: none;
+    max-height: 92dvh;
+    border-end-start-radius: 0;
+    border-end-end-radius: 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

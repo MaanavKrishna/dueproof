@@ -1,0 +1,48 @@
+/* Search uses a filled, borderless look (Apple-style) rather than an outlined box. */
+.search {
+  background: var(--dp-bg-sunken);
+  box-shadow: none;
+  padding-inline-end: var(--dp-space-6);
+}
+
+.search:hover:not([data-disabled]) {
+  box-shadow: none;
+}
+
+.input::-webkit-search-cancel-button,
+.input::-webkit-search-decoration {
+  appearance: none;
+}
+
+.clear {
+  composes: focusRing from "../../styles/shared.module.css";
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--dp-space-20);
+  height: var(--dp-space-20);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--dp-radius-pill);
+  background: var(--dp-fg-quaternary);
+  color: var(--dp-bg-surface);
+  cursor: pointer;
+}
+
+.clear:hover {
+  background: var(--dp-fg-tertiary);
+}
+
+/* Enlarge the hit area to the minimum target without changing the look. */
+.clear::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: var(--dp-size-target);
+  height: var(--dp-size-target);
+}

@@ -85,6 +85,7 @@ import {
 import { fromLucide } from "./icon";
 
 export const AddIcon = /* @__PURE__ */ fromLucide(Plus, "AddIcon");
+export const AlertIcon = /* @__PURE__ */ fromLucide(CircleExclamationPoint, "AlertIcon");
 export const AmountIcon = /* @__PURE__ */ fromLucide(IndianRupee, "AmountIcon");
 export const ArchiveIcon = /* @__PURE__ */ fromLucide(Archive, "ArchiveIcon");
 export const ArrowDownIcon = /* @__PURE__ */ fromLucide(ArrowDown, "ArrowDownIcon");

@@ -1,0 +1,14 @@
+.wrap {
+  align-items: stretch;
+  padding-block: var(--dp-space-8);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: calc(var(--dp-textarea-min-rows, 3) * 1lh);
+}
+
+.autoGrow {
+  field-sizing: content;
+  max-height: calc(var(--dp-textarea-max-rows, 12) * 1lh);
+}

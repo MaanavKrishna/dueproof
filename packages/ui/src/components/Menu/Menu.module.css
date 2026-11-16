@@ -1,0 +1,75 @@
+.content {
+  min-width: calc(var(--dp-space-96) * 2);
+  max-height: var(--radix-dropdown-menu-content-available-height);
+  overflow-y: auto;
+  outline: none;
+}
+
+.item {
+  padding-inline: var(--dp-space-6) var(--dp-space-8);
+}
+
+.icon {
+  display: inline-flex;
+  flex: none;
+  width: var(--dp-space-16);
+  color: var(--dp-fg-secondary);
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  padding-block: var(--dp-space-4);
+}
+
+.description {
+  font: var(--dp-text-footnote-font);
+  color: var(--dp-fg-secondary);
+}
+
+.shortcut {
+  margin-inline-start: var(--dp-space-16);
+  font: var(--dp-text-footnote-font);
+  color: var(--dp-fg-tertiary);
+}
+
+.chevron {
+  margin-inline-start: auto;
+  color: var(--dp-fg-tertiary);
+}
+
+.item[data-highlighted] .icon,
+.item[data-highlighted] .description,
+.item[data-highlighted] .shortcut {
+  color: inherit;
+}
+
+.destructive,
+.item.destructive .icon {
+  color: var(--dp-feedback-danger-fg);
+}
+
+.destructive[data-highlighted] {
+  background: var(--dp-feedback-danger-solid);
+  color: var(--dp-feedback-danger-on-solid);
+}
+
+.destructive[data-highlighted] .icon {
+  color: inherit;
+}
+
+.label {
+  padding: var(--dp-space-8) var(--dp-space-8) var(--dp-space-4);
+  font: var(--dp-text-overline-font);
+  letter-spacing: var(--dp-text-overline-tracking);
+  text-transform: uppercase;
+  color: var(--dp-fg-tertiary);
+}
+
+.separator {
+  height: var(--dp-border-hairline);
+  margin: var(--dp-space-4) var(--dp-space-8);
+  background: var(--dp-separator-default);
+}

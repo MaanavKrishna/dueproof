@@ -1,0 +1,50 @@
+.content {
+  position: relative;
+  padding: var(--dp-space-16);
+  font: var(--dp-text-body-font);
+  outline: none;
+}
+
+.sm {
+  width: calc(var(--dp-space-96) * 2.5);
+}
+.md {
+  width: calc(var(--dp-space-96) * 3.25);
+}
+.lg {
+  width: calc(var(--dp-space-96) * 4.25);
+}
+
+.content:is(.sm, .md, .lg) {
+  max-width: calc(100vw - var(--dp-space-24));
+}
+
+.title {
+  margin-bottom: var(--dp-space-8);
+  padding-inline-end: var(--dp-space-24);
+  font: var(--dp-text-headline-font);
+}
+
+.close {
+  composes: focusRing from "../../styles/shared.module.css";
+  position: absolute;
+  top: var(--dp-space-8);
+  right: var(--dp-space-8);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--dp-size-target);
+  height: var(--dp-size-target);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--dp-radius-sm);
+  background: transparent;
+  color: var(--dp-fg-secondary);
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--dp-bg-hover);
+  color: var(--dp-fg-primary);
+}
