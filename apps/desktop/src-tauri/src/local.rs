@@ -127,7 +127,28 @@ fn base_env(cmd: &mut Command) {
             cmd.env(k, v);
         }
     }
+    die_with_parent(cmd);
 }
+
+/// On Linux the kernel stops a sidecar when the shell dies, even if the
+/// shell is killed or crashes (RunEvent::Exit doesn't run then). macOS and
+/// Windows need their own mechanism (a kqueue watcher, a Job object); see README.
+#[cfg(target_os = "linux")]
+fn die_with_parent(cmd: &mut Command) {
+    use std::os::unix::process::CommandExt;
+    // SAFETY: prctl is async-signal-safe and touches only the child.
+    unsafe {
+        cmd.pre_exec(|| {
+            if libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGTERM) != 0 {
+                return Err(std::io::Error::last_os_error());
+            }
+            Ok(())
+        });
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+fn die_with_parent(_cmd: &mut Command) {}
 
 fn runtime_dir(resources: &Path) -> PathBuf {
     resources.join("local-runtime")

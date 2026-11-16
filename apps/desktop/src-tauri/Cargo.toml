@@ -35,10 +35,13 @@ getrandom = "0.3"
 [target.'cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))'.dependencies]
 tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+libc = { version = "0.2", optional = true }
+
 [features]
 default = []
 # Local mode spike: run the app server and engine as sidecars on 127.0.0.1.
-local-mode = []
+local-mode = ["dep:libc"]
 
 # Dev builds without debug info: the full Tauri tree is several GB otherwise.
 [profile.dev]
