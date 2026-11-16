@@ -1,4 +1,4 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { Button } from "../Button/Button";
@@ -55,7 +55,15 @@ beforeAll(() => {
 });
 afterAll(() => restore());
 
-const tick = () => act(() => new Promise((r) => setTimeout(r, 20)));
+/**
+ * Wait for keyboard focus to land on a cell. Focus can follow a scroll and a
+ * re-render of the virtualised rows (a frame later), so a fixed delay is
+ * flaky on a busy runner: poll instead.
+ */
+const focusedCell = async (check: (el: HTMLElement) => void) => {
+  await waitFor(() => check(document.activeElement as HTMLElement), { timeout: 5_000 });
+  return document.activeElement as HTMLElement;
+};
 
 describe("DataTable", () => {
   it("is a grid that renders only the visible slice of 5 000 rows", () => {
@@ -117,10 +125,10 @@ describe("DataTable", () => {
     expect(first.dataset.col).toBe("0");
 
     await user.keyboard("{ArrowDown}{ArrowDown}{ArrowRight}");
-    await tick();
-    const cell = document.activeElement as HTMLElement;
-    expect(cell.dataset.row).toBe("2");
-    expect(cell.dataset.col).toBe("1");
+    const cell = await focusedCell((el) => {
+      expect(el.dataset.row).toBe("2");
+      expect(el.dataset.col).toBe("1");
+    });
     expect(cell).toHaveTextContent("ZD27000002");
     // Only one cell is in the tab order.
     expect(document.querySelectorAll('[role="grid"] [tabindex="0"]')).toHaveLength(1);
@@ -129,13 +137,10 @@ describe("DataTable", () => {
     expect(onRowClick).toHaveBeenCalledWith(data[2]);
 
     await user.keyboard("{ArrowUp}{ArrowUp}{ArrowUp}");
-    await tick();
-    expect(document.activeElement).toHaveAttribute("role", "columnheader");
+    await focusedCell((el) => expect(el).toHaveAttribute("role", "columnheader"));
 
     await user.keyboard("{Control>}{End}{/Control}");
-    await tick();
-    const last = document.activeElement as HTMLElement;
-    expect(last.dataset.row).toBe("4999");
+    const last = await focusedCell((el) => expect(el.dataset.row).toBe("4999"));
     expect(last).toHaveTextContent(String(data[4999]?.demand));
   });
 
@@ -156,9 +161,10 @@ describe("DataTable", () => {
     await user.tab();
     await user.keyboard(" ");
     expect(onSelectedIdsChange).toHaveBeenLastCalledWith(["n0"]);
-    await user.keyboard("{ArrowDown} ");
-    await tick();
-    expect(onSelectedIdsChange).toHaveBeenLastCalledWith(["n0", "n1"]);
+    await user.keyboard("{ArrowDown}");
+    await focusedCell((el) => expect(el.dataset.row).toBe("1"));
+    await user.keyboard(" ");
+    await waitFor(() => expect(onSelectedIdsChange).toHaveBeenLastCalledWith(["n0", "n1"]));
     const rows = screen.getAllByRole("row");
     expect(rows[1]).toHaveAttribute("aria-selected", "true");
     expect(rows[3]).toHaveAttribute("aria-selected", "false");
