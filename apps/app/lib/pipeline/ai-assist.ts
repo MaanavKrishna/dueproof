@@ -67,7 +67,7 @@ export async function aiReadsPagesStage(c: Container, ref: DocumentRef): Promise
   const { policy } = await loadAiPolicy(c, ref.orgId);
   if (policy.mode === "off") return false;
   const doc = await loadDocument(c, ref);
-  return aiAvailableFor(policy, doc.clientId, Boolean(c.aiProvider));
+  return aiAvailableFor(policy, doc.clientId);
 }
 
 const matchKey = (id: string, quote: string) => `${id}\u0000${quote}`;

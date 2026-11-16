@@ -106,15 +106,9 @@ export async function loadAiPolicy(
 }
 
 /**
- * Would a model see this document? Mode on, a provider configured (or one
- * injected for tests), and the client not excluded.
+ * Would a model see this document? Mode on, a provider configured (a key
+ * stored for BYOK, the gateway key for the plan), and the client not excluded.
  */
-export function aiAvailableFor(
-  policy: AiPolicy,
-  clientId: string | null | undefined,
-  injectedProvider: boolean,
-): boolean {
-  if (policy.mode === "off") return false;
-  if (!policy.provider && !injectedProvider) return false;
-  return !isClientExcluded(policy, clientId);
+export function aiAvailableFor(policy: AiPolicy, clientId: string | null | undefined): boolean {
+  return policy.mode !== "off" && policy.provider !== null && !isClientExcluded(policy, clientId);
 }
