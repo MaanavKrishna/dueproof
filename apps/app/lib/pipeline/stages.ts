@@ -120,6 +120,8 @@ export interface ReadResult {
   languages: string[];
   needsTranslation: boolean;
   needsEscalation: number[];
+  /** engine-heavy is configured (hosted): pages in needsEscalation can climb further. */
+  canEscalate?: boolean;
 }
 
 export async function readStage(
@@ -175,6 +177,84 @@ export async function readStage(
     languages,
     needsTranslation: languages.some((l) => l !== "en"),
     needsEscalation: res.needsEscalation,
+    canEscalate: Boolean(c.heavyEngine),
+  };
+}
+
+// ---------------------------------------------------------------- escalate
+
+/**
+ * Hosted only: pages engine-fast couldn't read (scripts PaddleOCR lacks, low
+ * confidence) are read again by engine-heavy in a Sandbox, up to the
+ * Tesseract rung (03 §3a, §6a). A page's reading is replaced only when the
+ * heavy one is more confident. Pages still below the bar stay in
+ * needsEscalation for the AI step or a person.
+ */
+export async function escalateStage(
+  c: Container,
+  ref: DocumentRef,
+  read: ReadResult,
+): Promise<ReadResult> {
+  if (!c.heavyEngine || !read.needsEscalation.length) return { ...read, canEscalate: false };
+  await setStatus(c.database, ref.orgId, ref.documentId, "reading", "escalate");
+  const doc = await loadDocument(c, ref);
+  const source = await c.engineStorage.getSignedUrl(doc.storageKey);
+  const imageKeys = Array.from({ length: read.pageCount }, (_, i) =>
+    orgKey(ref.orgId, "documents", ref.documentId, "pages", `${i + 1}.webp`),
+  );
+  const putUrls = await Promise.all(
+    imageKeys.map((k) => c.engineStorage.putSignedUrl(k, { contentType: "image/webp" })),
+  );
+  const res = await c.heavyEngine.read({
+    sourceUrl: source.url,
+    mime: engineMime(doc.mime),
+    pageImagePutUrls: putUrls.map((u) => u.url),
+    languages: [...new Set(["en", ...read.languages])],
+    maxRung: "tesseract",
+  });
+
+  const wanted = new Set(read.needsEscalation);
+  const before = new Map((await loadPages(c, ref)).map((p) => [p.page, p.confidence]));
+  const improved = res.pages.filter(
+    (p) => wanted.has(p.page) && p.confidence > (before.get(p.page) ?? 0),
+  );
+  const languages = [...new Set([...read.languages, ...improved.flatMap((p) => p.languages)])];
+  await withOrg(c.database, ref.orgId, async (tx) => {
+    await tx
+      .update(documents)
+      .set({ languages })
+      .where(and(eq(documents.orgId, ref.orgId), eq(documents.id, ref.documentId)));
+    for (const p of improved) {
+      const set = {
+        width: p.width,
+        height: p.height,
+        text: p.text,
+        words: p.words,
+        engine: p.engine,
+        confidence: p.confidence,
+      };
+      await tx
+        .update(pages)
+        .set(set)
+        .where(
+          and(
+            eq(pages.orgId, ref.orgId),
+            eq(pages.documentId, ref.documentId),
+            eq(pages.page, p.page),
+          ),
+        );
+    }
+  });
+
+  const still = new Set(res.needsEscalation);
+  return {
+    ...read,
+    languages,
+    needsTranslation: languages.some((l) => l !== "en"),
+    needsEscalation: read.needsEscalation.filter(
+      (n) => still.has(n) || !improved.some((p) => p.page === n),
+    ),
+    canEscalate: false,
   };
 }
 
@@ -193,7 +273,8 @@ export async function translateStage(
     return [...lines].map(([line, ws]) => ({ id: `${p.page}:${line}`, text: ws.join(" "), lang }));
   });
   if (!segments.length) return {};
-  const res = await c.engine.translate({ segments });
+  // Hosted: engine-fast has no translator; engine-heavy (Sandbox) does.
+  const res = await (c.heavyEngine ?? c.engine).translate({ segments });
   return Object.fromEntries(res.segments.map((s) => [s.id, s.textEn]));
 }
 

@@ -16,7 +16,9 @@ import {
   type StoragePort,
 } from "@dueproof/storage";
 import { type Env, getEnv } from "../env";
+import { createHeavyEngine, type HeavyEngine } from "../heavy-engine";
 import type { DocumentRef } from "../pipeline/types";
+import { storageHosts } from "../security/headers";
 
 export interface Container {
   env: Env;
@@ -27,6 +29,12 @@ export interface Container {
   /** Signed URLs for the engine (may use an internal base URL). */
   engineStorage: StoragePort;
   engine: EngineClient;
+  /**
+   * engine-heavy in Vercel Sandbox (hosted with HEAVY_ENGINE_SNAPSHOT_ID): the
+   * escalation path for pages engine-fast can't read, and offline translation.
+   * Absent elsewhere: the self-hosted engine container has the whole ladder.
+   */
+  heavyEngine?: HeavyEngine;
   /** Starts processDocument for a stored document; returns a run id. */
   startPipeline: (ref: DocumentRef) => Promise<string>;
 }
@@ -89,6 +97,17 @@ export function createEngine(env: Env, engineStorage: StoragePort): EngineClient
           headers: { "content-type": contentType },
           body: body as BodyInit,
         })),
+  });
+}
+
+export function createHeavy(env: Env): HeavyEngine | undefined {
+  if (env.DUEPROOF_EDITION !== "hosted" || !env.HEAVY_ENGINE_SNAPSHOT_ID) return undefined;
+  return createHeavyEngine({
+    snapshotId: env.HEAVY_ENGINE_SNAPSHOT_ID,
+    region: env.HEAVY_ENGINE_REGION,
+    vcpus: env.HEAVY_ENGINE_VCPUS,
+    timeoutMs: env.HEAVY_ENGINE_TIMEOUT_MS,
+    allowedHosts: env.HEAVY_ENGINE_ALLOWED_HOSTS?.split(",") ?? storageHosts(env),
   });
 }
 
@@ -157,6 +176,7 @@ async function build(env: Env): Promise<Container> {
 
   const { storage, engineStorage } = storagePair(env);
   const engine = createEngine(env, engineStorage);
+  const heavyEngine = createHeavy(env);
 
   return {
     env,
@@ -165,6 +185,7 @@ async function build(env: Env): Promise<Container> {
     storage,
     engineStorage,
     engine,
+    ...(heavyEngine ? { heavyEngine } : {}),
     startPipeline: async (ref) => {
       const [{ start }, { processDocument }] = await Promise.all([
         import("workflow/api"),

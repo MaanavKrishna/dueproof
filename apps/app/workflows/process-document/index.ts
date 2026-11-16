@@ -3,6 +3,9 @@
  * reconcile → resolve dates → write findings, evidence and deadlines. Each
  * step records the document's status, so the UI can follow along.
  *
+ * On hosted, pages engine-fast can't read are escalated to engine-heavy in a
+ * Vercel Sandbox (lib/heavy-engine.ts) before translation.
+ *
  * Start it with `start(processDocument, [{ orgId, documentId }])` from
  * "workflow/api" (lib/server/container.ts does this after an upload).
  * The AI assist step (04) slots in after analyze when packages/ai lands: its
@@ -11,6 +14,7 @@
 import type { DocumentRef } from "../../lib/pipeline/types";
 import {
   analyze,
+  escalatePages,
   inspect,
   linkQuotes,
   markFailed,
@@ -36,7 +40,9 @@ export async function processDocument(ref: DocumentRef): Promise<ProcessDocument
       return { status: "failed", reason };
     }
 
-    const read = await readPages(ref, inspected.pageCount);
+    let read = await readPages(ref, inspected.pageCount);
+    // Hosted: pages engine-fast couldn't read climb to engine-heavy (Sandbox).
+    if (read.canEscalate && read.needsEscalation.length) read = await escalatePages(ref, read);
     const translations = read.needsTranslation ? await translate(ref, read.languages) : {};
     const analysis = await analyze(ref, translations);
     const link = await linkQuotes(ref, analysis);
