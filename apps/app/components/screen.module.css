@@ -37,20 +37,28 @@
   display: flex;
   flex-direction: column;
   gap: var(--dp-space-24);
-  padding: var(--dp-space-16) var(--dp-space-24) var(--dp-space-48);
+  /* The list body pads the sides already: line up with the header and summary. */
+  padding: var(--dp-space-16) 0 var(--dp-space-48);
   max-width: calc(var(--dp-layout-content) + var(--dp-space-96) * 4);
+}
+
+/* Phones: the list body pads 8, the header 16. */
+@media (width < 40rem) {
+  .content {
+    padding-inline: var(--dp-space-8);
+  }
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(calc(var(--dp-space-96) * 4), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, calc(var(--dp-space-96) * 4)), 1fr));
   gap: var(--dp-space-16);
   align-items: start;
 }
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(calc(var(--dp-space-80) * 2.5), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--dp-space-80) * 2.5)), 1fr));
   gap: var(--dp-space-12);
 }
 
@@ -84,6 +92,14 @@
   min-width: 0;
 }
 
+/* A link that is a whole line of a list item is a target in its own right (WCAG 2.5.8). */
+.ellipsis > a {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: var(--dp-size-target);
+}
+
 .cellStack {
   display: flex;
   flex-direction: column;
@@ -108,6 +124,22 @@
   min-height: var(--dp-size-row);
 }
 
+/* Phones: the text takes its own line, the chips and actions go under it. */
+@media (width < 40rem) {
+  .listItem {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    row-gap: var(--dp-space-6);
+  }
+
+  .listItem > :first-child {
+    grid-column: 1 / -1;
+  }
+
+  .listItem > :nth-child(2) {
+    justify-self: start;
+  }
+}
+
 .listItem:first-child {
   border-top: 0;
 }
@@ -125,7 +157,7 @@
 
 .formGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(calc(var(--dp-space-96) * 2), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--dp-space-96) * 2)), 1fr));
   gap: var(--dp-space-12);
 }
 

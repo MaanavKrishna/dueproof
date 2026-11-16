@@ -2,6 +2,7 @@
   min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
+  container: stepper / inline-size;
 }
 
 .list {
@@ -152,6 +153,30 @@ button.button:hover:not(:disabled) .marker {
 
 .srOnly {
   composes: visuallyHidden from "../../styles/shared.module.css";
+}
+
+/*
+ * Too narrow for every label (a side panel open, a phone): labels show on the
+ * current stage only, as in compact, and stay in the accessible name. Eight
+ * stages at their full minimum width need about 41rem.
+ */
+@container stepper (width < 42rem) {
+  .md .stage {
+    min-width: var(--dp-space-32);
+  }
+
+  .md .current {
+    min-width: var(--dp-space-96);
+  }
+
+  .md .stage:not(.current) .text {
+    position: absolute;
+    width: var(--dp-border-hairline);
+    height: var(--dp-border-hairline);
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
