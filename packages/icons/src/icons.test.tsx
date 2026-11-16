@@ -23,6 +23,16 @@ describe("icons", () => {
       "CourtIcon",
       "AiSuggestedIcon",
       "VerifiedIcon",
+      "StatutoryFilingIcon",
+      "SebiIcon",
+      "RbiIcon",
+      "TdsIcon",
+      "CalendarStatutoryIcon",
+      "ApprovalIcon",
+      "FiledAckIcon",
+      "WhatsappIntakeIcon",
+      "ExposureIcon",
+      "HearingPackIcon",
     ]) {
       expect(icons).toHaveProperty(name);
     }

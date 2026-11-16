@@ -10,7 +10,9 @@ import {
   ArrowRight,
   ArrowUp,
   ArrowUpDown,
+  AtSign,
   Bell,
+  Bookmark,
   Building,
   Calendar,
   CalendarCheck,
@@ -21,14 +23,15 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  ChevronsUpDown,
   ChevronUp,
+  ChevronsUpDown,
   CircleCheck,
   CircleExclamationPoint,
   CircleQuestionMark,
   CircleX,
   Clock,
   CloudOff,
+  Columns3,
   Copy,
   Download,
   Ellipsis,
@@ -37,13 +40,17 @@ import {
   Eye,
   EyeOff,
   FileText,
+  FileUp,
   Flag,
+  Folder,
   Funnel,
+  History,
   Hourglass,
   House,
   Inbox,
   IndianRupee,
   Info,
+  Keyboard,
   Languages,
   LayoutGrid,
   Link2,
@@ -51,13 +58,16 @@ import {
   LoaderCircle,
   Lock,
   LogOut,
+  Maximize2,
   Menu,
   MessageSquare,
   Minus,
   Monitor,
   Moon,
+  MoveHorizontal,
   OctagonExclamationPoint,
   PanelLeft,
+  PanelRight,
   Paperclip,
   Pencil,
   Plus,
@@ -94,6 +104,7 @@ export const ArrowRightIcon = /* @__PURE__ */ fromLucide(ArrowRight, "ArrowRight
 export const ArrowUpIcon = /* @__PURE__ */ fromLucide(ArrowUp, "ArrowUpIcon");
 export const AttachIcon = /* @__PURE__ */ fromLucide(Paperclip, "AttachIcon");
 export const BellIcon = /* @__PURE__ */ fromLucide(Bell, "BellIcon");
+export const BookmarkIcon = /* @__PURE__ */ fromLucide(Bookmark, "BookmarkIcon");
 export const CalendarCheckIcon = /* @__PURE__ */ fromLucide(CalendarCheck, "CalendarCheckIcon");
 export const CalendarClockIcon = /* @__PURE__ */ fromLucide(CalendarClock, "CalendarClockIcon");
 export const CalendarDaysIcon = /* @__PURE__ */ fromLucide(CalendarDays, "CalendarDaysIcon");
@@ -108,6 +119,7 @@ export const ChevronsUpDownIcon = /* @__PURE__ */ fromLucide(ChevronsUpDown, "Ch
 export const ClientIcon = /* @__PURE__ */ fromLucide(Building, "ClientIcon");
 export const ClockIcon = /* @__PURE__ */ fromLucide(Clock, "ClockIcon");
 export const CloseIcon = /* @__PURE__ */ fromLucide(X, "CloseIcon");
+export const ColumnsIcon = /* @__PURE__ */ fromLucide(Columns3, "ColumnsIcon");
 export const CommentIcon = /* @__PURE__ */ fromLucide(MessageSquare, "CommentIcon");
 export const CopyIcon = /* @__PURE__ */ fromLucide(Copy, "CopyIcon");
 export const DangerIcon = /* @__PURE__ */ fromLucide(OctagonExclamationPoint, "DangerIcon");
@@ -120,17 +132,24 @@ export const ExternalLinkIcon = /* @__PURE__ */ fromLucide(ExternalLink, "Extern
 export const EyeIcon = /* @__PURE__ */ fromLucide(Eye, "EyeIcon");
 export const EyeOffIcon = /* @__PURE__ */ fromLucide(EyeOff, "EyeOffIcon");
 export const FilterIcon = /* @__PURE__ */ fromLucide(Funnel, "FilterIcon");
+export const FitPageIcon = /* @__PURE__ */ fromLucide(Maximize2, "FitPageIcon");
+export const FitWidthIcon = /* @__PURE__ */ fromLucide(MoveHorizontal, "FitWidthIcon");
 export const FlagIcon = /* @__PURE__ */ fromLucide(Flag, "FlagIcon");
+export const FolderIcon = /* @__PURE__ */ fromLucide(Folder, "FolderIcon");
 export const GridIcon = /* @__PURE__ */ fromLucide(LayoutGrid, "GridIcon");
 export const HelpIcon = /* @__PURE__ */ fromLucide(CircleQuestionMark, "HelpIcon");
+export const HistoryIcon = /* @__PURE__ */ fromLucide(History, "HistoryIcon");
 export const HomeIcon = /* @__PURE__ */ fromLucide(House, "HomeIcon");
 export const HourglassIcon = /* @__PURE__ */ fromLucide(Hourglass, "HourglassIcon");
 export const InboxIcon = /* @__PURE__ */ fromLucide(Inbox, "InboxIcon");
 export const InfoIcon = /* @__PURE__ */ fromLucide(Info, "InfoIcon");
+export const InspectorIcon = /* @__PURE__ */ fromLucide(PanelRight, "InspectorIcon");
+export const KeyboardIcon = /* @__PURE__ */ fromLucide(Keyboard, "KeyboardIcon");
 export const LinkIcon = /* @__PURE__ */ fromLucide(Link2, "LinkIcon");
 export const ListChecksIcon = /* @__PURE__ */ fromLucide(ListChecks, "ListChecksIcon");
 export const LockIcon = /* @__PURE__ */ fromLucide(Lock, "LockIcon");
 export const LogOutIcon = /* @__PURE__ */ fromLucide(LogOut, "LogOutIcon");
+export const MentionIcon = /* @__PURE__ */ fromLucide(AtSign, "MentionIcon");
 export const MenuIcon = /* @__PURE__ */ fromLucide(Menu, "MenuIcon");
 export const MinusIcon = /* @__PURE__ */ fromLucide(Minus, "MinusIcon");
 export const MonitorIcon = /* @__PURE__ */ fromLucide(Monitor, "MonitorIcon");
@@ -158,6 +177,7 @@ export const TodayIcon = /* @__PURE__ */ fromLucide(Clock, "TodayIcon");
 export const TranslateIcon = /* @__PURE__ */ fromLucide(Languages, "TranslateIcon");
 export const TrashIcon = /* @__PURE__ */ fromLucide(Trash, "TrashIcon");
 export const UndoIcon = /* @__PURE__ */ fromLucide(Undo2, "UndoIcon");
+export const UploadFileIcon = /* @__PURE__ */ fromLucide(FileUp, "UploadFileIcon");
 export const UploadIcon = /* @__PURE__ */ fromLucide(Upload, "UploadIcon");
 export const UserIcon = /* @__PURE__ */ fromLucide(User, "UserIcon");
 export const UsersIcon = /* @__PURE__ */ fromLucide(Users, "UsersIcon");
