@@ -70,6 +70,14 @@ export function compareIso(a: IsoDate, b: IsoDate): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
+export function maxIso(a: IsoDate, b: IsoDate): IsoDate {
+  return a >= b ? a : b;
+}
+
+export function minIso(a: IsoDate, b: IsoDate): IsoDate {
+  return a <= b ? a : b;
+}
+
 /**
  * The same day `months` later; if that month is shorter, the last day of it
  * (31 Jan + 1 month → 28/29 Feb). Clamping is recorded by the caller.
