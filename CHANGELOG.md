@@ -77,7 +77,7 @@ proof-linking.
 - Dueproof is now under the PolyForm Shield License 1.0.0. You may use it,
   self-host it, change it and improve it for free. You may not sell it or
   offer it as a competing product or service. `ee/` keeps its commercial
-  licence. Earlier versions keep the licence they were published under.
+  licence.
 
 **Design and quality**
 - Ledger, a new design system: tokens, components with Storybook, light and
