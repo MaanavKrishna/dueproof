@@ -1,0 +1,53 @@
+/**
+ * Playwright smoke tests (06 §3): the app on PGlite with the fake engine,
+ * started fresh in a temporary data folder. Run with `pnpm --filter
+ * @dueproof/app e2e`. PLAYWRIGHT_CHROME points at a local Chrome when the
+ * bundled browsers aren't installed.
+ *
+ * It runs a production build (the desktop edition, which allows the fake
+ * engine): the dev server's hot reload can reload a page mid-test.
+ * E2E_DEV=1 uses `next dev` instead, for quick local iteration.
+ */
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { defineConfig, devices } from "@playwright/test";
+
+const PORT = Number(process.env.E2E_PORT ?? 3100);
+const data = mkdtempSync(join(tmpdir(), "dueproof-e2e-"));
+const executablePath = process.env.PLAYWRIGHT_CHROME;
+const dev = process.env.E2E_DEV === "1";
+
+export default defineConfig({
+  testDir: "e2e",
+  timeout: 180_000,
+  expect: { timeout: 20_000 },
+  retries: 0,
+  workers: 1,
+  use: {
+    baseURL: `http://localhost:${PORT}`,
+    trace: "off",
+    timezoneId: "Asia/Kolkata",
+    ...(executablePath ? { launchOptions: { executablePath } } : {}),
+  },
+  projects: [
+    { name: "desktop", use: { ...devices["Desktop Chrome"] } },
+    { name: "phone", use: { ...devices["Pixel 7"] }, grep: /@phone/ },
+  ],
+  webServer: {
+    command: dev
+      ? `pnpm exec next dev --turbopack -p ${PORT}`
+      : `pnpm exec next build --turbopack && pnpm exec next start -p ${PORT}`,
+    url: `http://localhost:${PORT}/api/health`,
+    timeout: 900_000,
+    reuseExistingServer: false,
+    env: {
+      NEXT_TELEMETRY_DISABLED: "1",
+      ...(dev ? {} : { DUEPROOF_EDITION: "desktop" }),
+      AUTH_SECRET: "e2e-auth-secret-e2e-auth-secret-0123456789",
+      APP_URL: `http://localhost:${PORT}`,
+      PGLITE_DATA_DIR: join(data, "pglite"),
+      STORAGE_LOCAL_DIR: join(data, "files"),
+    },
+  },
+});

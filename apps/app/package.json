@@ -8,7 +8,8 @@
     "build": "NEXT_TELEMETRY_DISABLED=1 next build --turbopack",
     "start": "NEXT_TELEMETRY_DISABLED=1 next start -p 3000",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@dueproof/ai": "workspace:*",
