@@ -36,7 +36,7 @@ The sample notice (`lib/sample.ts`) is fictional.
 
 ## Deploying
 
-The website is at <https://dueproof-site.vercel.app>.
+The website is at <https://dueproof.vercel.app>.
 
 **Vercel:** create a project with Root Directory `apps/site` and the Next.js
 framework preset; Vercel installs the pnpm workspace from the repository root
