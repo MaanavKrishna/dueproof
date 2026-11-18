@@ -31,7 +31,11 @@ import {
   writeStage,
 } from "../lib/pipeline/stages";
 import type { Container } from "../lib/server/container";
-import { regenerateStatutoryDeadlines, statutoryWindow } from "../lib/statutory";
+import {
+  regenerateOrgStatutory,
+  regenerateStatutoryDeadlines,
+  statutoryWindow,
+} from "../lib/statutory";
 
 const ORG = "org_core_integration";
 let database: Database;
@@ -251,12 +255,14 @@ describe("pipeline deadline policy", () => {
 
 describe("statutory calendar", () => {
   const clientId = uuidv7();
+  const regId = uuidv7();
+  const key = (form: string, period: string) => `${regId}:${form}:${period}`;
 
   it("upserts a client's statutory deadlines for the rolling window", async () => {
     await withOrg(database, ORG, async (tx) => {
       await tx.insert(clients).values({ id: clientId, orgId: ORG, name: "Harbour Traders" });
       await tx.insert(registrations).values({
-        id: uuidv7(),
+        id: regId,
         orgId: ORG,
         clientId,
         kind: "gst",
@@ -274,7 +280,7 @@ describe("statutory calendar", () => {
 
     const rows = await statutoryRows(clientId);
     expect(rows).toHaveLength(first.items);
-    const nov = rows.find((r) => r.statutoryKey === "in.gst.gstr3b.monthly:2026-10");
+    const nov = rows.find((r) => r.statutoryKey === key("gstr-3b", "2026-10"));
     expect(nov).toMatchObject({
       source: "statutory",
       dueOn: "2026-11-20",
@@ -285,20 +291,155 @@ describe("statutory calendar", () => {
     expect(nov?.basis).toBeTruthy();
     expect(rows.every((r) => r.dueOn >= "2026-10-16" && r.dueOn <= "2028-02-16")).toBe(true);
 
-    // Again: nothing new, every row updated in place.
+    // Again: nothing new and nothing changed.
     const second = await regenerateStatutoryDeadlines(database, ORG, clientId, { today });
-    expect(second).toMatchObject({ inserted: 0, updated: first.items, kept: 0, removed: 0 });
+    expect(second).toMatchObject({ inserted: 0, updated: 0, kept: 0, removed: 0, flagged: 0 });
     expect(await statutoryRows(clientId)).toHaveLength(first.items);
+    // What the calendar does not cover is reported with the result.
+    expect(second.coverage.map((n) => n.form)).toEqual(["GSTR-9C"]);
+  });
+
+  it("keeps a hand-corrected date, a snooze, an acknowledgement and an owner", async () => {
+    const today = "2026-11-16";
+    const at = (k: string) =>
+      statutoryRows(clientId).then((rows) => rows.find((r) => r.statutoryKey === k));
+    const oct = key("gstr-3b", "2026-10");
+    const novGstr1 = key("gstr-1", "2026-11");
+    const decGstr3b = key("gstr-3b", "2026-11");
+    const before = await at(oct);
+    // What correctDueDate writes: the date, a basis with the reason, correctedBy and the original.
+    await withOrg(database, ORG, async (tx) => {
+      await tx
+        .update(deadlines)
+        .set({
+          dueOn: "2026-11-25",
+          basis: "Corrected by hand from 2026-11-20: extended for Kerala floods",
+          detail: { ...(before?.detail ?? {}), originalDueOn: "2026-11-20", correctedBy: "u_1" },
+        })
+        .where(and(eq(deadlines.orgId, ORG), eq(deadlines.statutoryKey, oct)));
+      const g1 = await tx
+        .select()
+        .from(deadlines)
+        .where(and(eq(deadlines.orgId, ORG), eq(deadlines.statutoryKey, novGstr1)));
+      await tx
+        .update(deadlines)
+        .set({
+          ownerUserId: "u_2",
+          detail: { ...(g1[0]?.detail ?? {}), snoozedUntil: "2026-12-05", ackNumber: "AA3211" },
+        })
+        .where(and(eq(deadlines.orgId, ORG), eq(deadlines.statutoryKey, novGstr1)));
+    });
+
+    // An extension for November's GSTR-3B arrives with a new pack: untouched rows take it.
+    const extension = {
+      ruleKey: "in.gst.gstr3b.monthly",
+      period: "2026-11",
+      newDueOn: "2026-12-24",
+      source: "Notification 99/2026-Central Tax (fictional, for tests)",
+      announcedOn: "2026-12-01",
+    };
+    const res = await regenerateStatutoryDeadlines(database, ORG, clientId, {
+      today,
+      extensions: [extension],
+    });
+    // December's GSTR-3B takes the extension; the corrected row records the calendar's date.
+    expect(res).toMatchObject({ inserted: 0, updated: 2, removed: 0 });
+
+    const corrected = await at(oct);
+    expect(corrected).toMatchObject({
+      dueOn: "2026-11-25",
+      basis: "Corrected by hand from 2026-11-20: extended for Kerala floods",
+      status: "open",
+      detail: { correctedBy: "u_1", originalDueOn: "2026-11-20" },
+    });
+    const g1 = await at(novGstr1);
+    expect(g1).toMatchObject({
+      ownerUserId: "u_2",
+      dueOn: "2026-12-11",
+      detail: { snoozedUntil: "2026-12-05", ackNumber: "AA3211" },
+    });
+    const extended = await at(decGstr3b);
+    expect(extended).toMatchObject({
+      dueOn: "2026-12-24",
+      detail: { originalDueOn: "2026-12-20" },
+    });
+    expect(
+      (extended?.detail as { adjustments?: string[] } | undefined)?.adjustments?.[0],
+    ).toContain("Notification 99/2026-Central Tax");
+
+    // The calendar's date for the corrected row moves: the person's date stays, with a note.
+    const later = await regenerateStatutoryDeadlines(database, ORG, clientId, {
+      today,
+      extensions: [{ ...extension, period: "2026-10", newDueOn: "2026-11-27" }],
+    });
+    expect(later.updated).toBe(2); // the corrected row's note, and December back to the 20th
+    const noted = await at(oct);
+    expect(noted?.dueOn).toBe("2026-11-25");
+    expect((noted?.detail as { warnings?: string[] } | undefined)?.warnings?.join(" ")).toContain(
+      "The calendar now gives 27 Nov 2026. The date corrected by hand (25 Nov 2026) is kept",
+    );
+    // And it is stable.
+    const again = await regenerateStatutoryDeadlines(database, ORG, clientId, {
+      today,
+      extensions: [{ ...extension, period: "2026-10", newDueOn: "2026-11-27" }],
+    });
+    expect(again).toMatchObject({ inserted: 0, updated: 0, removed: 0 });
+  });
+
+  it("re-keys a row written under the old (rule, period) key, keeping its status", async () => {
+    const today = "2026-11-16";
+    const k = key("gstr-1", "2026-12");
+    await withOrg(database, ORG, (tx) =>
+      tx
+        .update(deadlines)
+        .set({ statutoryKey: "in.gst.gstr1.monthly:2026-12", status: "done", basis: "Filed early" })
+        .where(and(eq(deadlines.orgId, ORG), eq(deadlines.statutoryKey, k))),
+    );
+    const res = await regenerateStatutoryDeadlines(database, ORG, clientId, { today });
+    expect(res.inserted).toBe(0);
+    const rows = await statutoryRows(clientId);
+    expect(rows.filter((r) => r.statutoryKey === k)).toMatchObject([
+      { status: "done", basis: "Filed early" },
+    ]);
+    expect(rows.some((r) => r.statutoryKey === "in.gst.gstr1.monthly:2026-12")).toBe(false);
+  });
+
+  it("the window rolls forward when the organisation's clients are regenerated", async () => {
+    const before = await statutoryRows(clientId);
+    const latest =
+      before
+        .map((r) => r.dueOn)
+        .sort()
+        .at(-1) ?? "";
+    expect(latest <= "2028-02-16").toBe(true);
+    const r = await regenerateOrgStatutory(database, ORG, { today: "2026-12-16" });
+    expect(r).toMatchObject({ clients: 1, failed: 0 });
+    expect(r.inserted).toBeGreaterThan(0);
+    const after = await statutoryRows(clientId);
+    expect(after.some((x) => x.dueOn > "2028-02-16" && x.dueOn <= "2028-03-16")).toBe(true);
+    // A scheduled run on the same day changes nothing.
+    expect(await regenerateOrgStatutory(database, ORG, { today: "2026-12-16" })).toMatchObject({
+      inserted: 0,
+      updated: 0,
+      removed: 0,
+    });
   });
 
   it("never touches a row a person marked done, and removes what no longer applies", async () => {
     const today = "2026-11-16";
-    const key = "in.gst.gstr3b.monthly:2026-10";
+    const doneKey = key("gstr-3b", "2026-09");
+    const ownedKey = key("gstr-1", "2027-01");
     await withOrg(database, ORG, (tx) =>
       tx
         .update(deadlines)
-        .set({ status: "done", completedAt: new Date(), basis: "Filed on 18 Nov" })
-        .where(and(eq(deadlines.orgId, ORG), eq(deadlines.statutoryKey, key))),
+        .set({ status: "done", completedAt: new Date(), basis: "Filed on 18 Oct" })
+        .where(and(eq(deadlines.orgId, ORG), eq(deadlines.statutoryKey, doneKey))),
+    );
+    await withOrg(database, ORG, (tx) =>
+      tx
+        .update(deadlines)
+        .set({ ownerUserId: "u_3" })
+        .where(and(eq(deadlines.orgId, ORG), eq(deadlines.statutoryKey, ownedKey))),
     );
     // The client moves to quarterly (QRMP): the monthly rows no longer apply.
     await withOrg(database, ORG, (tx) =>
@@ -311,13 +452,29 @@ describe("statutory calendar", () => {
     expect(res.removed).toBeGreaterThan(0);
 
     const rows = await statutoryRows(clientId);
-    const done = rows.find((r) => r.statutoryKey === key);
-    expect(done).toMatchObject({ status: "done", basis: "Filed on 18 Nov" });
+    const done = rows.find((r) => r.statutoryKey === doneKey);
+    expect(done).toMatchObject({ status: "done", basis: "Filed on 18 Oct" });
+    // Monthly rows no one touched are gone; touched ones stay, flagged to check.
     const monthlyOpen = rows.filter(
-      (r) => r.status === "open" && r.statutoryKey?.includes(".monthly:"),
+      (r) =>
+        r.status === "open" &&
+        r.dueOn <= "2028-02-16" &&
+        /:\d{4}-\d{2}$/.test(r.statutoryKey ?? ""),
     );
-    expect(monthlyOpen).toEqual([]);
-    expect(rows.some((r) => r.statutoryKey?.startsWith("in.gst.gstr3b.qrmp"))).toBe(true);
+    expect(monthlyOpen.map((r) => r.statutoryKey).sort()).toEqual(
+      [key("gstr-1", "2026-11"), key("gstr-3b", "2026-10"), ownedKey].sort(),
+    );
+    expect(res.flagged).toBe(3);
+    for (const r of monthlyOpen)
+      expect((r.detail as { warnings: string[] }).warnings.join(" ")).toContain(
+        "No longer on the statutory calendar",
+      );
+    // Quarterly GSTR-3B for a QRMP filer in Kerala (state group A).
+    const q = rows.find((r) => r.statutoryKey === key("gstr-3b", "FY2026-27-Q3"));
+    expect(q).toMatchObject({ dueOn: "2027-01-22", rule: { ruleKey: "in.gst.gstr3b.qrmp.a" } });
+    // Flagging is idempotent.
+    const again = await regenerateStatutoryDeadlines(database, ORG, clientId, { today });
+    expect(again).toMatchObject({ inserted: 0, updated: 0, removed: 0, flagged: 3 });
   });
 
   it("refuses a client of another organisation", async () => {
