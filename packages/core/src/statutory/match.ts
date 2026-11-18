@@ -5,6 +5,9 @@ const GSTIN_RX = /^(\d{2})[A-Z0-9]{13}$/i;
 /**
  * The facts a registration exposes to rule matching:
  * frequency, scheme, stateCode, stateGroup, plus its own attributes.
+ *
+ * One fact is derived: a QRMP registration with no frequency recorded is
+ * quarterly, because QRMP is the quarterly scheme (CGST Rules r.61A).
  */
 export function registrationFacts(
   reg: Registration,
@@ -15,7 +18,7 @@ export function registrationFacts(
   else if (reg.kind === "gst" && reg.identifier)
     stateCode = GSTIN_RX.exec(reg.identifier)?.[1] ?? null;
   const facts: Record<string, MatchValue> = {
-    frequency: reg.frequency ?? null,
+    frequency: reg.frequency ?? (reg.scheme === "qrmp" ? "quarterly" : null),
     scheme: reg.scheme ?? null,
     stateCode,
     stateGroup: stateCode ? (pack.stateGroups?.[stateCode] ?? null) : null,

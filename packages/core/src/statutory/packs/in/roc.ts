@@ -2,7 +2,7 @@
  * India — ROC annual filings under the Companies Act 2013. DATA ONLY.
  * Every value is marked `verified: false`. VERIFY AGAINST THE STATUTE IN M0.
  */
-import type { StatutoryRule } from "../../types";
+import type { NotCoveredMarker, StatutoryRule } from "../../types";
 
 const MCA = "https://www.mca.gov.in/";
 
@@ -51,7 +51,7 @@ export const rocRules: readonly StatutoryRule[] = [
     key: "in.roc.mgt7",
     form: "MGT-7",
     title: "Annual return (MGT-7 / MGT-7A)",
-    appliesTo: { kind: "roc" },
+    appliesTo: { kind: "roc", match: NOT_OPC },
     periodType: "fy",
     due: { type: "days_after_event", event: "agm", days: 60, fallback: AGM_LAST_DAY },
     dueText: "60 days from the AGM",
@@ -62,7 +62,43 @@ export const rocRules: readonly StatutoryRule[] = [
       url: MCA,
     },
     verified: false,
+    notes: "Small companies file MGT-7A on the same date. OPCs have their own rule (no AGM).",
+  },
+  {
+    key: "in.roc.mgt7a.opc",
+    // Same form key as MGT-7, so a company re-marked as an OPC keeps its row.
+    form: "MGT-7",
+    title: "Annual return (MGT-7A, one person company)",
+    appliesTo: { kind: "roc", match: { companyType: ["opc"] } },
+    periodType: "fy",
+    due: { type: "fy_date", month: 11, day: 26, yearsAfterStart: 1 },
+    dueText:
+      "60 days from 27 September, the 180th day after the close of the financial year (26 November)",
+    rollForward: false,
+    source: {
+      citation:
+        "Companies Act 2013 s.92(4), s.96(1) (OPC exempt from the AGM); Companies (Management and Administration) Rules 2014 r.11",
+      url: MCA,
+    },
+    verified: false,
     notes:
-      "Small companies and OPCs file MGT-7A. For an OPC (no AGM) the date runs from the last day the AGM would have been due: verify.",
+      "VERIFY: an OPC holds no AGM, so the 60 days of s.92(4) need a substitute start. Commonly counted from the date the financial statements are due (180 days after year end, 27 September), giving 26 November; an alternative reading counts from 30 September (29 November). The earlier date is shown.",
+  },
+];
+
+/** ROC obligations the pack knows about but does not generate (shown as "not covered"). */
+export const rocNotCovered: readonly NotCoveredMarker[] = [
+  {
+    key: "in.roc.dir3kyc",
+    form: "DIR-3 KYC",
+    title: "DIR-3 KYC for each director is not on the calendar",
+    appliesTo: { kind: "roc" },
+    reason:
+      "Each director with a DIN files a KYC (30 September in recent years; check the current frequency). It is per person, not per company: add it by hand.",
+    source: {
+      citation: "Companies (Appointment and Qualification of Directors) Rules 2014 r.12A",
+      url: MCA,
+    },
+    verified: false,
   },
 ];

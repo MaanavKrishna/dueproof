@@ -82,6 +82,9 @@ export function baseDueDate(
     }
     case "days_after_event": {
       const at = events[due.event];
+      const lastDay = fyDate(period, due.fallback);
+      const name = due.event.toUpperCase();
+      const fallbackText = `${rule.dueText}; ${due.fallback.text.charAt(0).toLowerCase()}${due.fallback.text.slice(1)}`;
       if (at) {
         if (!isValidIsoDate(at)) {
           return {
@@ -89,19 +92,34 @@ export function baseDueDate(
             message: `The ${due.event} date is not a real date: ${at}`,
           };
         }
+        // An event for this period can only be held after the period ends
+        // (the AGM adopts that year's accounts). An earlier date is another
+        // year's event, recorded against the wrong period: it is not used.
+        if (compareIso(at, period.end) <= 0) {
+          return {
+            dueOn: addDays(lastDay, due.days),
+            text: fallbackText,
+            warnings: [
+              `The ${name} date recorded for ${period.label} (${formatDate(at)}) is not after the year ended on ${formatDate(period.end)}, so it cannot be that year's ${name} and is not used. ${due.fallback.text}. Correct the ${name} date.`,
+            ],
+          };
+        }
+        const warnings: string[] = [];
+        if (compareIso(at, lastDay) > 0) {
+          warnings.push(
+            `The ${name} on ${formatDate(at)} is after ${formatDate(lastDay)}, the last day for it: check that an extension was granted and that the date belongs to ${period.label}.`,
+          );
+        }
         return {
           dueOn: addDays(at, due.days),
           text: `${rule.dueText} on ${formatDate(at)}`,
-          warnings: [],
+          warnings,
         };
       }
-      const from = fyDate(period, due.fallback);
       return {
-        dueOn: addDays(from, due.days),
-        text: `${rule.dueText}; ${due.fallback.text.charAt(0).toLowerCase()}${due.fallback.text.slice(1)}`,
-        warnings: [
-          `${due.fallback.text}. Record the ${due.event.toUpperCase()} date for an exact due date.`,
-        ],
+        dueOn: addDays(lastDay, due.days),
+        text: fallbackText,
+        warnings: [`${due.fallback.text}. Record the ${name} date for an exact due date.`],
       };
     }
   }
@@ -164,6 +182,9 @@ export function resolveStatutory(
 
   const adjustments: string[] = [];
   const warnings: string[] = [...base.warnings];
+  for (const c of rule.checks ?? []) {
+    if (options.facts && factsMatch(c.when, options.facts)) warnings.push(c.warning);
+  }
   if (!rule.verified) warnings.push("Rule not yet verified against the statute (verify in M0).");
 
   let dueOn = base.dueOn;

@@ -94,6 +94,49 @@ export interface StatutoryRule {
   effectiveFrom?: IsoDate;
   /** Last period start this rule applies to (inclusive). */
   effectiveTo?: IsoDate;
+  /**
+   * Warnings added to an item when the registration's facts match `when`:
+   * how a rule that also covers a missing fact says it assumed something
+   * ("frequency not recorded: shown as monthly"). Never silent.
+   */
+  checks?: readonly { when: Record<string, readonly MatchValue[]>; warning: string }[];
+}
+
+/**
+ * Forms a registration of this kind is expected to file. When a listed form
+ * has no rule that fits the registration's facts, `statutoryCoverage` says so
+ * rather than the form vanishing from the calendar.
+ */
+export interface ExpectedForms {
+  kind: RegistrationKind;
+  match?: Record<string, readonly MatchValue[]>;
+  forms: readonly string[];
+}
+
+/**
+ * An obligation the pack knows about but does not generate: shown to the
+ * user as "not covered" so a calendar never reads as complete when it is not.
+ */
+export interface NotCoveredMarker {
+  key: string;
+  form: string;
+  title: string;
+  appliesTo: { kind: RegistrationKind; match?: Record<string, readonly MatchValue[]> };
+  /** Plain words: what the obligation is and when it usually falls due. */
+  reason: string;
+  source: StatutorySource;
+  verified: boolean;
+}
+
+/** One line of "what this calendar does not cover" for a registration. */
+export interface CoverageNote {
+  registrationId: string;
+  /** `no_rule`: an expected form has no rule for these facts; `not_covered`: the pack does not generate it. */
+  type: "no_rule" | "not_covered";
+  form: string;
+  title: string;
+  reason: string;
+  source?: StatutorySource;
 }
 
 export interface StatutoryPack {
@@ -108,6 +151,10 @@ export interface StatutoryPack {
   rules: readonly StatutoryRule[];
   /** Optional derived facts, e.g. GST state code → QRMP state group. */
   stateGroups?: Readonly<Record<string, string>>;
+  /** Forms each kind of registration should produce (see `statutoryCoverage`). */
+  expectedForms?: readonly ExpectedForms[];
+  /** Obligations the pack does not generate, listed so they are visible. */
+  notCovered?: readonly NotCoveredMarker[];
 }
 
 /**
@@ -167,7 +214,11 @@ export interface ParsedPeriod {
 }
 
 export interface StatutoryItem {
-  /** `${ruleKey}:${period}` — unique per client (db deadlines.statutory_key). */
+  /**
+   * `${registrationId}:${formKey}:${period}` (see `statutoryKey`): stable
+   * when a registration's facts change which rule applies (state group,
+   * audit flag), and unique per client (db deadlines.statutory_key).
+   */
   statutoryKey: string;
   ruleKey: string;
   period: string;

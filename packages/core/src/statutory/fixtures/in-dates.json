@@ -110,6 +110,48 @@
       "error": "invalid_date"
     },
 
+    {
+      "rule": "in.roc.aoc4",
+      "period": "FY2025-26",
+      "events": { "agm": "2024-09-25" },
+      "dueOn": "2026-10-30",
+      "warningsMatch": "The AGM date recorded for FY 2025–26 (25 Sep 2024) is not after the year ended on 31 Mar 2026, so it cannot be that year's AGM and is not used."
+    },
+    {
+      "rule": "in.roc.mgt7",
+      "period": "FY2025-26",
+      "events": { "agm": "2026-03-31" },
+      "dueOn": "2026-11-29",
+      "warningsMatch": "cannot be that year's AGM"
+    },
+    {
+      "rule": "in.roc.aoc4",
+      "period": "FY2025-26",
+      "events": { "agm": "2026-12-15" },
+      "dueOn": "2027-01-14",
+      "warningsMatch": "The AGM on 15 Dec 2026 is after 30 Sep 2026, the last day for it: check that an extension was granted"
+    },
+    {
+      "rule": "in.roc.mgt7a.opc",
+      "period": "FY2025-26",
+      "dueOn": "2026-11-26",
+      "basis": "MGT-7 for FY 2025–26: 60 days from 27 September, the 180th day after the close of the financial year (26 November)"
+    },
+    {
+      "rule": "in.gst.cmp08.quarterly",
+      "period": "FY2026-27-Q2",
+      "dueOn": "2026-10-18",
+      "basis": "CMP-08 for Q2 FY 2026–27 (Jul–Sep 2026): 18th of the month after the quarter"
+    },
+    { "rule": "in.gst.cmp08.quarterly", "period": "FY2026-27-Q4", "dueOn": "2027-04-18" },
+    { "rule": "in.gst.gstr4.annual", "period": "FY2025-26", "dueOn": "2026-06-30" },
+    {
+      "rule": "in.gst.gstr4.annual",
+      "period": "FY2023-24",
+      "error": "rule_not_in_effect"
+    },
+    { "rule": "in.it.tax_audit_report", "period": "FY2025-26", "dueOn": "2026-09-30" },
+
     { "rule": "in.gst.nope", "period": "2026-10", "error": "unknown_rule" },
     { "rule": "in.gst.gstr3b.monthly", "period": "2026-13", "error": "bad_period" },
     { "rule": "in.gst.gstr3b.monthly", "period": "FY2025-26", "error": "bad_period" },
