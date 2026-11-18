@@ -1,0 +1,20 @@
+/* Inbox-only pieces. Layout stays in components/screen.module.css. */
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dp-space-8);
+  margin-top: var(--dp-space-12);
+}
+
+.duplicate {
+  color: var(--dp-feedback-warning-fg);
+  font: var(--dp-text-footnote-font);
+}
+
+/* Keyboard hints mean nothing on a touch screen, and wrap badly on a phone (M11). */
+@media (hover: none), (width < 40rem) {
+  .hints {
+    display: none;
+  }
+}

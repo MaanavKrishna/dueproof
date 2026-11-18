@@ -102,7 +102,8 @@ export function DeadlinesView({
   const [selected, setSelected] = useState<DeadlineRow | null>(
     () => data.rows.find((r) => r.id === params.get("deadline")) ?? null,
   );
-  const [adding, setAdding] = useState(false);
+  // ?add=1 (from the Inbox: "Add a deadline by hand") opens the form.
+  const [adding, setAdding] = useState(() => params.get("add") === "1");
   const [, startTransition] = useTransition();
   const { toast } = useToast();
   const phone = useMediaQuery("(max-width: 40rem)");
