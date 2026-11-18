@@ -5,10 +5,9 @@
  * default), the team, and a first notice. Each step saves as you go, so
  * leaving half-way loses nothing; everything can be changed in Settings.
  */
-import { CopyIcon, UploadIcon } from "@dueproof/icons";
+import { CopyIcon } from "@dueproof/icons";
 import {
   Banner,
-  Button,
   Card,
   Checkbox,
   IconButton,
@@ -422,16 +421,9 @@ export function SetupWizard({ initial }: { initial: SetupInitial }) {
       {step?.id === "first" ? (
         <Card variant="sunken" padding="lg">
           <p>
-            Drop a PDF or a photo of a notice into the Inbox. Dueproof reads it, finds each date and
-            amount, and outlines it on the page it came from.
+            Choose Go to Inbox, then drop a PDF or a photo of a notice there. Dueproof reads it,
+            finds each date and amount, and outlines it on the page it came from.
           </p>
-          <Button
-            icon={UploadIcon}
-            variant="secondary"
-            onClick={() => router.push("/inbox?upload=1")}
-          >
-            Open the Inbox
-          </Button>
         </Card>
       ) : null}
     </WizardTemplate>

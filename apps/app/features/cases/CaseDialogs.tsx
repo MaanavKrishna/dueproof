@@ -309,7 +309,9 @@ export function CorrectDueDialog({
       onOpenChange={(o) => !o && onClose()}
       title="Correct the due date"
       description={
-        target ? `${target.title}. The computed date is kept beside your correction.` : undefined
+        target
+          ? `${target.title.replace(/[.\s]+$/, "")}. The computed date is kept beside your correction.`
+          : undefined
       }
       size="sm"
       dismissible={false}

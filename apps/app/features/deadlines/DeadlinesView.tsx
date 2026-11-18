@@ -374,6 +374,7 @@ function DeadlineList({
       {groups.map((g) => (
         <InsetGroupedList
           key={g.id}
+          headingLevel={2}
           header={
             <span className={styles.groupHeader}>
               <span>{g.label}</span>

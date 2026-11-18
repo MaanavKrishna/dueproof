@@ -5,7 +5,7 @@ import { loadNotices } from "@/features/notices/queries";
 import { pageAccess } from "@/lib/server/page";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Notices · Dueproof" };
+export const metadata = { title: "Notices" };
 
 export default async function NoticesPage() {
   const gate = await pageAccess("case.view");

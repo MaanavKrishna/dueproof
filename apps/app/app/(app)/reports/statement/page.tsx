@@ -6,7 +6,7 @@ import { loadClientStatement } from "@/features/reports/queries";
 import { pageAccess } from "@/lib/server/page";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Client statement · Dueproof" };
+export const metadata = { title: "Client statement" };
 
 export default async function StatementPage({
   searchParams,

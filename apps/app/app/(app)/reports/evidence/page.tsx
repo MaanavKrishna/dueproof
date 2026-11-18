@@ -6,7 +6,7 @@ import { loadEvidenceReport } from "@/features/reports/queries";
 import { pageAccess } from "@/lib/server/page";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Evidence report · Dueproof" };
+export const metadata = { title: "Evidence report" };
 
 export default async function EvidenceReportPage({
   searchParams,

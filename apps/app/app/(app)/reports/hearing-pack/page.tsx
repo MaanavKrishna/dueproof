@@ -6,7 +6,7 @@ import { loadHearingPack } from "@/features/reports/queries";
 import { pageAccess } from "@/lib/server/page";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Hearing pack · Dueproof" };
+export const metadata = { title: "Hearing pack" };
 
 export default async function HearingPackPage({
   searchParams,

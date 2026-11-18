@@ -175,7 +175,7 @@ export function ClientPageView({ data }: { data: ClientPageData }) {
       content: (
         <div className={styles.section}>
           {open.length ? (
-            <InsetGroupedList header={`Open · ${overdue.length} overdue`}>
+            <InsetGroupedList headingLevel={2} header={`Open · ${overdue.length} overdue`}>
               {open.slice(0, 60).map((d) => (
                 <ListRow
                   key={d.id}
@@ -215,6 +215,7 @@ export function ClientPageView({ data }: { data: ClientPageData }) {
       content: (
         <div className={styles.section}>
           <InsetGroupedList
+            headingLevel={2}
             header="Registrations"
             footer="The statutory calendar is built from these. Rules come from the India pack and are marked for a CA to check."
           >
@@ -272,6 +273,7 @@ export function ClientPageView({ data }: { data: ClientPageData }) {
       content: (
         <div className={styles.section}>
           <InsetGroupedList
+            headingLevel={2}
             header="Contacts"
             footer="WhatsApp numbers match documents a client forwards to the firm's number."
           >
@@ -329,7 +331,7 @@ export function ClientPageView({ data }: { data: ClientPageData }) {
       content: (
         <div className={styles.section}>
           {data.cases.length ? (
-            <InsetGroupedList header="Cases">
+            <InsetGroupedList headingLevel={2} header="Cases">
               {data.cases.map((k) => (
                 <ListRow
                   key={k.id}
@@ -415,7 +417,7 @@ export function ClientPageView({ data }: { data: ClientPageData }) {
       label: "People",
       content: (
         <div className={styles.section}>
-          <InsetGroupedList header="People">
+          <InsetGroupedList headingLevel={2} header="People">
             <ListRow label="Partner" value={partner ?? "Not set"} />
             {owners.map((o) => (
               <ListRow
@@ -426,7 +428,7 @@ export function ClientPageView({ data }: { data: ClientPageData }) {
             ))}
           </InsetGroupedList>
           {c.notes ? (
-            <InsetGroupedList header="Notes">
+            <InsetGroupedList headingLevel={2} header="Notes">
               <ListRow label={c.notes} />
             </InsetGroupedList>
           ) : null}

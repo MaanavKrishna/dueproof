@@ -138,7 +138,7 @@ afterAll(async () => {
 describe("pure helpers", () => {
   it("reads preferences from cookies with safe defaults", () => {
     expect(readPreferences({})).toEqual({
-      theme: "light",
+      theme: "system",
       density: "comfortable",
       fromCookie: false,
     });

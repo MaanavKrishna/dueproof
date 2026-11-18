@@ -5,7 +5,7 @@ import { may } from "@/lib/can";
 import { pageAccess } from "@/lib/server/page";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Reports · Dueproof" };
+export const metadata = { title: "Reports" };
 
 export default async function ReportsPage() {
   const access = await pageAccess("report.view");

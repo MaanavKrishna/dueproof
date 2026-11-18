@@ -9,6 +9,8 @@ export interface InsetGroupedListProps extends Omit<ComponentProps<"section">, "
   header?: ReactNode;
   /** Help text under the group. */
   footer?: ReactNode;
+  /** The heading's level, so a page's outline doesn't skip one (L12). Default 3. */
+  headingLevel?: 2 | 3 | 4;
   children: ReactNode;
 }
 
@@ -16,11 +18,13 @@ export interface InsetGroupedListProps extends Omit<ComponentProps<"section">, "
 export function InsetGroupedList({
   header,
   footer,
+  headingLevel = 3,
   children,
   className,
   ...rest
 }: InsetGroupedListProps) {
   const headerId = useId();
+  const Heading = `h${headingLevel}` as const;
   return (
     <section
       className={cx(styles.group, className)}
@@ -28,9 +32,9 @@ export function InsetGroupedList({
       {...rest}
     >
       {header ? (
-        <h3 id={headerId} className={styles.header}>
+        <Heading id={headerId} className={styles.header}>
           {header}
-        </h3>
+        </Heading>
       ) : null}
       <ul className={styles.list}>{children}</ul>
       {footer ? <p className={styles.footer}>{footer}</p> : null}

@@ -24,6 +24,8 @@ interface AppShellContextValue {
   toggleSidebar: () => void;
   /** Close the phone drawer (after navigating). */
   closeMobileSidebar: () => void;
+  /** True inside an AppShell, whose <main> already holds the page (L11). */
+  inShell: boolean;
 }
 
 const AppShellContext = createContext<AppShellContextValue>({
@@ -31,6 +33,7 @@ const AppShellContext = createContext<AppShellContextValue>({
   isMobile: false,
   toggleSidebar: () => {},
   closeMobileSidebar: () => {},
+  inShell: false,
 });
 
 /** The surrounding shell's sidebar state, for toggles in toolbars and the nav itself. */
@@ -139,6 +142,7 @@ export function AppShell({
       isMobile,
       toggleSidebar,
       closeMobileSidebar,
+      inShell: true,
     }),
     [isMobile, shownCollapsed, toggleSidebar, closeMobileSidebar],
   );
