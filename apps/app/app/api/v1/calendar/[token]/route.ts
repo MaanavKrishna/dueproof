@@ -2,7 +2,8 @@
  * GET /api/v1/calendar/{token}.ics — the calendar feed (05 §4). The signed
  * token stands in for the session: it is checked, then the person's
  * membership and the policy (`case.view`), then whether it was revoked.
- * Titles and dates only; no amounts or document text.
+ * Titles and dates only; no amounts or document text. Each person's feeds
+ * share the api.token rate limit (L5).
  */
 import { getMembership } from "@dueproof/auth";
 import { authorize as checkPolicy, PolicyDenied } from "@dueproof/core";
@@ -12,6 +13,7 @@ import { verifyFeedToken } from "@/features/deadlines/ical";
 import { lastFeedRevocation } from "@/features/deadlines/queries";
 import { errorResponse, forbidden, HttpError, notFound } from "@/lib/errors";
 import { clientIdsFor } from "@/lib/org-metadata";
+import { enforce } from "@/lib/rate-limit";
 import { getContainer } from "@/lib/server/container";
 import { getOrg } from "@/lib/server/directory";
 
@@ -27,6 +29,7 @@ export async function GET(
     const container = await getContainer();
     const claim = verifyFeedToken(container.env.AUTH_SECRET, token);
     if (!claim) throw notFound("That calendar feed");
+    await enforce(container, "api.token", `${claim.orgId}|${claim.userId}`);
     const membership = await getMembership(container.database, claim.userId, claim.orgId);
     if (!membership) throw notFound("That calendar feed");
     const admin = membership.role === "owner" || membership.role === "admin";

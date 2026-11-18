@@ -9,6 +9,7 @@ import "server-only";
 import { rowsOf, sql, withOrg } from "@dueproof/db";
 import type { AuthContext } from "@/lib/authorize";
 import { badRequest } from "@/lib/errors";
+import { enforce } from "@/lib/rate-limit";
 import { type SearchHit, START, STOP } from "./model";
 
 export type { SearchHit } from "./model";
@@ -19,6 +20,8 @@ export async function search(ctx: AuthContext, raw: string, limit = 40): Promise
   const q = raw.trim().slice(0, 200);
   if (!q) return [];
   if (q.length < 2) throw badRequest("Type at least two characters.");
+  // Three full-text queries per search: the search.user rate limit (L5).
+  await enforce(ctx.container, "search.user", ctx.userId);
   const like = `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
   return withOrg(ctx.container.database, ctx.orgId, async (tx) => {
     const tsq = sql`websearch_to_tsquery('simple', ${q})`;

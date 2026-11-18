@@ -2,7 +2,8 @@
  * The auth surface as a browser sees it (H1, H2): /api/auth/* serves only the
  * endpoints the client needs, and an invitation is joined only with its
  * link's token. The sign-up page reveals an invitation only for a valid
- * token, never for an address.
+ * token, never for an address. The search, export and calendar-feed rate
+ * limits are enforced (L5).
  */
 import { createAuth } from "@dueproof/auth";
 import { createDatabase, type Database, invitation, member, migrate } from "@dueproof/db";
@@ -11,9 +12,15 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import SignUpPage from "../app/(auth)/sign-up/page";
 import { inviteMembers } from "../app/actions/team";
 import { GET as authGet, POST as authPost } from "../app/api/auth/[...all]/route";
+import { GET as calendarGet } from "../app/api/v1/calendar/[token]/route";
+import { GET as reportsGet } from "../app/api/v1/reports/[name]/route";
+import { createCalendarFeed } from "../features/deadlines/actions";
+import { exportNoticesCsv } from "../features/notices/actions";
+import { search } from "../features/search/queries";
+import { authorize } from "../lib/authorize";
 import { parseEnv } from "../lib/env";
 import type { Container } from "../lib/server/container";
-import { setContainer } from "../lib/server/container";
+import { getContainer, setContainer } from "../lib/server/container";
 
 const APP = "http://localhost:3000";
 const request = vi.hoisted(() => ({ headers: new Headers() }));
@@ -186,5 +193,52 @@ describe("invitations (H1)", () => {
       inviteToken: token,
     });
     expect(again.status).toBe(403);
+  });
+});
+
+describe("rate limits where the features live (L5)", () => {
+  let base: Container;
+  beforeAll(async () => {
+    base = await getContainer();
+    setContainer({
+      ...base,
+      env: parseEnv({
+        NODE_ENV: "test",
+        APP_URL: APP,
+        AUTH_SECRET: base.env.AUTH_SECRET,
+        AUTH_SIGNUP: "first-user",
+        RATE_LIMITS: "search.user=2/1m,export.user=2/1h,api.token=1/1m",
+      }),
+    } as Container);
+    request.headers = new Headers({ cookie: ownerCookie, origin: APP });
+  });
+  afterAll(() => setContainer(base));
+
+  it("search.user", async () => {
+    const ctx = await authorize("case.view");
+    await search(ctx, "notice");
+    await search(ctx, "notice");
+    await expect(search(ctx, "notice")).rejects.toMatchObject({ status: 429 });
+  });
+
+  it("export.user, for the CSV reports and the notices export", async () => {
+    const get = (name: string) =>
+      reportsGet(new Request(`${APP}/api/v1/reports/${name}`, { headers: request.headers }), {
+        params: Promise.resolve({ name }),
+      });
+    expect((await get("clients.csv")).status).toBe(200);
+    expect((await exportNoticesCsv({})).ok).toBe(true);
+    expect((await get("clients.csv")).status).toBe(429);
+    expect(await exportNoticesCsv({})).toMatchObject({ ok: false });
+  });
+
+  it("api.token, for calendar feeds", async () => {
+    const feed = await createCalendarFeed("me");
+    if (!feed.ok) throw new Error("no feed");
+    const token = new URL(feed.data.url).pathname.split("/").pop() ?? "";
+    const get = () =>
+      calendarGet(new Request(feed.data.url), { params: Promise.resolve({ token }) });
+    expect((await get()).status).toBe(200);
+    expect((await get()).status).toBe(429);
   });
 });

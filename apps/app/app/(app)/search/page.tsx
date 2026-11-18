@@ -18,7 +18,7 @@ export default async function SearchPage({
   try {
     return <SearchView query={q.trim()} hits={await search(gate.ctx, q)} error={null} />;
   } catch (e) {
-    if (e instanceof HttpError && e.status === 400)
+    if (e instanceof HttpError && (e.status === 400 || e.status === 429))
       return <SearchView query={q.trim()} hits={[]} error={e.message} />;
     throw e;
   }

@@ -9,6 +9,7 @@ import { z } from "zod";
 import { type ActionResult, runAction } from "@/lib/action";
 import { authorize } from "@/lib/authorize";
 import { badRequest, forbidden, notFound } from "@/lib/errors";
+import { enforce } from "@/lib/rate-limit";
 import { moveStage, STAGES } from "@/lib/stages";
 import { applyFilters, toCsv } from "./model";
 import { loadNoticeRows } from "./queries";
@@ -193,6 +194,7 @@ export async function exportNoticesCsv(
 ): Promise<ActionResult<{ filename: string; csv: string; count: number }>> {
   return runAction(async () => {
     const ctx = await authorize("report.view");
+    await enforce(ctx.container, "export.user", ctx.userId);
     const f = FiltersSchema.parse(filters);
     const rows = applyFilters(await loadNoticeRows(ctx), f, ctx.userId);
     await withOrg(ctx.container.database, ctx.orgId, (tx, scope) =>
