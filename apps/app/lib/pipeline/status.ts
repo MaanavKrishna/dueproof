@@ -26,6 +26,31 @@ export async function writeStatus(
   await tx.insert(documentEvents).values({ orgId, documentId, stage: status, detail });
 }
 
+/**
+ * Move a document from one status to another only if it is still in the
+ * first: the conditional update is the lock, so of two callers racing on the
+ * same document exactly one gets `true`. Records the event when it moves.
+ */
+export async function claimStatus(
+  tx: OrgTx,
+  orgId: string,
+  documentId: string,
+  from: DocumentStatus,
+  to: DocumentStatus,
+  detail: string | null = null,
+): Promise<boolean> {
+  const moved = await tx
+    .update(documents)
+    .set({ status: to, statusDetail: detail })
+    .where(
+      and(eq(documents.orgId, orgId), eq(documents.id, documentId), eq(documents.status, from)),
+    )
+    .returning({ id: documents.id });
+  if (!moved.length) return false;
+  await tx.insert(documentEvents).values({ orgId, documentId, stage: to, detail });
+  return true;
+}
+
 export function announce(
   orgId: string,
   documentId: string,
