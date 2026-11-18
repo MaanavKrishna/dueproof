@@ -92,13 +92,47 @@ function result(
 // ------------------------------------------------------------------ months
 
 /**
- * Months "or part of a month" from `start` (inclusive) to `end` (inclusive):
- * 1 Aug → 5 Sep is 2. Zero when `end` is before `start`.
+ * How "months or part of a month" are counted (Income-tax Rules r.119A(a):
+ * a fraction of a month is a full month). The two readings agree whenever
+ * the period starts on the 1st, which is the usual case (234A from the day
+ * after a month-end due date, 234B from 1 April). They differ when it starts
+ * mid-month, e.g. after an extended due date:
+ *
+ * - `calendar`: each calendar month the period touches counts once. Due 16
+ *   Sep, filed 5 Oct → September and October = 2. This is how the
+ *   department's utilities are understood to count. VERIFY (CA sign-off).
+ * - `elapsed`: whole months from the start date, then any part. A month
+ *   from 17 Sep ends on 16 Oct, so 17 Sep → 5 Oct = 1. A month from the
+ *   29th–31st ends on the last day of the next month when that month is
+ *   shorter (29, 30 or 31 Jan → 28 Feb is one month).
  */
-export function monthsOrPart(start: IsoDate, end: IsoDate): number {
+export type MonthCounting = "calendar" | "elapsed";
+
+/** The last day of the `k`-th elapsed month from `start` (k ≥ 1). */
+function elapsedMonthEnd(start: IsoDate, k: number): IsoDate {
+  const next = addMonths(start, k);
+  // Clamped: the start day does not exist k months on, so the month runs
+  // to the end of that (shorter) month.
+  return next.clamped ? next.date : addDays(next.date, -1);
+}
+
+/**
+ * Months "or part of a month" from `start` (inclusive) to `end` (inclusive).
+ * Zero when `end` is before `start`. See `MonthCounting`; default calendar.
+ */
+export function monthsOrPart(
+  start: IsoDate,
+  end: IsoDate,
+  counting: MonthCounting = "calendar",
+): number {
   if (compareIso(end, start) < 0) return 0;
+  if (counting === "calendar") {
+    const s = Number(start.slice(0, 4)) * 12 + Number(start.slice(5, 7));
+    const e = Number(end.slice(0, 4)) * 12 + Number(end.slice(5, 7));
+    return e - s + 1;
+  }
   let m = 1;
-  while (compareIso(addMonths(start, m).date, end) <= 0) m++;
+  while (compareIso(elapsedMonthEnd(start, m), end) < 0) m++;
   return m;
 }
 
@@ -231,6 +265,31 @@ function fyDate(start: number, d: FyDate): IsoDate {
   return dayOfMonth(start + d.yearsAfterStart, d.month, d.day);
 }
 
+/** 234B/234C: below the s.208 minimum no advance tax is payable, so there is no interest. */
+function noAdvanceTaxPayable(
+  rule: MonthlyInterestRule,
+  tax: bigint,
+  what: string,
+  f: ReturnType<typeof fmtTools>,
+): Step[] | null {
+  if (!rule.minimumTax || tax >= BigInt(rule.minimumTax.minor)) return null;
+  const min = f.money(BigInt(rule.minimumTax.minor));
+  return [
+    {
+      label: "Advance tax payable?",
+      formula: `${what} below ${min}: no advance tax is payable (${rule.minimumTax.citation})`,
+      inputs: { [what]: f.money(tax), minimum: min },
+      result: "No",
+    },
+    {
+      label: "Interest",
+      formula: "no advance tax payable: no interest",
+      inputs: {},
+      result: f.money(0n),
+    },
+  ];
+}
+
 export interface Interest234AInput {
   /** Tax on returned/assessed income less advance tax, TDS/TCS and reliefs. */
   taxMinor: number;
@@ -252,7 +311,7 @@ export function interest234A(input: Interest234AInput, options: MoneyOptions = {
   const tax = checkAmount(input.taxMinor, "Tax");
   const f = fmtTools(options);
   const start = addDays(input.dueOn, 1);
-  const months = monthsOrPart(start, input.filedOn);
+  const months = monthsOrPart(start, input.filedOn, rule.monthCounting);
   const workings: Step[] = [
     {
       label: "Period",
@@ -296,6 +355,8 @@ export function interest234B(input: Interest234BInput, options: MoneyOptions = {
   const paid = checkAmount(input.advanceTaxPaidMinor, "Advance tax paid");
   const f = fmtTools(options);
   const start = fyStartYear(input.fy, options);
+  const belowMinimum = noAdvanceTaxPayable(rule, assessed, "assessed tax", f);
+  if (belowMinimum) return result(rule, 0n, belowMinimum);
   const threshold = BigInt(rule.thresholdBp ?? 10_000);
   const needed = divideRounded(assessed * threshold, 10_000n, {
     toMinor: 1,
@@ -320,7 +381,7 @@ export function interest234B(input: Interest234BInput, options: MoneyOptions = {
     return result(rule, 0n, workings);
   }
   const from = fyDate(start, rule.startsOn ?? { month: 4, day: 1, yearsAfterStart: 1 });
-  const months = monthsOrPart(from, input.untilOn);
+  const months = monthsOrPart(from, input.untilOn, rule.monthCounting);
   const shortfall = assessed - paid;
   workings.push(
     {
@@ -372,11 +433,28 @@ export function interest234C(input: Interest234CInput, options: MoneyOptions = {
     checkDate(p.paidOn, "Payment date");
     checkAmount(p.amountMinor, "Payment");
   }
+  const belowMinimum = noAdvanceTaxPayable(rule, taxDue, "tax due", f);
+  if (belowMinimum) return result(rule, 0n, belowMinimum);
+  // Advance tax for a year is paid within that year: a payment dated before
+  // it starts (or after it ends) is another year's, and is not counted.
+  const fyStartMonth = options.fyStartMonth ?? 4;
+  const yearStart = dayOfMonth(start, fyStartMonth, 1);
+  const yearEnd = addDays(dayOfMonth(start + 1, fyStartMonth, 1), -1);
+  const payments = input.payments.filter(
+    (p) => compareIso(p.paidOn, yearStart) >= 0 && compareIso(p.paidOn, yearEnd) <= 0,
+  );
+  const warnings: string[] = [];
+  const ignored = input.payments.length - payments.length;
+  if (ignored > 0) {
+    warnings.push(
+      `${ignored} ${ignored === 1 ? "payment is" : "payments are"} dated outside ${input.fy} (${f.date(yearStart)} to ${f.date(yearEnd)}) and not counted.`,
+    );
+  }
   const workings: Step[] = [];
   let total = 0n;
   for (const [i, inst] of plan.entries()) {
     const dueOn = fyDate(start, inst.due);
-    const paidBy = input.payments
+    const paidBy = payments
       .filter((p) => compareIso(p.paidOn, dueOn) <= 0)
       .reduce((a, p) => a + BigInt(p.amountMinor), 0n);
     const required = divideRounded(taxDue * BigInt(inst.cumulativeBp), 10_000n, {
@@ -417,5 +495,5 @@ export function interest234C(input: Interest234CInput, options: MoneyOptions = {
     inputs: {},
     result: f.money(total),
   });
-  return result(rule, total, workings);
+  return result(rule, total, workings, warnings);
 }
