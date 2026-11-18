@@ -4,17 +4,62 @@
  *
  *   both agree, located        → origin rule+ai, verified
  *   rule only                  → origin rule, verified (needs review if unlocated)
- *   AI only, located           → origin ai, verified; the first N per org need review
+ *   AI only, located           → origin ai, verified; its date may be `auto` only
+ *                                as set out below
  *   AI only, not located       → unverified suggestion; never a deadline
  *   conflict (dates / amounts) → needs review, both values kept
  *
  * "Located" means the linker found the quote on the page (grade other than
  * `unlocated`). A finding without a located quote never becomes a deadline
  * until a person confirms it (house rule 3).
+ *
+ * Whose evidence proves the date. A merged pair's date is judged on the
+ * evidence of the side that supplied it, never on the better grade of the
+ * pair (that let a loosely similar AI quote "locate" a rule date whose own
+ * quote was never found):
+ *
+ *   both sides carry the same rule → `agreed`; proved by the rule's quote,
+ *                                    or by the AI's quote when that one is
+ *                                    trustworthy (below) and the rule's is not exact
+ *   only the rule carries it       → `rule_date`; the rule's own grade decides
+ *   only the AI carries it         → `ai_date`; always reviewed. The rules read
+ *                                    the same words and found no date there,
+ *                                    so the date rests on the model alone.
+ *
+ * When an AI date may become a deadline without a person (house rules 2, 3).
+ * All of these must hold; otherwise the finding is reviewed, whatever the
+ * organisation's history:
+ *
+ *   - the AI's quote is located `exact` (an approximate or strong match may
+ *     differ from the page in exactly the digits that make the date);
+ *   - the rule is fully written in that quote (`ruleDerivableFromQuote`: the
+ *     whole date, or the amount, unit and anchor of the period);
+ *   - it is not a `statutory` rule (a model's choice of rule key and period
+ *     is a judgement, not a copy, so a person makes it);
+ *   - the organisation is past its first N AI findings (`reviewFirstN`).
+ *
+ * Why the first-N rule stays, and why it is not enough on its own: before
+ * this change an org's 26th AI finding became a deadline at any located
+ * grade. Volume says nothing about whether *this* date is on the page, so
+ * the per-finding checks above now come first; first N is only an extra
+ * wait for a new organisation. Only findings that pass every per-finding
+ * check count towards N, so reviews of weak findings cannot "earn" trust.
+ * The counter still counts findings *shown* for review, not ones a person
+ * confirmed unchanged; the caller should count only confirmations.
+ *
+ * Due rules are compared as rules, never by today's dates (M10): "30 days
+ * from receipt" and "30 days from issue" disagree even when both anchors
+ * are the same day now, because correcting the received date later would
+ * pull them apart without anyone having seen the disagreement.
+ *
+ * Never throws: bad input degrades to "needs review" or "no date".
  */
 import type { DateRule, engine, FindingKind, Origin, Verification } from "@dueproof/contracts";
 import { resolveDate } from "./dates/engine";
 import { type DateContext, isDateError } from "./dates/types";
+import { ruleDerivableFromQuote } from "./reconcile-derive";
+
+export * from "./reconcile-derive";
 
 type EngineFinding = engine.EngineFinding;
 
@@ -43,7 +88,17 @@ export type ReconcileReason =
   | "ai_first_n"
   | "unlocated"
   | "conflict_due"
-  | "conflict_amount";
+  | "conflict_amount"
+  /** A matched pair where only the rule finding carries the date. */
+  | "rule_date"
+  /** A matched pair where only the AI finding carries the date: always reviewed. */
+  | "ai_date"
+  /** An AI date whose quote is located, but not `exact`. */
+  | "ai_inexact"
+  /** An AI date that is not fully written in its quote. */
+  | "ai_underived"
+  /** An AI statutory rule: a person chooses the rule and period. */
+  | "ai_statutory";
 
 export type Conflict =
   | { field: "due"; rule: DateRule; ai: DateRule; ruleDueOn?: string; aiDueOn?: string }
@@ -70,6 +125,11 @@ export interface ReconciledFinding {
   conflicts: Conflict[];
   ruleSource?: GradedFinding;
   aiSource?: GradedFinding;
+  /**
+   * Whose quote proves the date, when there is one: show that source's
+   * evidence box, and no other. `grade` and `page` are that source's.
+   */
+  dateEvidence?: "rule" | "ai";
 }
 
 export interface ReconcileOptions {
@@ -77,7 +137,11 @@ export interface ReconcileOptions {
   aiReviewedSoFar?: number;
   /** The first N AI-only located findings per organisation need review. Default 25. */
   reviewFirstN?: number;
-  /** When given, due rules are compared by the dates they resolve to, not only their shape. */
+  /**
+   * When given, a due conflict carries the dates both rules resolve to, for
+   * the reviewer. Rules are still compared as rules: equal dates today are
+   * not agreement.
+   */
   dateContext?: DateContext;
   /** Minimum quote similarity (0–1) for a rule and an AI finding to be the same. Default 0.5. */
   matchThreshold?: number;
@@ -108,6 +172,7 @@ function kindGroup(k: FindingKind): string {
 const VALUE_KINDS = new Set<FindingKind>(["reference", "section", "office", "amount"]);
 
 export function normalizeText(s: string): string {
+  if (typeof s !== "string") return "";
   return s
     .normalize("NFKC")
     .toLowerCase()
@@ -154,17 +219,38 @@ function canonical(v: unknown): string {
   return `{${entries.map(([k, x]) => `${JSON.stringify(k)}:${canonical(x)}`).join(",")}}`;
 }
 
+/**
+ * Two due rules agree only when they are the same rule. Resolving both and
+ * comparing dates is not enough: "30 days from receipt" and "30 days from
+ * issue" give the same day while the two anchors are equal, and part when
+ * one is corrected. The resolved dates, when known, go on the conflict so a
+ * reviewer sees both.
+ */
 function compareDue(rule: DateRule, ai: DateRule, ctx: DateContext | undefined): Conflict | null {
   if (canonical(rule) === canonical(ai)) return null;
   if (ctx) {
     const r = resolveDate(rule, ctx);
     const a = resolveDate(ai, ctx);
-    if (!isDateError(r) && !isDateError(a)) {
-      if (r.dueOn === a.dueOn && r.windowEndOn === a.windowEndOn) return null;
-      return { field: "due", rule, ai, ruleDueOn: r.dueOn, aiDueOn: a.dueOn };
-    }
+    const out: Conflict = { field: "due", rule, ai };
+    if (!isDateError(r)) out.ruleDueOn = r.dueOn;
+    if (!isDateError(a)) out.aiDueOn = a.dueOn;
+    return out;
   }
   return { field: "due", rule, ai };
+}
+
+/**
+ * Why an AI date may not become a deadline without a person; empty when it
+ * may (subject to first N). See the header.
+ */
+function aiDateProblems(a: GradedFinding): ReconcileReason[] {
+  const rule = a.finding.dueRule;
+  if (!rule) return [];
+  const out: ReconcileReason[] = [];
+  if (a.grade !== "exact") out.push("ai_inexact");
+  if (rule.type === "statutory") out.push("ai_statutory");
+  else if (!ruleDerivableFromQuote(rule, a.finding.quote)) out.push("ai_underived");
+  return out;
 }
 
 // ---------------------------------------------------------------- reconcile
@@ -231,11 +317,11 @@ export function reconcile(
         reasons: isLocated ? ["rule_only"] : ["rule_only", "unlocated"],
         conflicts: [],
         ruleSource: r,
+        ...(hasDate ? { dateEvidence: "rule" as const } : {}),
       });
       return;
     }
     const a = aiFindings[ai] as GradedFinding;
-    const grade = bestGrade(r.grade, a.grade);
     const conflicts: Conflict[] = [];
     const rd = r.finding.dueRule;
     const ad = a.finding.dueRule;
@@ -254,14 +340,41 @@ export function reconcile(
     if (merged.amountMinor === undefined && aam !== undefined) merged.amountMinor = aam;
     if (merged.textEn === undefined && a.finding.textEn !== undefined)
       merged.textEn = a.finding.textEn;
-    if (merged.page === undefined && a.page !== undefined && located(a.grade)) merged.page = a.page;
     merged.confidence = Math.max(r.finding.confidence, a.finding.confidence);
+
+    // Whose quote proves the date (see the header). Without a date, the pair
+    // is as located as its better side.
+    const dateFrom = rd && ad ? "both" : rd ? "rule" : ad ? "ai" : null;
+    let evidence: "rule" | "ai" | null = null;
+    let grade: Verification;
+    if (dateFrom === null) {
+      grade = bestGrade(r.grade, a.grade);
+      if (merged.page === undefined && a.page !== undefined && located(a.grade))
+        merged.page = a.page;
+    } else {
+      const aiTrusted = ad !== undefined && aiDateProblems(a).length === 0;
+      evidence =
+        dateFrom === "ai" ||
+        (dateFrom === "both" && conflicts.length === 0 && aiTrusted && r.grade !== "exact")
+          ? "ai"
+          : "rule";
+      const src = evidence === "ai" ? a : r;
+      grade = src.grade;
+      if (src.page !== undefined && located(src.grade)) merged.page = src.page;
+      else delete merged.page;
+    }
+
     const isLocated = located(grade);
-    const reasons: ReconcileReason[] = ["agreed"];
+    const reasons: ReconcileReason[] =
+      dateFrom === "rule"
+        ? ["rule_date"]
+        : dateFrom === "ai"
+          ? ["ai_date", ...aiDateProblems(a)]
+          : ["agreed"];
     if (!isLocated) reasons.push("unlocated");
     for (const c of conflicts) reasons.push(c.field === "due" ? "conflict_due" : "conflict_amount");
-    const review = !isLocated || conflicts.length > 0;
-    findings.push({
+    const review = !isLocated || conflicts.length > 0 || dateFrom === "ai";
+    const out: ReconciledFinding = {
       ...merged,
       id: r.id,
       grade,
@@ -273,7 +386,9 @@ export function reconcile(
       conflicts,
       ruleSource: r,
       aiSource: a,
-    });
+    };
+    if (evidence) out.dateEvidence = evidence;
+    findings.push(out);
   });
 
   aiFindings.forEach((a, ai) => {
@@ -294,12 +409,31 @@ export function reconcile(
       });
       return;
     }
+    // A located AI date that fails a per-finding check is reviewed, whatever
+    // the organisation's history, and does not count towards first N.
+    const problems = aiDateProblems(a);
+    if (problems.length > 0) {
+      findings.push({
+        ...base(a),
+        id: a.id,
+        grade: a.grade,
+        origin: "ai",
+        status: "needs_review",
+        needsReview: true,
+        deadline: "after_review",
+        reasons: ["ai_only", ...problems],
+        conflicts: [],
+        aiSource: a,
+        dateEvidence: "ai",
+      });
+      return;
+    }
     const firstReview = reviewed < firstN;
     if (firstReview) {
       reviewed++;
       used++;
     }
-    findings.push({
+    const out: ReconciledFinding = {
       ...base(a),
       id: a.id,
       grade: a.grade,
@@ -310,7 +444,9 @@ export function reconcile(
       reasons: firstReview ? ["ai_only", "ai_first_n"] : ["ai_only"],
       conflicts: [],
       aiSource: a,
-    });
+    };
+    if (hasDate) out.dateEvidence = "ai";
+    findings.push(out);
   });
 
   return { findings, aiFirstNUsed: used };

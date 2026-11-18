@@ -53,26 +53,30 @@ describe("eval gate", () => {
     page3.indexOf("സമർപ്പിക്കണം.") + "സമർപ്പിക്കണം.".length,
   );
 
-  it("counts a located AI finding with the wrong date as confident-wrong, and the route fails", () => {
-    const wrong = scoreCase(circular, {
-      findings: [
-        {
-          id: "ai-x",
-          grade: "strong",
-          page: 3,
-          finding: {
-            kind: "deadline",
-            text: "Submit the audit report",
-            quote,
-            quoteLang: "ml",
-            confidence: 0.9,
-            dueRule: { type: "fixed", date: "2026-09-15" },
-          },
+  const aiDate = (grade: "exact" | "strong", q: string) => ({
+    findings: [
+      {
+        id: "ai-x",
+        grade,
+        page: 3,
+        finding: {
+          kind: "deadline" as const,
+          text: "Submit the audit report",
+          quote: q,
+          quoteLang: "ml",
+          confidence: 0.9,
+          dueRule: { type: "fixed" as const, date: "2026-09-15" },
         },
-      ],
-      runs: [],
-      needsReview: false,
-    });
+      },
+    ],
+    runs: [],
+    needsReview: false,
+  });
+
+  it("counts a located AI finding with the wrong date as confident-wrong, and the route fails", () => {
+    // The worst case that can still reach `auto`: an exact quote that does
+    // write the wrong date (say, a second date in the same sentence).
+    const wrong = scoreCase(circular, aiDate("exact", `${quote} 15.09.2026`));
     expect(wrong.confidentWrong).toEqual([
       expect.objectContaining({
         why: "wrong_date",
@@ -82,6 +86,12 @@ describe("eval gate", () => {
     ]);
     expect(summarise("bad", [wrong]).passes).toBe(false);
     expect(gate({ confidentWrong: 0 })).toBe(true);
+  });
+
+  it("does not trust an AI date that is only strongly located, or not written in its quote", () => {
+    // Both go to review, so neither can be confident-wrong.
+    expect(scoreCase(circular, aiDate("strong", `${quote} 15.09.2026`)).confidentWrong).toEqual([]);
+    expect(scoreCase(circular, aiDate("exact", quote)).confidentWrong).toEqual([]);
   });
 
   it("does not count an unlocated AI date (an unverified suggestion) as confident-wrong", () => {

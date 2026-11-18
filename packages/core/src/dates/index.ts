@@ -1,5 +1,5 @@
 export * from "./calendar";
-export { resolveDate } from "./engine";
+export { MAX_PERIOD, periodProblem, resolveDate } from "./engine";
 export { type DueBucket, type DueBucketOptions, dueBucket } from "./ladder";
 export { applyNonWorkingPolicy } from "./nonworking";
 export {

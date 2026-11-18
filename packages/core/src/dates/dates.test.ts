@@ -1,6 +1,7 @@
 import type { DateRule } from "@dueproof/contracts";
 import { describe, expect, it } from "vitest";
 import {
+  addDays,
   addMonths,
   addWorkingDays,
   daysInMonth,
@@ -10,6 +11,7 @@ import {
   isLeapYear,
   isoWeekday,
   isValidIsoDate,
+  MAX_PERIOD,
   type ResolvedDateDetail,
   resolveDate,
 } from "../index";
@@ -136,6 +138,91 @@ describe("resolveDate details", () => {
   it("rejects a non-positive amount", () => {
     const r = resolveDate({ type: "relative", anchor: "receipt", amount: 0, unit: "days" }, base);
     expect(isDateError(r) && r.error).toBe("invalid_rule");
+  });
+
+  it("returns an error, never throws, for a period too long to be real", () => {
+    const cases: DateRule[] = [
+      { type: "relative", anchor: "receipt", amount: 100_000_000, unit: "days" },
+      { type: "relative", anchor: "receipt", amount: 120_000, unit: "months" },
+      { type: "relative", anchor: "receipt", amount: 3_661, unit: "working_days" },
+      { type: "relative", anchor: "receipt", amount: 1.5, unit: "days" },
+      { type: "relative", anchor: "receipt", amount: Number.NaN, unit: "days" },
+      {
+        type: "relative",
+        anchor: "receipt",
+        amount: 30,
+        unit: "days",
+        condonable: { amount: 1_000_000, unit: "months" },
+      },
+    ];
+    for (const rule of cases) {
+      const r = resolveDate(rule, base);
+      expect(isDateError(r) && r.error, JSON.stringify(rule)).toBe("invalid_rule");
+    }
+    // The bounds themselves still resolve.
+    for (const unit of ["days", "working_days", "months"] as const) {
+      const r = resolveDate(
+        { type: "relative", anchor: "receipt", amount: MAX_PERIOD[unit], unit },
+        base,
+      );
+      expect(isDateError(r), unit).toBe(false);
+    }
+  });
+
+  it("returns an error, never throws, for an invalid working week", () => {
+    const rel: DateRule = { type: "relative", anchor: "receipt", amount: 3, unit: "working_days" };
+    for (const workingDays of [[8], [0], [1, 2, 3.5], [-1]]) {
+      const r = resolveDate(rel, { ...base, workingDays, rollForward: true });
+      expect(isDateError(r) && r.error, JSON.stringify(workingDays)).toBe("invalid_rule");
+    }
+    // Every day a holiday: the roll-forward cannot find a working day.
+    const holidays = Array.from({ length: 500 }, (_, i) => addDays("2026-10-20", i));
+    const r = resolveDate(
+      { type: "relative", anchor: "receipt", amount: 1, unit: "days" },
+      { ...base, holidays, rollForward: true },
+    );
+    expect(isDateError(r) && r.error).toBe("invalid_rule");
+  });
+
+  it("never throws, whatever the rule (property)", () => {
+    // A small deterministic generator, so a failure reproduces.
+    let seed = 7;
+    const rand = () => {
+      seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648;
+      return seed / 2_147_483_648;
+    };
+    const pick = <T>(xs: readonly T[]): T => xs[Math.floor(rand() * xs.length)] as T;
+    const amounts = [0, 1, 7, 30, 3_660, 3_661, 1e6, 1e12, -5, 2.5, Number.NaN, Infinity];
+    for (let i = 0; i < 500; i++) {
+      const rule = pick([
+        {
+          type: "relative",
+          anchor: pick(["receipt", "issue", "order", "service", "hearing"]),
+          amount: pick(amounts),
+          unit: pick(["days", "working_days", "months", "weeks"]),
+          ...(rand() < 0.3
+            ? { condonable: { amount: pick(amounts), unit: pick(["days", "months", "years"]) } }
+            : {}),
+        },
+        { type: "fixed", date: pick(["2026-02-30", "2026-11-20", "x", "99999-01-01"]) },
+        {
+          type: "statutory",
+          ruleKey: pick(["in.gst.gstr3b.monthly", "nope"]),
+          period: pick(["2026-10", "FY2025-26", "garbage"]),
+        },
+      ]) as DateRule;
+      const ctx: DateContext = {
+        anchors: {
+          receipt: pick(["2026-11-20", "2026-02-31", "9999-12-31"]),
+          issue: "2026-11-01",
+          order: "2026-10-01",
+        },
+        holidays: [],
+        workingDays: pick([[1, 2, 3, 4, 5, 6], [], [7], [8], [0, 1]]),
+        rollForward: rand() < 0.5,
+      };
+      expect(() => resolveDate(rule, ctx), JSON.stringify({ rule, ctx })).not.toThrow();
+    }
   });
 
   it("delegates statutory rules to the calendar", () => {

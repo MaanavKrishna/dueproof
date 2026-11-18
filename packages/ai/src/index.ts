@@ -5,8 +5,15 @@
  * The workflow's `ai_assist` step calls `assistExtraction()`; its
  * `aiFindings` go to `reconcile()` in @dueproof/core and its `runs` to `ai_runs`.
  */
+
+export {
+  type BudgetLedger,
+  type BudgetReservation,
+  type MemoryBudgetLedger,
+  memoryBudgetLedger,
+} from "./budget";
 export { type CallContext, type CallResult, callProvider } from "./call";
-export { costForModel, costMicroUsd, estimateMaxCostMicroUsd } from "./cost";
+export { type CostOptions, costForModel, costMicroUsd, estimateMaxCostMicroUsd } from "./cost";
 export {
   type AssistDeps,
   type AssistInput,
@@ -53,7 +60,13 @@ export {
   usdCentsToMicroUsd,
   withinBudget,
 } from "./policy";
-export { canonicalModelId, type ModelPrice, PRICES, priceFor } from "./prices";
+export {
+  canonicalModelId,
+  type ModelPrice,
+  PRICES,
+  priceFor,
+  UNKNOWN_MODEL_PRICE,
+} from "./prices";
 export { type PromptId, promptIdFor, type SystemPrompt, systemPrompt } from "./prompts";
 export * from "./providers";
 export {
@@ -79,10 +92,10 @@ export {
 export {
   type AiFinding,
   amountsInQuote,
+  asciiDigits,
   dateFieldsOutsideRule,
   EXTRACTION_JSON_SCHEMA,
   type Issue,
-  quoteHasDay,
   RawAiFinding,
   type RejectReason,
   type ValidationResult,
