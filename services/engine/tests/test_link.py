@@ -46,5 +46,32 @@ class Link(unittest.TestCase):
                           "approximate", "none", "none", "none"])
 
 
+NOTICE = ("You are directed to appear before the undersigned on 20.10.2026 at 11 AM and to furnish "
+          "reply within 15 days of receipt of this notice failing which penalty of Rs. 4,52,300 will "
+          "be levied")
+NOTICE_INDEX = build_index({1: words(NOTICE)})
+
+
+class Figures(unittest.TestCase):
+    """Fuzzy matching forgives a letter, never a digit (C3)."""
+    def test_a_quote_with_other_numbers_is_not_located(self):
+        for q in ["appear before the undersigned on 30.10.2026 at 11 AM",
+                  "appear before the undersigned on 20.11.2027",
+                  "furnish reply within 45 days of receipt",
+                  "furnish reply within 30 days of receipt of this notice",
+                  "penalty of Rs. 9,52,300 will be levied",
+                  "you must reply within 30 days"]:
+            with self.subTest(q=q):
+                hit = link_quote(q, NOTICE_INDEX, hint_page=1)
+                self.assertEqual((hit["confidence"], hit["rects"]), ("none", []))
+
+    def test_the_same_numbers_in_other_words_still_match(self):
+        hit = link_quote("you must appear before the undersigned on 20.10.2026 at 11AM", NOTICE_INDEX, 1)
+        self.assertIn(hit["confidence"], ("strong", "approximate"))
+        hit = link_quote("penalty of Rs.4,52,300/- will be levied", NOTICE_INDEX, 1)
+        self.assertIn(hit["confidence"], ("exact", "strong"))
+        self.assertTrue(hit["rects"])
+
+
 if __name__ == "__main__":
     unittest.main()

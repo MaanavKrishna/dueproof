@@ -7,6 +7,7 @@ Matching is space-insensitive — see the README for why.
 from __future__ import annotations
 
 import math
+import re
 import unicodedata
 import zlib
 
@@ -94,7 +95,31 @@ def _rects_for(words: list[dict], indices: list[int]) -> list[list[float]]:
          for _, line in sorted(by_line.items(), key=lambda kv: min(w["y0"] for w in kv[1]))
          for g in _segments(line)])
 
-def _match_page(quote: str, page: tuple) -> tuple[float, list[list[float]]]:
+# Numbers written with their digits grouped by spaces: "4 52 300".
+_SPACED_FIGURE = re.compile(r"(?<!\d)\d{1,2}(?: \d{2})* \d{3}(?!\d)")
+
+def _figures(text: str, strict: bool) -> list[str]:
+    """The numbers in `text`, one per word, as their digits alone: "20.10.2026"
+    -> "20102026", "Rs.4,52,300/-" -> "452300". Strict (for a quote) keeps
+    only words that are numbers, so OCR's "shal1" for "shall" is not one."""
+    text = _SPACED_FIGURE.sub(lambda m: m[0].replace(" ", ""), unicodedata.normalize("NFKC", text))
+    out = []
+    for word in text.split():
+        alnum = [c for c in word if unicodedata.category(c)[0] in "LN"]
+        digits = "".join(str(unicodedata.decimal(c, "")) for c in alnum
+                         if unicodedata.category(c) == "Nd")
+        if digits and (not strict or len(digits) == len(alnum) or re.search(r"\d\d", word)):
+            out.append(digits)
+    return out
+
+def _figures_agree(quote: str, words: list[dict], hit: list[int]) -> bool:
+    """Every number in the quote is a number in the matched words. Fuzzy
+    matching forgives a letter, never a digit: a quote saying 30.10.2026
+    where the page says 20.10.2026 is not proved by that page."""
+    on_page = set(_figures(" ".join(words[i]["text"] for i in hit), strict=False))
+    return all(f in on_page for f in _figures(quote, strict=True))
+
+def _match_page(quote: str, page: tuple, raw: str = "") -> tuple[float, list[list[float]]]:
     hay, spans, words = page
     pos = hay.find(quote)
     if pos >= 0:                          # verbatim: typical for native text layers
@@ -105,15 +130,19 @@ def _match_page(quote: str, page: tuple) -> tuple[float, list[list[float]]]:
             return 0.0, []
         start, end, score = al.dest_start, al.dest_end, al.score
     hit = [wi for (cs, ce, wi) in spans if cs < end and ce > start]
+    if hit and score < 100.0 and not _figures_agree(raw, words, hit):
+        return 0.0, []                    # near in wording, wrong in its numbers: unlocated
     return (float(score), _rects_for(words, hit)) if hit else (0.0, [])
 
 def link_quote(quote: str, index: dict[int, tuple], hint_page: int | None = None) -> dict:
-    """Locate `quote` in the document. Returns page_num, rects, score, confidence."""
+    """Locate `quote` in the document. Returns page_num, rects, score, confidence.
+    Wording may match approximately (OCR noise); numbers and dates must match
+    exactly, or the quote is not located at all."""
     q = _norm_text(quote or "")
     best = {"page_num": hint_page, "rects": [], "score": 0.0}
     if len(q) >= 6:
         for pno in sorted(index, key=lambda p: (p != hint_page, p)):   # hinted page first
-            score, rects = _match_page(q, index[pno])
+            score, rects = _match_page(q, index[pno], quote)
             if rects and score > best["score"] + 0.01:
                 best = {"page_num": pno, "rects": rects, "score": round(score, 2)}
             if best["score"] >= 100.0:
