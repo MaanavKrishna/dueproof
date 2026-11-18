@@ -27,10 +27,16 @@ END
 $$;
 --> statement-breakpoint
 
--- The connecting user must be able to SET ROLE dueproof_app.
+-- The connecting user must be able to SET ROLE dueproof_app. Since Postgres 16
+-- a role's creator is only an admin of it (no SET), which is what a hosted
+-- database owner that isn't a superuser (Neon) gets; grant SET explicitly.
 DO $$
 BEGIN
-  IF NOT pg_has_role(current_user, 'dueproof_app', 'MEMBER') THEN
+  IF current_setting('server_version_num')::int >= 160000 THEN
+    IF NOT pg_has_role(current_user, 'dueproof_app', 'SET') THEN
+      EXECUTE format('GRANT dueproof_app TO %I WITH SET TRUE', current_user);
+    END IF;
+  ELSIF NOT pg_has_role(current_user, 'dueproof_app', 'MEMBER') THEN
     EXECUTE format('GRANT dueproof_app TO %I', current_user);
   END IF;
 END
