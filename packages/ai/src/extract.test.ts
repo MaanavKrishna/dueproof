@@ -28,6 +28,12 @@ function input(overrides: Partial<AssistInput> = {}): AssistInput {
 
 const DUTY_QUOTE =
   "You are hereby directed to explain the discrepancies and pay the tax of Rs. 4,52,300 with interest within 30 days of receipt of this notice.";
+/**
+ * Part of the same sentence, cut before "of receipt": a reading "30 days from
+ * issue" is written in it (no anchor named), and disagrees with the rules'
+ * "30 days from receipt".
+ */
+const CUT_QUOTE = "pay the tax of Rs. 4,52,300 with interest within 30 days";
 
 function finding(over: Record<string, unknown> = {}) {
   return {
@@ -123,6 +129,7 @@ describe("assistExtraction", () => {
             json: {
               findings: [
                 finding({
+                  quote: CUT_QUOTE,
                   dueRule: {
                     type: "relative",
                     anchor: "issue",
@@ -148,6 +155,48 @@ describe("assistExtraction", () => {
     expect(fake.calls[1]?.effort).toBe("high");
   });
 
+  it("drops a reading whose anchor or period the quote does not state, instead of escalating on it", async () => {
+    const fake = createFakeProvider({
+      script: byLevel({
+        sonnet: [
+          {
+            json: {
+              findings: [
+                // The quote says "of receipt"; "from issue" is the model's own idea.
+                finding({
+                  dueRule: {
+                    type: "relative",
+                    anchor: "issue",
+                    amount: 30,
+                    unit: "days",
+                    condonable: null,
+                  },
+                }),
+                // 90 days appears nowhere in the quote.
+                finding({
+                  dueRule: {
+                    type: "relative",
+                    anchor: "receipt",
+                    amount: 90,
+                    unit: "days",
+                    condonable: null,
+                  },
+                }),
+              ],
+            },
+          },
+        ],
+      }),
+    });
+    const r = await assistExtraction(input(), testPolicy({}, fake));
+    expect(r.runs).toHaveLength(1);
+    expect(r.aiFindings.every((f) => f.finding.dueRule === undefined)).toBe(true);
+    expect(r.stats.issues).toMatchObject({
+      relative_anchor_not_in_quote: 1,
+      relative_period_not_in_quote: 1,
+    });
+  });
+
   it("at the Opus cap, keeps Sonnet's reading and sends the item to review instead", async () => {
     const fake = createFakeProvider({
       script: byLevel({
@@ -156,6 +205,7 @@ describe("assistExtraction", () => {
             json: {
               findings: [
                 finding({
+                  quote: CUT_QUOTE,
                   dueRule: {
                     type: "relative",
                     anchor: "issue",

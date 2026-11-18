@@ -7,13 +7,21 @@
  *
  * Rules enforced here (04 §1, house rules 2 and 3):
  *  - a due date is only ever a `DateRule`; any other date-like field rejects the finding;
- *  - a `fixed` rule's day must be written in the quote (the model may copy a date, never compute one);
+ *  - a `DateRule` must be fully written in the quote (`ruleDerivationIssue` in
+ *    packages/core): a fixed date's day, month and year; a relative period's
+ *    amount, unit and anchor; a statutory rule's form and period, with a key
+ *    that exists. The model may copy a date or a period, never compute one.
+ *    A rule that fails is dropped from the finding, with the reason;
+ *  - a period longer than the date engine counts (about ten years) is dropped;
  *  - an amount must be written in the quote (no model arithmetic);
  *  - display text may not carry an ISO date that is not in the quote;
  *  - anything malformed is dropped, finding by finding, with a reason.
  */
 import { DateRule, type engine, FindingKind } from "@dueproof/contracts";
+import { asciiDigits, type DerivationIssue, ruleDerivationIssue } from "@dueproof/core";
 import { z } from "zod";
+
+export { asciiDigits };
 
 type EngineFinding = engine.EngineFinding;
 
@@ -113,10 +121,33 @@ export const EXTRACTION_JSON_SCHEMA = {
 
 // ------------------------------------------------------------ Zod (the real check)
 
+/** The keys each DateRule type may carry, as in the JSON schema above. */
+const RULE_KEYS: Record<string, readonly string[]> = {
+  fixed: ["type", "date"],
+  relative: ["type", "anchor", "amount", "unit", "condonable"],
+  statutory: ["type", "ruleKey", "period"],
+};
+const CONDONABLE_KEYS = ["amount", "unit"];
+
+const onlyKeys = (o: object, keys: readonly string[]) =>
+  Object.keys(o).every((k) => keys.includes(k));
+
 const NullableDateRule = z.preprocess((v) => {
+  if (!v || typeof v !== "object") return v;
+  const o = v as Record<string, unknown>;
+  // Strict, like the rest of the finding: an unknown key (anywhere in the
+  // rule) rejects the finding rather than being stripped silently.
+  const keys = RULE_KEYS[String(o.type)];
+  const c = o.condonable;
+  if (
+    !keys ||
+    !onlyKeys(o, keys) ||
+    (c !== null && c !== undefined && (typeof c !== "object" || !onlyKeys(c, CONDONABLE_KEYS)))
+  )
+    return { type: "invalid" };
   // Drop `condonable: null` so the contract's DateRule (optional, not nullable) accepts it.
-  if (v && typeof v === "object" && (v as { condonable?: unknown }).condonable === null) {
-    const { condonable: _drop, ...rest } = v as Record<string, unknown>;
+  if (c === null) {
+    const { condonable: _drop, ...rest } = o;
     return rest;
   }
   return v;
@@ -146,7 +177,8 @@ export type RejectReason =
   | "page_out_of_range"
   | "empty_quote";
 
-export type Issue = "fixed_date_not_in_quote" | "amount_not_in_quote" | "date_in_text_not_in_quote";
+/** Why a field was removed from a finding: a due rule not written in the quote, or as below. */
+export type Issue = DerivationIssue | "amount_not_in_quote" | "date_in_text_not_in_quote";
 
 export interface AiFinding {
   /** Stable within one call: "ai-<level>-<index>". */
@@ -180,27 +212,6 @@ export function dateFieldsOutsideRule(value: unknown, path = ""): string[] {
     out.push(...dateFieldsOutsideRule(v, p));
   }
   return out;
-}
-
-/** Indic digit blocks (each ten consecutive code points) → ASCII. */
-const DIGIT_ZEROS = [
-  0x0966, 0x09e6, 0x0a66, 0x0ae6, 0x0b66, 0x0be6, 0x0c66, 0x0ce6, 0x0d66, 0xff10,
-];
-export function asciiDigits(s: string): string {
-  let out = "";
-  for (const ch of s) {
-    const cp = ch.codePointAt(0) ?? 0;
-    const zero = DIGIT_ZEROS.find((z) => cp >= z && cp <= z + 9);
-    out += zero === undefined ? ch : String(cp - zero);
-  }
-  return out;
-}
-
-/** True when the quote writes the day of this ISO date as a standalone number. */
-export function quoteHasDay(quote: string, iso: string): boolean {
-  const day = Number(iso.slice(8, 10));
-  if (!Number.isFinite(day)) return false;
-  return new RegExp(`(?<!\\d)0?${day}(?!\\d)`).test(asciiDigits(quote));
 }
 
 const MULTIPLIERS: [RegExp, number][] = [
@@ -282,11 +293,9 @@ export function validateExtraction(raw: unknown, opts: ValidateOptions): Validat
     if (f.severity !== null) out.severity = f.severity;
 
     if (f.dueRule) {
-      if (f.dueRule.type === "fixed" && !quoteHasDay(f.quote, f.dueRule.date)) {
-        issues.push("fixed_date_not_in_quote");
-      } else {
-        out.dueRule = f.dueRule;
-      }
+      const issue = ruleDerivationIssue(f.dueRule, f.quote);
+      if (issue) issues.push(issue);
+      else out.dueRule = f.dueRule;
     }
     if (f.amountMinor !== null) {
       if (amountsInQuote(f.quote).includes(f.amountMinor)) out.amountMinor = f.amountMinor;

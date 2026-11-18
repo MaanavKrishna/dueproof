@@ -79,10 +79,10 @@ export {
 export {
   type AiFinding,
   amountsInQuote,
+  asciiDigits,
   dateFieldsOutsideRule,
   EXTRACTION_JSON_SCHEMA,
   type Issue,
-  quoteHasDay,
   RawAiFinding,
   type RejectReason,
   type ValidationResult,
