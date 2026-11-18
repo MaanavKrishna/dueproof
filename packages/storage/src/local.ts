@@ -4,11 +4,13 @@
  * Signed URLs point at an app route (default `/api/storage/local`) with an
  * HMAC token: base64url(JSON payload) "." base64url(HMAC-SHA256(secret,
  * payload part)). The payload names the key (and so the organisation), the
- * method, the expiry, and for PUTs the content type and size cap. The route
- * hands the request to `handleLocalStorageRequest()`.
+ * method, the expiry, and for PUTs the content type, the size cap and, for
+ * uploads, the exact size. The route hands the request to
+ * `handleLocalStorageRequest()`.
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, resolve, sep } from "node:path";
 import {
   assertKey,
@@ -39,6 +41,8 @@ interface TokenPayload {
   e: number;
   ct?: string;
   max?: number;
+  /** Exact body size for an upload. */
+  n?: number;
 }
 
 const b64u = (buf: Buffer | string) => Buffer.from(buf).toString("base64url");
@@ -106,6 +110,31 @@ export class LocalDiskStorage implements StoragePort {
     }
   }
 
+  async getStream(key: string): Promise<AsyncIterable<Uint8Array> | null> {
+    const path = this.#path(key);
+    try {
+      await stat(path);
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code === "ENOENT") return null;
+      throw e;
+    }
+    return createReadStream(path);
+  }
+
+  async copy(from: string, to: string): Promise<void> {
+    const src = this.#path(from);
+    const dest = this.#path(to);
+    await mkdir(dirname(dest), { recursive: true });
+    const tmp = `${dest}.${process.pid}.${this.#now()}.tmp`;
+    await copyFile(src, tmp);
+    await rename(tmp, dest);
+    try {
+      await copyFile(`${src}.meta`, `${dest}.meta`);
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
+    }
+  }
+
   async delete(key: string): Promise<void> {
     const path = this.#path(key);
     await rm(path, { force: true });
@@ -160,6 +189,7 @@ export class LocalDiskStorage implements StoragePort {
       m: "PUT",
       e,
       max,
+      ...(options.size !== undefined ? { n: options.size } : {}),
       ...(options.contentType ? { ct: options.contentType } : {}),
     });
   }
@@ -184,6 +214,8 @@ export class LocalDiskStorage implements StoragePort {
     const payload = token ? this.verifyToken(token) : null;
     if (payload?.m !== "PUT") return false;
     if (payload.max !== undefined && body.byteLength > payload.max) return false;
+    if (payload.n !== undefined && body.byteLength !== payload.n) return false;
+    if (payload.ct && contentType !== payload.ct) return false;
     await this.put(payload.k, body, contentType ? { contentType } : {});
     return true;
   }
@@ -225,8 +257,18 @@ export async function handleLocalStorageRequest(
   if (payload.max !== undefined && declared > payload.max) {
     return new Response("too large", { status: 413, headers });
   }
-  const body = await readCapped(request, payload.max ?? Number.MAX_SAFE_INTEGER);
+  if (payload.n !== undefined && request.headers.has("content-length") && declared !== payload.n) {
+    return new Response("content-length does not match the signed URL", { status: 400, headers });
+  }
+  const cap = Math.min(
+    payload.max ?? Number.MAX_SAFE_INTEGER,
+    payload.n ?? Number.MAX_SAFE_INTEGER,
+  );
+  const body = await readCapped(request, cap);
   if (!body) return new Response("too large", { status: 413, headers });
+  if (payload.n !== undefined && body.byteLength !== payload.n) {
+    return new Response("the body is not the size the signed URL allows", { status: 400, headers });
+  }
   await storage.put(payload.k, body, contentType ? { contentType } : {});
   return new Response(null, { status: 200, headers });
 }
