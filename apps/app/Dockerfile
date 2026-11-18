@@ -43,11 +43,13 @@ RUN pnpm --filter @dueproof/app build
 
 # ---------------------------------------------------------------- workflow world
 # The Postgres World is resolved by name at run time (WORKFLOW_TARGET_WORLD),
-# so the standalone trace doesn't include it: install it on its own.
+# so the standalone trace doesn't include it: install it on its own, from its
+# committed lockfile (every package pinned with its integrity hash), with no
+# install scripts.
 FROM base AS workflow-world
 WORKDIR /opt/workflow-world
-COPY apps/app/docker/workflow-world.package.json ./package.json
-RUN npm install --omit=dev --no-fund --no-audit --loglevel=error
+COPY apps/app/docker/workflow-world/package.json apps/app/docker/workflow-world/package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts --no-fund --no-audit --loglevel=error
 COPY apps/app/docker/bootstrap-workflow.mjs ./bootstrap.mjs
 
 # ---------------------------------------------------------------- runtime
