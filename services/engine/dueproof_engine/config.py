@@ -81,8 +81,9 @@ DISPLAY_DPI = 144    # what the browser sees
 DISPLAY_QUALITY = 80 # WebP quality of the page images
 
 # --- Local language -> English machine translation (engine-heavy) ----------
-# IndicTrans2 (AI4Bharat, MIT licence) translates all 22 languages in
-# languages.py into English. It runs locally and is offline by construction:
+# IndicTrans2 (AI4Bharat; weights under the MIT licence per the model card,
+# vendored model code under Apache-2.0: see NOTICE) translates all 22
+# languages in languages.py into English. It runs locally and is offline by construction:
 #   * the model's Python is vendored in pipeline/indictrans2/, byte-identical to
 #     the pinned revision, so nothing is fetched and executed (no
 #     trust_remote_code);
