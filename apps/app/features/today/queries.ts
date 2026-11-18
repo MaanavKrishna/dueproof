@@ -31,6 +31,7 @@ import {
   withOrg,
 } from "@dueproof/db";
 import type { AuthContext } from "@/lib/authorize";
+import { isUnfiled } from "@/lib/deadline-rows";
 import {
   clientScope,
   type DueState,
@@ -58,6 +59,8 @@ export interface TodayRow {
   source: "notice" | "order" | "statutory" | "manual";
   basis: string;
   hearing: boolean;
+  /** Read from a document not filed in a case: shown apart, never counted as due (H2). */
+  unfiled: boolean;
 }
 
 export interface TodayData {
@@ -70,6 +73,13 @@ export interface TodayData {
   dueToday: TodayRow[];
   thisWeek: TodayRow[];
   hearings: TodayRow[];
+  /**
+   * Deadlines read from documents nobody has filed in a case. They wait in
+   * their own group and stay out of the counts until someone files the
+   * document (or sets it aside as not a notice), so an invoice or a duplicate
+   * scan never inflates "Overdue".
+   */
+  notFiled: TodayRow[];
   review: {
     count: number;
     items: {
@@ -198,6 +208,7 @@ export async function loadToday(
         source: r.source,
         basis: r.basis,
         hearing: r.kind === "hearing",
+        unfiled: isUnfiled(r),
       };
     });
 
@@ -355,6 +366,7 @@ export async function loadToday(
       };
     }
 
+    const filed = rows.filter((r) => !r.unfiled);
     const me = people.find((p) => p.id === ctx.userId);
     return {
       scope,
@@ -362,10 +374,11 @@ export async function loadToday(
       today,
       todayLabel: fmtDate(today, clock.locale),
       firstName: (me?.name ?? "").split(/\s+/)[0] ?? "",
-      overdue: rows.filter((r) => r.state === "overdue" && !r.hearing),
-      dueToday: rows.filter((r) => r.state === "today" && !r.hearing),
-      thisWeek: rows.filter((r) => r.state === "week" && !r.hearing),
-      hearings: rows.filter((r) => r.hearing && r.dueOn >= today && r.dueOn <= weekEnd),
+      overdue: filed.filter((r) => r.state === "overdue" && !r.hearing),
+      dueToday: filed.filter((r) => r.state === "today" && !r.hearing),
+      thisWeek: filed.filter((r) => r.state === "week" && !r.hearing),
+      hearings: filed.filter((r) => r.hearing && r.dueOn >= today && r.dueOn <= weekEnd),
+      notFiled: rows.filter((r) => r.unfiled),
       review: {
         count: toReview.length,
         items: toReview.slice(0, 5).map((f) => ({
@@ -392,7 +405,8 @@ export async function loadToday(
 
 /** "3 overdue, 5 due this week, 12 to review." */
 export function summarySentence(
-  d: Pick<TodayData, "overdue" | "dueToday" | "thisWeek" | "review" | "hearings">,
+  d: Pick<TodayData, "overdue" | "dueToday" | "thisWeek" | "review" | "hearings"> &
+    Partial<Pick<TodayData, "notFiled">>,
 ): string {
   const parts: string[] = [];
   if (d.overdue.length) parts.push(`${d.overdue.length} overdue`);
@@ -401,6 +415,7 @@ export function summarySentence(
   if (d.hearings.length)
     parts.push(`${d.hearings.length} hearing${d.hearings.length === 1 ? "" : "s"} this week`);
   if (d.review.count) parts.push(`${d.review.count} to review`);
+  if (d.notFiled?.length) parts.push(`${d.notFiled.length} in documents not filed yet`);
   if (!parts.length) return "Nothing is due this week and nothing waits for review.";
   const text = parts.join(", ");
   return `${text.charAt(0).toUpperCase()}${text.slice(1)}.`;
