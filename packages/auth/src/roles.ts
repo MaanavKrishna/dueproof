@@ -25,7 +25,9 @@ export const roles = {
     team: ["create", "update", "delete"],
     ac: ["create", "read", "update", "delete"],
   }),
-  manager: ac.newRole({ invitation: ["create", "cancel"] }),
+  // Managers don't invite (H2): the app's team actions need `team.manage`
+  // (owners and admins), and Better Auth's own endpoints are closed over HTTP.
+  manager: ac.newRole({}),
   member: ac.newRole({}),
   viewer: ac.newRole({}),
 } satisfies Record<Role, unknown>;

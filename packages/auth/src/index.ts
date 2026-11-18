@@ -1,9 +1,11 @@
 export {
   type Auth,
   type AuthConfig,
+  CLIENT_AUTH_PATHS,
   createAuth,
   firstMembershipOrg,
   getMembership,
+  isClientAuthPath,
   isFirstRun,
   type Membership,
   RESET_LINK_SECONDS,

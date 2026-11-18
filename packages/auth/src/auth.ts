@@ -35,7 +35,7 @@ import {
 import { type AnyPgDatabase, unsafeRawDb } from "@dueproof/db/internal";
 import { type BetterAuthPlugin, betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { APIError } from "better-auth/api";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { organization as organizationPlugin } from "better-auth/plugins/organization";
 import { twoFactor } from "better-auth/plugins/two-factor";
 import { hashPassword, verifyPassword } from "./password";
@@ -84,6 +84,62 @@ export interface AuthConfig {
     url: string;
   }) => Promise<void>;
 }
+
+/**
+ * The Better Auth endpoints a browser may call (H2): signing in and out, the
+ * session, password reset, passkeys and two-factor. An allowlist: every other
+ * endpoint (the organisation plugin's member, role, invitation and metadata
+ * endpoints above all) answers 404 over HTTP. The app changes those only
+ * through its own server actions, which authorise, check the role hierarchy
+ * and write audit entries. Server-side calls (`auth.api.*`) are not affected.
+ */
+export const CLIENT_AUTH_PATHS: readonly string[] = [
+  "/ok",
+  "/error",
+  "/get-session",
+  "/sign-in/email",
+  "/sign-up/email",
+  "/sign-out",
+  "/request-password-reset",
+  "/reset-password",
+  "/reset-password/:token",
+  "/passkey/generate-authenticate-options",
+  "/passkey/verify-authentication",
+  "/passkey/generate-register-options",
+  "/passkey/verify-registration",
+  "/passkey/delete-passkey",
+  "/two-factor/enable",
+  "/two-factor/disable",
+  "/two-factor/verify-totp",
+  "/two-factor/verify-backup-code",
+  // SAML sign-in, when ee/ is loaded. Its own gate (ee/sso) allows only the
+  // sign-in and identity-provider endpoints under /sso/ and refuses the rest.
+  "/sign-in/sso",
+];
+
+/** Whether a browser may call this auth path (`/api/auth` stripped, or the endpoint's template). */
+export function isClientAuthPath(path: string): boolean {
+  if (CLIENT_AUTH_PATHS.includes(path)) return true;
+  // The emailed reset link: /reset-password/<token>.
+  if (/^\/reset-password\/[^/]+$/.test(path)) return true;
+  return path.startsWith("/sso/");
+}
+
+const httpAllowlist = {
+  id: "dueproof-http-allowlist",
+  hooks: {
+    before: [
+      {
+        matcher: () => true,
+        handler: createAuthMiddleware(async (ctx) => {
+          // ctx.request is set only for HTTP requests, not for auth.api calls.
+          if (ctx.request && !isClientAuthPath(ctx.path))
+            throw new APIError("NOT_FOUND", { message: "Not found." });
+        }),
+      },
+    ],
+  },
+} satisfies BetterAuthPlugin;
 
 /** A reset link works once, for an hour. */
 export const RESET_LINK_SECONDS = 60 * 60;
@@ -164,6 +220,7 @@ export function createAuth(config: AuthConfig) {
         : {}),
     },
     plugins: [
+      httpAllowlist,
       organizationPlugin({
         ac,
         roles,
@@ -177,7 +234,8 @@ export function createAuth(config: AuthConfig) {
                 type: "boolean",
                 required: false,
                 defaultValue: false,
-                input: true,
+                // Set only by the app's own team actions, never by a caller.
+                input: false,
               },
             },
           },
