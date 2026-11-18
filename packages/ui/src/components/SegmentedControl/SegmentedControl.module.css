@@ -100,3 +100,11 @@
   overflow: hidden;
   font-weight: var(--dp-font-weight-semibold);
 }
+
+/* Touch: every segment is at least the coarse hit target (44px), whatever the size (M11). */
+@media (pointer: coarse) {
+  .root,
+  .sm {
+    height: max(var(--dp-size-control-md), var(--dp-size-target));
+  }
+}

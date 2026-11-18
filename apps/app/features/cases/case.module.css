@@ -1,0 +1,16 @@
+/* Case-page pieces that aren't layout. Layout stays in components/screen.module.css. */
+
+/* The back arrow is a full hit target, not just its 20px icon (M11). */
+.back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--dp-size-target);
+  min-height: var(--dp-size-target);
+  border-radius: var(--dp-radius-sm);
+  color: var(--dp-fg-secondary);
+}
+
+.back:hover {
+  background: var(--dp-bg-hover);
+}

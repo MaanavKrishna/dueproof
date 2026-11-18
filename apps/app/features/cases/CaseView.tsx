@@ -68,6 +68,7 @@ import {
   ReceivedDialog,
   StageDialog,
 } from "./CaseDialogs";
+import caseStyles from "./case.module.css";
 import type { CaseData, CaseDemand, CaseFinding } from "./queries";
 
 const ROLE_ICON = {
@@ -745,7 +746,11 @@ export function CaseView({
           [data.typeLabel.split(" · ")[0], data.reference].filter(Boolean).join(" · ") || data.title
         }
         toolbarLeading={
-          <NextLink href="/notices" aria-label="Back to notices" className={styles.focusRing}>
+          <NextLink
+            href="/notices"
+            aria-label="Back to notices"
+            className={`${styles.focusRing} ${caseStyles.back}`}
+          >
             <ArrowLeftIcon label="Back to notices" />
           </NextLink>
         }
