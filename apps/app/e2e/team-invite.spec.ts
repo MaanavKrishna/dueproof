@@ -8,23 +8,18 @@ import { expect, type Page, test } from "@playwright/test";
 
 const PASSWORD = "a-long-test-password";
 
+/** Sign in as the owner another spec made, or sign up first on a fresh run. */
 async function signInOwner(page: Page) {
   const base = test.info().project.use.baseURL as string;
   const body = { email: "asha@harbour.test", password: PASSWORD, name: "Asha Rao" };
   const headers = { origin: base };
-  const up = await page.request.post("/api/auth/sign-up/email", { data: body, headers });
-  if (up.ok()) return;
   const res = await page.request.post("/api/auth/sign-in/email", { data: body, headers });
-  expect(res.status()).toBe(200);
+  if (res.ok()) return;
+  const up = await page.request.post("/api/auth/sign-up/email", { data: body, headers });
+  expect(up.status()).toBe(200);
 }
 
-test("invite from Team & access, then join through the copied link", async ({
-  page,
-  browser,
-  context,
-}) => {
-  const base = test.info().project.use.baseURL as string;
-  await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: base });
+test("invite from Team & access, then join through the copied link", async ({ page, browser }) => {
   await signInOwner(page);
   const invitee = `ravi.${Date.now()}@harbour.test`;
 
@@ -34,12 +29,33 @@ test("invite from Team & access, then join through the copied link", async ({
   await page.getByRole("button", { name: "Invite", exact: true }).click();
   const copy = page.getByRole("button", { name: `Copy sign-up link for ${invitee}` });
   await expect(copy).toBeVisible();
+  // Catch what the copy button writes (headless Chrome's clipboard can't be read back).
+  await page.evaluate(() => {
+    const w = window as unknown as { __copied?: string };
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async (t: string) => {
+          w.__copied = t;
+        },
+      },
+    });
+  });
   await copy.click();
-  const link = await page.evaluate(() => navigator.clipboard.readText());
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { __copied?: string }).__copied ?? ""))
+    .not.toBe("");
+  const link = await page.evaluate(
+    () => (window as unknown as { __copied?: string }).__copied ?? "",
+  );
   expect(link).toMatch(/\/sign-up\?invite=[\w.%-]+$/);
   expect(link).not.toContain("ravi");
 
-  const fresh = await browser.newContext();
+  // The invitee is on another machine: their own address for the per-IP
+  // sign-up limit, which the other specs' sign-ups have used up.
+  const fresh = await browser.newContext({
+    extraHTTPHeaders: { "x-forwarded-for": "198.51.100.23" },
+  });
   const guest = await fresh.newPage();
   // The address alone shows nothing about the invitation.
   await guest.goto(`/sign-up?email=${encodeURIComponent(invitee)}`);
