@@ -484,7 +484,8 @@ describe("reports and exposure", () => {
     const w = await loadWorkload(owner);
     expect(w.weeks).toHaveLength(8);
     expect(w.rows.find((r) => r.userId === null)?.total).toBeGreaterThan(0);
-    expect(w.rows.find((r) => r.userId === owner.userId)?.total).toBe(1);
+    // One assigned by hand, and the ASMT-10's reply and hearing, owned by their uploader.
+    expect(w.rows.find((r) => r.userId === owner.userId)?.total).toBe(3);
   });
 });
 

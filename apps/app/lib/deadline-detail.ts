@@ -16,6 +16,18 @@ export interface DeadlineDetail {
   originalDueOn?: string;
   /** The date engine's inputs. */
   inputs?: Record<string, string | number | boolean>;
+  /** The date counts from a received date nobody gave (the upload day stood in). */
+  receivedOnAssumed?: boolean;
+  /** Who corrected the date by hand, and when: the rule is then that fixed date. */
+  correctedBy?: string;
+  correctedAt?: string;
+  /**
+   * How the owner was chosen when the app set it (lib/deadline-owner.ts):
+   * the case owner, the client's partner, or the uploader. `autoOwner` is
+   * that person, so a later change by hand is never overwritten.
+   */
+  ownerFrom?: "case" | "client" | "uploader";
+  autoOwner?: string;
   /** For deadlines from findings: how the finding was reconciled. */
   origin?: Origin;
   verification?: Verification;

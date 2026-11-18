@@ -2,13 +2,19 @@
  * The daily job (01 §4 "Daily digest and escalation"), once per organisation:
  *
  * 1. Notifications: "due soon" (due within 2 days) and "overdue" to each
- *    item's owner, once per item and day.
+ *    item's owner, once per item and day. The owner is the deadline's
+ *    owner, else its case's owner, else its client's partner. An item with
+ *    none of these goes to the managers (else admins and owners) on the
+ *    same day, not first through the escalation days later.
  * 2. Escalation: an item overdue for N days goes to the managers, and after
  *    M days to the client's partner (org_settings.escalation_days; default
  *    3 and 7). Each escalation is a notification and an audit line on the
  *    case (its activity).
  * 3. The morning digest by email to each person with something to see,
- *    once per person per day.
+ *    once per person per day; unowned items appear in the managers' digest.
+ *
+ * Snoozing hides an item until its due date at most: once an item is due
+ * today or late it is notified and escalated whatever the snooze says.
  *
  * Idempotent: running it twice on a day sends nothing new.
  */
@@ -64,7 +70,7 @@ async function runForOrg(
   const cal = await loadOrgCalendar(c, org.id);
   const today = todayOverride ?? todayIn(cal.timezone);
   const people = await listOrgPeople(c.database, org.id);
-  const { open, partners, escalation, approvals, sentDigests } = await withOrg(
+  const { open, partners, caseOwners, escalation, approvals, sentDigests } = await withOrg(
     c.database,
     org.id,
     async (tx) => {
@@ -73,15 +79,19 @@ async function runForOrg(
         .from(orgSettings)
         .where(eq(orgSettings.orgId, org.id))
         .limit(1);
+      // Snoozed items are read too: a snooze never hides an item that is due or late.
       const rows = await queryDeadlines(tx, org.id, today, {
         statuses: ["open"],
         to: addDays(today, 7),
-        hideSnoozed: true,
       });
       const partnerRows = await tx
         .select({ id: clients.id, partner: clients.partnerUserId })
         .from(clients)
         .where(eq(clients.orgId, org.id));
+      const caseRows = await tx
+        .select({ id: cases.id, owner: cases.ownerUserId })
+        .from(cases)
+        .where(eq(cases.orgId, org.id));
       const approvalRows = await tx
         .select({ id: cases.id, title: cases.title, clientName: clients.name })
         .from(cases)
@@ -92,8 +102,9 @@ async function runForOrg(
         .from(schema.audit)
         .where(and(eq(schema.audit.orgId, org.id), eq(schema.audit.action, "digest.sent")));
       return {
-        open: rows,
+        open: rows.filter((d) => !(d.snoozedUntil && d.dueOn > today)),
         partners: new Map(partnerRows.map((p) => [p.id, p.partner])),
+        caseOwners: new Map(caseRows.map((c) => [c.id, c.owner])),
         escalation: settings?.escalation ?? DEFAULT_ESCALATION,
         approvals: approvalRows,
         sentDigests: new Set(
@@ -110,34 +121,55 @@ async function runForOrg(
     ? managers
     : people.filter((p) => p.role === "admin" || p.role === "owner");
   const owners = people.filter((p) => p.role === "owner");
+  const members = new Set(people.map((p) => p.userId));
+
+  /** Who answers for an item: its owner, its case's owner, its client's partner. */
+  const ownerOf = (d: DeadlineRow): string | null => {
+    for (const id of [
+      d.ownerUserId,
+      d.caseId ? caseOwners.get(d.caseId) : null,
+      d.clientId ? partners.get(d.clientId) : null,
+    ])
+      if (id && members.has(id)) return id;
+    return null;
+  };
+  /** The people told about an item on time: its owner, else the managers. */
+  const recipientsOf = (d: DeadlineRow): string[] => {
+    const o = ownerOf(d);
+    return o ? [o] : escalateTo.map((p) => p.userId);
+  };
 
   // 1 and 2: notifications and escalation.
   for (const d of open) {
     const href = d.caseId ? `/notices/${d.caseId}` : "/deadlines";
     const late = daysBetween(d.dueOn, today);
-    if (d.ownerUserId && late <= 0 && -late <= DUE_SOON_DAYS) {
-      if (
-        await notify(c, org.id, {
-          userId: d.ownerUserId,
-          kind: "deadline.due_soon",
-          key: `due_soon:${d.id}:${d.dueOn}`,
-          payload: {
-            title: `${d.title} is due ${late === 0 ? "today" : `on ${d.dueOn}`}`,
-            href,
-            deadlineId: d.id,
-          },
-        })
-      )
-        out.notifications += 1;
+    const owner = ownerOf(d);
+    const unowned = owner ? "" : " (no owner)";
+    if (late <= 0 && -late <= DUE_SOON_DAYS) {
+      for (const userId of recipientsOf(d)) {
+        if (
+          await notify(c, org.id, {
+            userId,
+            kind: "deadline.due_soon",
+            key: `due_soon:${d.id}:${d.dueOn}`,
+            payload: {
+              title: `${d.title} is due ${late === 0 ? "today" : `on ${d.dueOn}`}${unowned}`,
+              href,
+              deadlineId: d.id,
+            },
+          })
+        )
+          out.notifications += 1;
+      }
     }
     if (late <= 0) continue;
-    if (d.ownerUserId) {
+    for (const userId of recipientsOf(d)) {
       if (
         await notify(c, org.id, {
-          userId: d.ownerUserId,
+          userId,
           kind: "deadline.overdue",
           key: `overdue:${d.id}:${d.dueOn}`,
-          payload: { title: `${d.title} is overdue`, href, deadlineId: d.id },
+          payload: { title: `${d.title} is overdue${unowned}`, href, deadlineId: d.id },
         })
       )
         out.notifications += 1;
@@ -152,7 +184,7 @@ async function runForOrg(
     for (const step of steps) {
       let any = false;
       for (const p of step.to) {
-        if (p.userId === d.ownerUserId) continue;
+        if (p.userId === owner) continue;
         const created = await notify(c, org.id, {
           userId: p.userId,
           kind: "deadline.escalated",
@@ -184,7 +216,7 @@ async function runForOrg(
   // 3: the morning digest.
   for (const p of people) {
     if (sentDigests.has(p.userId)) continue;
-    const mine = open.filter((d) => d.ownerUserId === p.userId);
+    const mine = open.filter((d) => recipientsOf(d).includes(p.userId));
     const approver = p.role === "owner" || p.role === "admin" || p.role === "manager";
     const digest = renderDigest({
       orgName: org.name,
