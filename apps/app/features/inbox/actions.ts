@@ -25,6 +25,7 @@ export async function openCase(
   });
 }
 
+/** The case's and the document's clients are checked in linkDocument, once the rows are loaded. */
 export async function fileInCase(input: z.input<typeof LinkInput>): Promise<ActionResult<Filed>> {
   return runAction(async () => linkDocument(await authorize("case.edit"), input));
 }

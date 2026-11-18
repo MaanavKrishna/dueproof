@@ -19,10 +19,9 @@ import {
   type Resource,
   type Subject,
 } from "@dueproof/core";
+import { resolveClientIds } from "./client-access";
 import { forbidden, HttpError, unauthorised } from "./errors";
-import { clientIdsFor } from "./org-metadata";
 import { type Container, getContainer } from "./server/container";
-import { getOrg } from "./server/directory";
 
 export interface AuthContext {
   userId: string;
@@ -60,19 +59,12 @@ export async function authorize(
   const membership = await getMembership(container.database, session.user.id, orgId);
   if (!membership) throw forbidden("You aren't a member of this organisation.");
 
-  // Owners and admins always see every client, so only look up the others.
-  const clientIds =
-    membership.role === "owner" || membership.role === "admin"
-      ? undefined
-      : clientIdsFor(
-          (await getOrg(container.database, orgId))?.metadata ?? {
-            profiles: [],
-            languages: [],
-            onboarding: {},
-            clientAccess: {},
-          },
-          session.user.id,
-        );
+  const clientIds = await resolveClientIds(
+    container.database,
+    orgId,
+    session.user.id,
+    membership.role,
+  );
   const subject: Subject = {
     userId: session.user.id,
     role: membership.role,

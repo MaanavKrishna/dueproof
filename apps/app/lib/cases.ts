@@ -21,6 +21,7 @@ import {
 import { z } from "zod";
 import type { AuthContext } from "./authorize";
 import { loadOrgCalendar, type OrgCalendar } from "./calendar";
+import { requireClient } from "./client-access";
 import { reownForCase } from "./deadline-owner";
 import { notFound } from "./errors";
 import { addOrderWindow, type OrderWindowOutcome } from "./orders";
@@ -78,12 +79,15 @@ export async function linkDocument(ctx: AuthContext, input: z.input<typeof LinkI
       .where(and(eq(cases.orgId, ctx.orgId), eq(cases.id, caseId)))
       .limit(1);
     if (!c) throw notFound("That case");
+    // Both ends are checked: the case's client, and the client the document is filed under now.
+    requireClient(ctx, "case.edit", c.clientId, "That case");
     const [doc] = await tx
-      .select({ id: documents.id })
+      .select({ id: documents.id, clientId: documents.clientId })
       .from(documents)
       .where(and(eq(documents.orgId, ctx.orgId), eq(documents.id, documentId)))
       .limit(1);
     if (!doc) throw notFound("That document");
+    requireClient(ctx, "case.edit", doc.clientId, "That document");
     const window = await fileInto(tx, ctx, documentId, c, cal, role);
     await audit.write(tx, scope, {
       actor: ctx.userId,
@@ -126,8 +130,11 @@ export async function createCaseFromDocument(
       .where(and(eq(documents.orgId, ctx.orgId), eq(documents.id, v.documentId)))
       .limit(1);
     if (!doc) throw notFound("That document");
+    // The document's current client, and the client the case is opened for, must both be the caller's.
+    requireClient(ctx, "case.create", doc.clientId, "That document");
     let clientId = v.clientId ?? doc.clientId ?? null;
     if (v.clientId) {
+      requireClient(ctx, "case.create", v.clientId, "That client");
       const [cl] = await tx
         .select({ id: clients.id })
         .from(clients)
