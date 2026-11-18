@@ -1,4 +1,5 @@
 import { HomeIcon, InboxIcon } from "@dueproof/icons";
+import { useRef, useState } from "react";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -12,6 +13,8 @@ import { fuzzyMatch } from "./CommandPalette/fuzzy";
 import { CommentComposer } from "./CommentComposer/CommentComposer";
 import { ConfirmDialog } from "./ConfirmDialog/ConfirmDialog";
 import { DatePicker } from "./DatePicker/DatePicker";
+import { Dialog } from "./Dialog/Dialog";
+import { Menu, MenuContent, MenuItem, MenuTrigger } from "./Menu/Menu";
 import { FilterBar, type FilterDefinition } from "./FilterBar/FilterBar";
 import { StageStepper } from "./StageStepper/StageStepper";
 
@@ -283,6 +286,80 @@ describe("Calendar", () => {
     expect(screen.getAllByRole("gridcell")).toHaveLength(7);
     await user.click(screen.getByRole("button", { name: "Next week" }));
     expect(screen.getByRole("heading", { name: /23 Nov 2026 – 29 Nov 2026/ })).toBeInTheDocument();
+  });
+});
+
+describe("Dialog focus return (WCAG 2.4.3)", () => {
+  function Controlled({ withRef = false }: { withRef?: boolean }) {
+    const [open, setOpen] = useState(false);
+    const target = useRef<HTMLButtonElement>(null);
+    return (
+      <>
+        <Button onClick={() => setOpen(true)}>Correct the date</Button>
+        <Button ref={target}>Elsewhere</Button>
+        <Dialog
+          open={open}
+          onOpenChange={setOpen}
+          title="Correct the received date"
+          {...(withRef ? { returnFocus: target } : {})}
+        >
+          <p>Body</p>
+        </Dialog>
+      </>
+    );
+  }
+
+  it("returns focus to the opener when a dialog with no trigger closes", async () => {
+    const user = userEvent.setup();
+    render(<Controlled />);
+    const opener = screen.getByRole("button", { name: "Correct the date" });
+    opener.focus();
+    await user.keyboard("{Enter}");
+    const dialog = await screen.findByRole("dialog", { name: "Correct the received date" });
+    await waitFor(() => expect(dialog).toContainElement(document.activeElement as HTMLElement));
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(opener).toHaveFocus();
+  });
+
+  it("returns focus to returnFocus when given", async () => {
+    const user = userEvent.setup();
+    render(<Controlled withRef />);
+    await user.click(screen.getByRole("button", { name: "Correct the date" }));
+    await screen.findByRole("dialog");
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "Elsewhere" })).toHaveFocus();
+  });
+  it("returns focus to the menu button when a menu item opened the dialog", async () => {
+    const user = userEvent.setup();
+    function FromMenu() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <Menu>
+            <MenuTrigger>
+              <Button>More</Button>
+            </MenuTrigger>
+            <MenuContent>
+              <MenuItem onSelect={() => setOpen(true)}>Move stage</MenuItem>
+            </MenuContent>
+          </Menu>
+          <Dialog open={open} onOpenChange={setOpen} title="Move the stage">
+            <p>Body</p>
+          </Dialog>
+        </>
+      );
+    }
+    render(<FromMenu />);
+    const more = screen.getByRole("button", { name: "More" });
+    more.focus();
+    await user.keyboard("{Enter}");
+    await user.click(await screen.findByRole("menuitem", { name: "Move stage" }));
+    await screen.findByRole("dialog", { name: "Move the stage" });
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await waitFor(() => expect(more).toHaveFocus());
   });
 });
 
