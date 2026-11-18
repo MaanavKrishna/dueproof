@@ -237,6 +237,12 @@ export const documents = pgTable(
     issuingOffice: text("issuing_office"),
     issuedOn: date("issued_on"),
     receivedOn: date("received_on"),
+    /**
+     * True when nobody gave the received date and the upload day stands in
+     * for it. Deadlines counted from it are flagged "received date assumed:
+     * confirm" until a person sets the date.
+     */
+    receivedOnAssumed: boolean("received_on_assumed").notNull().default(false),
     channel: channel("channel").notNull().default("upload"),
     status: documentStatus("status").notNull().default("received"),
     statusDetail: text("status_detail"),
@@ -321,6 +327,8 @@ export const findings = pgTable(
   },
   (t) => [
     index("findings_org_doc").on(t.orgId, t.documentId),
+    // One write per document: a second pipeline run can't add the same findings again.
+    uniqueIndex("findings_org_doc_ord").on(t.orgId, t.documentId, t.ord),
     index("findings_org_case").on(t.orgId, t.caseId),
     // Search (01 §4): full text over what a finding says and the quote it rests on.
     index("findings_text_fts").using(
@@ -394,6 +402,8 @@ export const deadlines = pgTable(
   (t) => [
     index("deadlines_org_due").on(t.orgId, t.status, t.dueOn),
     uniqueIndex("deadlines_org_client_statkey").on(t.orgId, t.clientId, t.statutoryKey),
+    // At most one deadline per finding (null finding ids don't collide).
+    uniqueIndex("deadlines_org_finding").on(t.orgId, t.findingId),
   ],
 );
 

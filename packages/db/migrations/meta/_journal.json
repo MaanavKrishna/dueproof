@@ -50,6 +50,13 @@
       "when": 1794845995060,
       "tag": "0006_contract_document_passwords",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795019649068,
+      "tag": "0007_contract_received_assumed_unique_writes",
+      "breakpoints": true
     }
   ]
 }
