@@ -301,6 +301,7 @@ function toEvent(r: DeadlineRow): CalendarEvent {
     state: notFiled(r) ? "later" : r.state,
     kind: r.source === "statutory" ? "statutory" : r.source === "order" ? "order" : "notice",
     ...(r.clientName ? { client: r.clientName } : {}),
+    ...(r.time ? { time: r.time } : {}),
     ...(notes.length ? { note: notes.join(" · ") } : {}),
   };
 }
@@ -323,10 +324,11 @@ function RowTitle({ r, onOpen }: { r: DeadlineRow; onOpen: (r: DeadlineRow) => v
 }
 
 function RowDue({ r }: { r: DeadlineRow }) {
+  const when = r.time ? `${shortDate(r.dueOn)}, ${r.time}` : shortDate(r.dueOn);
   return notFiled(r) ? (
-    <Badge size="sm">Not filed yet · {shortDate(r.dueOn)}</Badge>
+    <Badge size="sm">Not filed yet · {when}</Badge>
   ) : (
-    <DueChip state={r.state} detail={shortDate(r.dueOn)} size="sm" />
+    <DueChip state={r.state} detail={when} size="sm" />
   );
 }
 

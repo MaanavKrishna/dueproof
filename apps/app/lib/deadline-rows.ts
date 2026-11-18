@@ -21,6 +21,7 @@ import {
   or,
 } from "@dueproof/db";
 import type { DeadlineDetail } from "./deadline-detail";
+import { readHearingTime } from "./hearing-time";
 
 export type DeadlineSource = "notice" | "order" | "statutory" | "manual";
 export type DeadlineStatus = "open" | "done" | "dismissed";
@@ -61,6 +62,8 @@ export interface DeadlineRow {
    * Grouped apart, with an explanation, instead of swelling "Overdue" (M5).
    */
   pastWhenAdded: boolean;
+  /** A hearing's time of day, "11:00", read from its words (M8). */
+  time: string | null;
   completedAt: string | null;
   /** Hidden from the open list until this date. */
   snoozedUntil: string | null;
@@ -168,6 +171,9 @@ export async function queryDeadlines(
       caseTitle: cases.title,
       noticeType: cases.noticeType,
       documentId: findings.documentId,
+      kind: findings.kind,
+      quote: findings.quote,
+      findingText: findings.text,
     })
     .from(deadlines)
     .leftJoin(clients, and(eq(clients.orgId, deadlines.orgId), eq(clients.id, deadlines.clientId)))
@@ -180,7 +186,7 @@ export async function queryDeadlines(
     .orderBy(asc(deadlines.dueOn), asc(deadlines.title));
 
   const out: DeadlineRow[] = [];
-  for (const { d, clientName, caseTitle, noticeType, documentId } of rows) {
+  for (const { d, clientName, caseTitle, noticeType, documentId, ...f } of rows) {
     const detail = (d.detail ?? {}) as unknown as Partial<Detail>;
     const st = detail.statutory;
     const type = deadlineType(st?.ruleKey ?? null, noticeType);
@@ -208,6 +214,8 @@ export async function queryDeadlines(
       documentId,
       unfiled: isUnfiled(d),
       pastWhenAdded: isPastWhenAdded(d),
+      time:
+        f.kind === "hearing" ? (readHearingTime(f.quote ?? f.findingText)?.label ?? null) : null,
       completedAt: d.completedAt ? d.completedAt.toISOString() : null,
       snoozedUntil,
       ackNumber: detail.ackNumber ?? null,

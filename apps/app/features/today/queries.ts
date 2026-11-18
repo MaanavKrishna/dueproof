@@ -32,6 +32,7 @@ import {
 } from "@dueproof/db";
 import type { AuthContext } from "@/lib/authorize";
 import { isPastWhenAdded, isUnfiled } from "@/lib/deadline-rows";
+import { hearingState, readHearingTime } from "@/lib/hearing-time";
 import {
   clientScope,
   type DueState,
@@ -178,6 +179,8 @@ export async function loadToday(
         findingId: deadlines.findingId,
         documentId: findings.documentId,
         kind: findings.kind,
+        quote: findings.quote,
+        findingText: findings.text,
         client: clients.name,
         createdAt: deadlines.createdAt,
       })
@@ -199,13 +202,16 @@ export async function loadToday(
 
     const rows: TodayRow[] = dueRows.map((r) => {
       const ownerId = r.ownerUserId ?? r.caseOwner;
+      // A hearing keeps its time (M8): overdue once it has passed, not "due today" all day.
+      const time = r.kind === "hearing" ? readHearingTime(r.quote ?? r.findingText) : null;
+      const date = fmtDate(r.dueOn, clock.locale);
       return {
         id: r.id,
         client: r.client,
         title: r.title,
         dueOn: r.dueOn,
-        dueLabel: fmtDate(r.dueOn, clock.locale),
-        state: dueState(r.dueOn, today),
+        dueLabel: time ? `${date}, ${time.label}` : date,
+        state: hearingState(dueState(r.dueOn, today), r.dueOn, today, time, now, clock.timezone),
         owner: ownerId ? (nameOf.get(ownerId) ?? null) : null,
         caseId: r.caseId,
         documentId: r.documentId,

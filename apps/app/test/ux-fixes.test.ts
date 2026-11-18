@@ -38,6 +38,7 @@ import { loadToday, summarySentence } from "../features/today/queries";
 import { type AuthContext, authorize } from "../lib/authorize";
 import { isUnfiled, queryDeadlines } from "../lib/deadline-rows";
 import { parseEnv } from "../lib/env";
+import { hearingState, readHearingTime } from "../lib/hearing-time";
 import { type Container, createEngine, setContainer } from "../lib/server/container";
 import { completeUpload, initUpload } from "../lib/upload";
 import { processDocument } from "../workflows/process-document";
@@ -323,5 +324,44 @@ describe("demand workings (M4)", () => {
     expect(d?.workings[0]?.inputs).toMatchObject({ "computed to": "16 Nov 2026" });
     expect(d?.workings[0]?.inputs).not.toHaveProperty("paid on");
     if (amount) expect(d?.findingId).toBe(amount.id);
+  });
+});
+
+describe("a hearing keeps its time (M8)", () => {
+  it("reads the time from the hearing's words, and only a real time", () => {
+    expect(readHearingTime("fixed on 18 November 2026 at 11:00 AM")?.label).toBe("11:00");
+    expect(readHearingTime("at 2:30 p.m. before the officer")?.label).toBe("14:30");
+    expect(readHearingTime("at 12:15 am")?.label).toBe("00:15");
+    expect(readHearingTime("hearing at 15:45 in Room 4")?.label).toBe("15:45");
+    expect(readHearingTime("dated 20.10.2026")).toBeNull();
+    expect(readHearingTime("on 18 November 2026")).toBeNull();
+    expect(readHearingTime(null)).toBeNull();
+  });
+
+  it("is due today before the time and overdue after it, in the org's time zone", () => {
+    const t = readHearingTime("at 11:00 AM");
+    const at = (iso: string) => new Date(iso);
+    const tz = "Asia/Kolkata";
+    expect(
+      hearingState("today", "2026-11-18", "2026-11-18", t, at("2026-11-18T05:00:00Z"), tz),
+    ).toBe("today"); // 10:30 IST
+    expect(
+      hearingState("today", "2026-11-18", "2026-11-18", t, at("2026-11-18T05:31:00Z"), tz),
+    ).toBe("overdue"); // 11:01 IST
+    expect(
+      hearingState("week", "2026-11-20", "2026-11-18", t, at("2026-11-18T12:00:00Z"), tz),
+    ).toBe("week");
+  });
+
+  it("Today and the case page show the hearing's time and flip after it", async () => {
+    const morning = await loadToday(ctx, "everyone", new Date("2026-11-18T04:00:00Z"));
+    expect(morning.hearings[0]?.dueLabel).toBe("18 Nov 2026, 11:00");
+    expect(morning.hearings[0]?.state).toBe("today");
+    const later = await loadToday(ctx, "everyone", new Date("2026-11-18T07:00:00Z"));
+    expect(later.hearings[0]?.state).toBe("overdue");
+    const c = await loadCase(ctx, ids.case as string, new Date("2026-11-18T07:00:00Z"));
+    const hearing = c.findings.find((f) => f.kind === "hearing");
+    expect(hearing?.deadline?.date).toBe("18 Nov 2026, 11:00");
+    expect(hearing?.deadline?.state).toBe("overdue");
   });
 });

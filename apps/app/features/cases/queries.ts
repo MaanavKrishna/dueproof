@@ -28,6 +28,7 @@ import {
 import type { AuthContext } from "@/lib/authorize";
 import { computeDemand } from "@/lib/demands";
 import { notFound } from "@/lib/errors";
+import { hearingState, readHearingTime } from "@/lib/hearing-time";
 import {
   clientAllowed,
   type DueState,
@@ -346,6 +347,8 @@ export async function loadCase(
           warnings?: string[];
           receivedOnAssumed?: boolean;
         } | null;
+        // A hearing keeps its time (M8): read from its own words.
+        const time = f.kind === "hearing" ? readHearingTime(f.quote ?? f.text) : null;
         return {
           id: f.id,
           documentId: f.documentId,
@@ -366,8 +369,17 @@ export async function loadCase(
           deadline: dl
             ? {
                 id: dl.id,
-                state: dueState(dl.dueOn, clock.today, dl.status === "done"),
-                date: fmtDate(dl.dueOn, clock.locale),
+                state: hearingState(
+                  dueState(dl.dueOn, clock.today, dl.status === "done"),
+                  dl.dueOn,
+                  clock.today,
+                  time,
+                  now,
+                  clock.timezone,
+                ),
+                date: time
+                  ? `${fmtDate(dl.dueOn, clock.locale)}, ${time.label}`
+                  : fmtDate(dl.dueOn, clock.locale),
                 iso: dl.dueOn,
                 basis: dl.basis,
                 windowEnd: dl.windowEndOn ? fmtDate(dl.windowEndOn, clock.locale) : null,

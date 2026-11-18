@@ -128,6 +128,7 @@ function row(p: Partial<DeadlineRow> & { id: string; dueOn: string }): DeadlineR
     documentId: null,
     unfiled: false,
     pastWhenAdded: false,
+    time: null,
     completedAt: null,
     snoozedUntil: null,
     ackNumber: null,
