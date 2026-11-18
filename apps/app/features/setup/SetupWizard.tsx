@@ -274,6 +274,10 @@ export function SetupWizard({ initial }: { initial: SetupInitial }) {
             value={name}
             autoComplete="organization"
             onChange={(e) => setName(e.target.value)}
+            // Say why Continue is off, on the field (M9).
+            {...(name.trim().length > 1
+              ? {}
+              : { error: "Give your organisation a name, two letters or more, to continue." })}
           />
           <Select
             label="Country"
