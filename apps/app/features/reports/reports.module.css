@@ -239,3 +239,10 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* A report that needs one of its optional fields says so (M10). */
+.error {
+  margin: 0;
+  color: var(--dp-feedback-danger-fg);
+  font: var(--dp-text-footnote-font);
+}

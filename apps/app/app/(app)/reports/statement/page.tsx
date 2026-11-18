@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { NoAccess } from "@/components/NoAccess";
 import { one, orNotFound } from "@/features/reports/load";
 import { StatementView } from "@/features/reports/OtherReports";
@@ -14,7 +14,8 @@ export default async function StatementPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const client = one((await searchParams).client);
-  if (!client) notFound();
+  // No client chosen: back to Reports to choose one (M10), not "Page not found".
+  if (!client) redirect("/reports");
   const access = await pageAccess("report.view");
   if (!access.ok) return <NoAccess what="The client statement" admins={access.admins} />;
   const ctx = access.ctx;

@@ -1,7 +1,7 @@
 "use client";
 /** Reports: pick a report and its scope. Every report prints on A4 and has a CSV. */
 import { ExposureIcon, HearingPackIcon, ProofIcon, UserIcon, UsersIcon } from "@dueproof/icons";
-import { Button, Card, Combobox, ListPageTemplate, TextField } from "@dueproof/ui";
+import { Button, Card, Combobox, DatePicker, ListPageTemplate } from "@dueproof/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import styles from "./reports.module.css";
@@ -20,14 +20,25 @@ export function ReportsIndex({
   const router = useRouter();
   const [evCase, setEvCase] = useState<string | null>(null);
   const [evClient, setEvClient] = useState<string | null>(null);
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const [from, setFrom] = useState<string | null>(null);
+  const [to, setTo] = useState<string | null>(null);
+  const [evError, setEvError] = useState<string | null>(null);
   const [stClient, setStClient] = useState<string | null>(null);
   const [packCase, setPackCase] = useState<string | null>(null);
   const clientOptions = clients.map((c) => ({ value: c.id, label: c.name }));
   const caseOptions = cases.map((c) => ({ value: c.id, label: c.name }));
 
   function openEvidence() {
+    // Each field is optional, but the report needs one of them (M10): say so, don't disable.
+    if (!evCase && !evClient && !(from && to)) {
+      setEvError(
+        from || to
+          ? "Choose both dates, or a case or a client."
+          : "Choose a case, a client or a date range.",
+      );
+      return;
+    }
+    setEvError(null);
     const q = new URLSearchParams();
     if (evCase) q.set("case", evCase);
     if (evClient) q.set("client", evClient);
@@ -44,7 +55,7 @@ export function ReportsIndex({
       <div className={styles.index}>
         <Card
           title="Evidence report"
-          description="Each finding beside the page that proves it, with its basis and the audit trail."
+          description="Each finding beside the page that proves it, with its basis and the audit trail. Choose a case, a client or a date range."
         >
           <div className={styles.cardBody}>
             <Combobox
@@ -61,26 +72,14 @@ export function ReportsIndex({
               value={evClient}
               onValueChange={setEvClient}
             />
-            <TextField
-              label="Received from"
-              optional
-              type="date"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-            />
-            <TextField
-              label="Received to"
-              optional
-              type="date"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-            />
-            <Button
-              variant="primary"
-              icon={ProofIcon}
-              disabled={!evCase && !evClient && !(from && to)}
-              onClick={openEvidence}
-            >
+            <DatePicker label="Received from" optional value={from} onValueChange={setFrom} />
+            <DatePicker label="Received to" optional value={to} onValueChange={setTo} />
+            {evError ? (
+              <p role="alert" className={styles.error}>
+                {evError}
+              </p>
+            ) : null}
+            <Button variant="primary" icon={ProofIcon} onClick={openEvidence}>
               Open evidence report
             </Button>
           </div>
