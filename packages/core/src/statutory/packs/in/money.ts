@@ -81,10 +81,11 @@ export const IN_MONEY_PACK: MoneyPack = {
       principalRounding: IT_PRINCIPAL_DOWN_100,
       resultRounding: IT_RESULT_RUPEE,
       partMonthIsFull: true,
+      monthCounting: "calendar",
       source: { citation: "Income-tax Act 1961 s.234A; Income-tax Rules r.119A", url: ITD },
       verified: false,
       notes:
-        "1 % a month or part of a month on the tax on returned/assessed income less advance tax, TDS/TCS and reliefs, from the day after the return due date to the date of filing.",
+        "1 % a month or part of a month on the tax on returned/assessed income less advance tax, TDS/TCS and reliefs, from the day after the return due date to the date of filing. Months are counted as calendar months touched (due 16 Sep, filed 5 Oct = 2), as the department's utilities are understood to count: VERIFY; the other reading (whole months from the start date) gives 1.",
     },
     {
       key: "in.it.s234b",
@@ -97,10 +98,12 @@ export const IN_MONEY_PACK: MoneyPack = {
       partMonthIsFull: true,
       thresholdBp: 9000,
       startsOn: { month: 4, day: 1, yearsAfterStart: 1 },
+      monthCounting: "calendar",
+      minimumTax: { minor: 10_000 * 100, citation: "Income-tax Act 1961 s.208" },
       source: { citation: "Income-tax Act 1961 s.234B; Income-tax Rules r.119A", url: ITD },
       verified: false,
       notes:
-        "Applies when advance tax paid is below 90 % of assessed tax. 1 % a month or part from 1 April of the assessment year to the date of determination. Self-assessment tax paid part-way (s.234B(2)) is not modelled: enter the date it was paid as the end date.",
+        "Applies only when assessed tax is ₹10,000 or more (s.208: no advance tax is payable below that), and advance tax paid is below 90 % of assessed tax. 1 % a month or part from 1 April of the assessment year to the date of determination. Self-assessment tax paid part-way (s.234B(2)) is not modelled: enter the date it was paid as the end date.",
     },
     {
       key: "in.it.s234c",
@@ -111,6 +114,8 @@ export const IN_MONEY_PACK: MoneyPack = {
       principalRounding: IT_PRINCIPAL_DOWN_100,
       resultRounding: IT_RESULT_RUPEE,
       partMonthIsFull: true,
+      monthCounting: "calendar",
+      minimumTax: { minor: 10_000 * 100, citation: "Income-tax Act 1961 s.208" },
       instalments: {
         regular: [
           {
@@ -135,7 +140,7 @@ export const IN_MONEY_PACK: MoneyPack = {
       source: { citation: "Income-tax Act 1961 s.234C(1); Income-tax Rules r.119A", url: ITD },
       verified: false,
       notes:
-        "Tax due is the tax on returned income less TDS/TCS and reliefs. Shortfalls arising only from capital gains or dividends after an instalment date are excluded by the proviso: adjust the inputs. 12 % and 36 % safe harbours apply to the first two instalments.",
+        "Applies only when tax due is ₹10,000 or more (s.208). Payments dated outside the financial year are not counted. Tax due is the tax on returned income less TDS/TCS and reliefs. Shortfalls arising only from capital gains or dividends after an instalment date are excluded by the proviso: adjust the inputs. 12 % and 36 % safe harbours apply to the first two instalments.",
     },
   ],
   penalties: [

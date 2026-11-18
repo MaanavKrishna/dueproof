@@ -1,6 +1,9 @@
 /**
  * The daily job (01 §4 "Daily digest and escalation"), once per organisation:
  *
+ * 0. The statutory calendar rolls forward: every client with registrations
+ *    is regenerated for today's window (idempotent; see lib/statutory.ts),
+ *    so the steps below see this month's returns.
  * 1. Notifications: "due soon" (due within 2 days) and "overdue" to each
  *    item's owner, once per item and day.
  * 2. Escalation: an item overdue for N days goes to the managers, and after
@@ -22,6 +25,7 @@ import { type Mailer, mailerFor } from "@/lib/mail";
 import { notify } from "@/lib/notify";
 import { todayIn } from "@/lib/pipeline/status";
 import type { Container } from "@/lib/server/container";
+import { regenerateOrgStatutory } from "@/lib/statutory";
 import { renderDigest } from "./digest";
 
 export const DEFAULT_ESCALATION = { manager: 3, partner: 7 } as const;
@@ -29,6 +33,9 @@ const DUE_SOON_DAYS = 2;
 
 export interface DailyResult {
   orgs: number;
+  /** Clients whose statutory calendar was regenerated, and new rows it wrote. */
+  statutoryClients: number;
+  statutoryInserted: number;
   notifications: number;
   escalations: number;
   digests: number;
@@ -43,10 +50,19 @@ export async function runDaily(
   options: { today?: string; mailer?: Mailer } = {},
 ): Promise<DailyResult> {
   const mailer = options.mailer ?? mailerFor(c);
-  const result: DailyResult = { orgs: 0, notifications: 0, escalations: 0, digests: 0 };
+  const result: DailyResult = {
+    orgs: 0,
+    statutoryClients: 0,
+    statutoryInserted: 0,
+    notifications: 0,
+    escalations: 0,
+    digests: 0,
+  };
   for (const org of await listOrganisations(c.database)) {
     result.orgs += 1;
     const r = await runForOrg(c, org, mailer, options.today);
+    result.statutoryClients += r.statutoryClients;
+    result.statutoryInserted += r.statutoryInserted;
     result.notifications += r.notifications;
     result.escalations += r.escalations;
     result.digests += r.digests;
@@ -60,9 +76,21 @@ async function runForOrg(
   mailer: Mailer,
   todayOverride?: string,
 ) {
-  const out = { notifications: 0, escalations: 0, digests: 0 };
+  const out = {
+    statutoryClients: 0,
+    statutoryInserted: 0,
+    notifications: 0,
+    escalations: 0,
+    digests: 0,
+  };
   const cal = await loadOrgCalendar(c, org.id);
   const today = todayOverride ?? todayIn(cal.timezone);
+
+  // 0: roll the statutory window forward.
+  const statutory = await regenerateOrgStatutory(c.database, org.id, { today });
+  out.statutoryClients = statutory.clients;
+  out.statutoryInserted = statutory.inserted;
+
   const people = await listOrgPeople(c.database, org.id);
   const { open, partners, escalation, approvals, sentDigests } = await withOrg(
     c.database,

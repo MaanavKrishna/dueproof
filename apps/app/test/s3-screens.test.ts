@@ -215,6 +215,10 @@ describe("clients", () => {
     expect(forms).toContain("GSTR-1");
     expect([...forms].some((f) => f?.includes("26Q"))).toBe(true);
     expect([...forms].some((f) => f?.includes("24Q"))).toBe(false);
+    // What the calendar does not cover is listed, never silently absent.
+    expect(page.coverage?.map((n) => n.form)).toEqual(
+      expect.arrayContaining(["GSTR-9C", "Form 27Q", "Form 27EQ"]),
+    );
 
     const deadlines = await loadDeadlinesPage(owner);
     const statutory = deadlines.rows.filter((r) => r.source === "statutory");
@@ -551,6 +555,7 @@ describe("web push and the daily job", () => {
       },
     };
     const first = await runDaily(container, { today: "2026-11-16", mailer });
+    expect(first.statutoryClients).toBeGreaterThanOrEqual(1);
     expect(first.digests).toBeGreaterThanOrEqual(2);
     expect(first.escalations).toBeGreaterThanOrEqual(2); // manager (admin/owner here) and partner
     const toRavi = outbox.find((m) => m.to === "ravi@harbour.test");

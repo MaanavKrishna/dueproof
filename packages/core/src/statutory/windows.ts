@@ -4,6 +4,8 @@
  * separate dates (01 §4).
  */
 import type { Anchor, DateRule } from "@dueproof/contracts";
+import { formatDate } from "@dueproof/i18n";
+import { compareIso, isValidIsoDate, lastDayOfMonth, parseIso } from "../dates/calendar";
 import { resolveDate } from "../dates/engine";
 import {
   type DateContext,
@@ -22,6 +24,13 @@ export interface OrderWindowRule {
   unit: "days" | "working_days" | "months";
   /** A fixed extra period the authority may allow. Absent when there is no fixed outer limit. */
   condonable?: { amount: number; unit: "days" | "months" };
+  /**
+   * Count from the last day of the anchor's month ("two months from the end
+   * of the month in which the order is communicated"), for anchors on or
+   * after `since`. The stored DateRule cannot say this, so the shifted
+   * anchor is recorded in `inputs`.
+   */
+  fromEndOfMonth?: { since: string };
   source: StatutorySource;
   verified: boolean;
   notes: string;
@@ -54,11 +63,35 @@ export function resolveOrderWindow(
 ): OrderWindowResult | DateError {
   const w = windows.find((x) => x.key === key);
   if (!w) return { error: "unknown_rule", message: `No order window "${key}"` };
-  const r = resolveDate(orderWindowRule(w), ctx);
+  const anchorOn = ctx.anchors[w.anchor];
+  let monthEnd: string | undefined;
+  if (
+    w.fromEndOfMonth &&
+    anchorOn &&
+    isValidIsoDate(anchorOn) &&
+    compareIso(anchorOn, w.fromEndOfMonth.since) >= 0
+  ) {
+    const { year, month } = parseIso(anchorOn);
+    monthEnd = lastDayOfMonth(year, month);
+  }
+  const r = resolveDate(
+    orderWindowRule(w),
+    monthEnd ? { ...ctx, anchors: { ...ctx.anchors, [w.anchor]: monthEnd } } : ctx,
+  );
   if (isDateError(r)) return r;
   const warnings = [...r.warnings];
   if (!w.condonable)
     warnings.push("No fixed condonation limit: a late appeal needs a condonation application.");
   if (!w.verified) warnings.push("Period not yet verified against the statute (verify in M0).");
+  if (monthEnd && anchorOn) {
+    const fmt = (d: string) => formatDate(d, { locale: ctx.locale ?? "en-IN" });
+    return {
+      ...r,
+      basis: `${w.title}: ${w.amount} ${w.unit} from the end of the month of ${w.anchor} on ${fmt(anchorOn)} (${fmt(monthEnd)})`,
+      inputs: { ...r.inputs, [`${w.anchor}On`]: anchorOn, countedFrom: monthEnd },
+      warnings,
+      windowRule: w,
+    };
+  }
   return { ...r, basis: `${w.title}: ${r.basis}`, warnings, windowRule: w };
 }

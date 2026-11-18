@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { isDateError } from "../dates/types";
+import { statutoryCoverage } from "./coverage";
 import golden from "./fixtures/in-dates.json";
-import { generateStatutory } from "./generate";
-import { IN_PACK, inOrderWindows } from "./packs/in";
+import { formKey, generateStatutory, statutoryKey } from "./generate";
+import { IN_EXTENSIONS, IN_PACK, inOrderWindowFor, inOrderWindows } from "./packs/in";
 import { parsePeriod, periodsStartingBetween } from "./periods";
 import { resolveStatutory } from "./resolve";
-import type { Extension, Registration } from "./types";
+import type { Extension, Registration, StatutoryItem } from "./types";
 import { resolveOrderWindow } from "./windows";
+
+const rulePeriod = (i: StatutoryItem) => `${i.ruleKey}:${i.period}`;
 
 interface Case {
   rule: string;
@@ -215,11 +218,11 @@ describe("generateStatutory", () => {
       [KERALA_MONTHLY, DELHI_QRMP, TAN, COMPANY_IT, PRESUMPTIVE, COMPANY_ROC],
       { from: "2026-11-01", to: "2026-11-30" },
     );
-    expect(items.map((i) => [i.dueOn, i.statutoryKey, i.registrationId])).toEqual([
-      ["2026-11-07", "in.tds.payment.monthly:2026-10", "t1"],
-      ["2026-11-11", "in.gst.gstr1.monthly:2026-10", "g1"],
-      ["2026-11-20", "in.gst.gstr3b.monthly:2026-10", "g1"],
-      ["2026-11-24", "in.roc.mgt7:FY2025-26", "r1"],
+    expect(items.map((i) => [i.dueOn, i.statutoryKey, i.ruleKey])).toEqual([
+      ["2026-11-07", "t1:tds-payment-challan-itns-281:2026-10", "in.tds.payment.monthly"],
+      ["2026-11-11", "g1:gstr-1:2026-10", "in.gst.gstr1.monthly"],
+      ["2026-11-20", "g1:gstr-3b:2026-10", "in.gst.gstr3b.monthly"],
+      ["2026-11-24", "r1:mgt-7:FY2025-26", "in.roc.mgt7"],
     ]);
     const first = items[0];
     expect(first).toMatchObject({
@@ -235,7 +238,7 @@ describe("generateStatutory", () => {
 
   it("builds a QRMP year with state-group days (Delhi → group B)", () => {
     const items = generateStatutory([DELHI_QRMP], { from: "2026-04-01", to: "2027-03-31" });
-    expect(items.map((i) => `${i.dueOn} ${i.statutoryKey}`)).toEqual([
+    expect(items.map((i) => `${i.dueOn} ${rulePeriod(i)}`)).toEqual([
       "2026-04-13 in.gst.gstr1.qrmp:FY2025-26-Q4",
       "2026-04-24 in.gst.gstr3b.qrmp.b:FY2025-26-Q4",
       "2026-07-13 in.gst.gstr1.qrmp:FY2026-27-Q1",
@@ -254,33 +257,87 @@ describe("generateStatutory", () => {
   it("uses group A days for a QRMP filer in Kerala, and an explicit state group wins", () => {
     const kerala = { ...DELHI_QRMP, id: "g5", identifier: "32ABCDE1234F1Z5" };
     const items = generateStatutory([kerala], { from: "2026-10-01", to: "2026-10-31" });
-    expect(items.map((i) => i.statutoryKey)).toEqual([
+    expect(items.map(rulePeriod)).toEqual([
       "in.gst.gstr1.qrmp:FY2026-27-Q2",
       "in.gst.gstr3b.qrmp.a:FY2026-27-Q2",
     ]);
+    expect(items.flatMap((i) => i.warnings).join(" ")).not.toContain("State not known");
     const forced = { ...kerala, attributes: { stateGroup: "B" } };
     const items2 = generateStatutory([forced], { from: "2026-10-01", to: "2026-10-31" });
     expect(items2.map((i) => i.ruleKey)).toContain("in.gst.gstr3b.qrmp.b");
   });
 
-  it("a QRMP filer with no known state gets no GSTR-3B (and the gap is visible as no item)", () => {
-    const unknown = { ...DELHI_QRMP, id: "g6", identifier: "not-a-gstin" };
-    const items = generateStatutory([unknown], { from: "2026-10-01", to: "2026-10-31" });
-    expect(items.map((i) => i.ruleKey)).toEqual(["in.gst.gstr1.qrmp"]);
+  it.each([
+    ["no GSTIN", { identifier: "not-a-gstin" }],
+    ["state code 97 (Other Territory)", { identifier: "97ABCDE1234F1Z5" }],
+    ["an unlisted state name", { identifier: "not-a-gstin", state: "Atlantis" }],
+  ] as const)(
+    "a QRMP filer with %s still gets GSTR-3B, on the 22nd, with a check-state note",
+    (_n, over) => {
+      const unknown: Registration = { ...DELHI_QRMP, id: "g6", ...over };
+      const items = generateStatutory([unknown], { from: "2026-10-01", to: "2026-10-31" });
+      expect(items.map((i) => `${i.dueOn} ${i.form}`)).toEqual([
+        "2026-10-13 GSTR-1",
+        "2026-10-22 GSTR-3B",
+      ]);
+      const gstr3b = items.find((i) => i.form === "GSTR-3B");
+      expect(gstr3b?.warnings.join(" ")).toContain(
+        "State not known, or not in either QRMP state list",
+      );
+      expect(gstr3b?.warnings.join(" ")).toContain("Check the state");
+      expect(statutoryCoverage([unknown]).filter((n) => n.type === "no_rule")).toEqual([]);
+    },
+  );
+
+  it("a QRMP scheme with no frequency recorded is quarterly", () => {
+    const { frequency: _f, ...noFreq } = DELHI_QRMP;
+    const items = generateStatutory([noFreq], { from: "2026-10-01", to: "2026-10-31" });
+    expect(items.map(rulePeriod)).toEqual([
+      "in.gst.gstr1.qrmp:FY2026-27-Q2",
+      "in.gst.gstr3b.qrmp.b:FY2026-27-Q2",
+    ]);
   });
 
-  it("generates nothing for composition-scheme GST in v0.1", () => {
-    expect(generateStatutory([COMPOSITION], { from: "2026-04-01", to: "2027-03-31" })).toEqual([]);
+  it("a GST registration with no frequency is shown as monthly, flagged, never only GSTR-9", () => {
+    const noFreq: Registration = { id: "g7", kind: "gst", identifier: "27ABCDE1234F1Z5" };
+    const items = generateStatutory([noFreq], { from: "2026-11-01", to: "2026-12-31" });
+    expect(items.map((i) => `${i.dueOn} ${rulePeriod(i)}`)).toEqual([
+      "2026-11-11 in.gst.gstr1.monthly:2026-10",
+      "2026-11-20 in.gst.gstr3b.monthly:2026-10",
+      "2026-12-11 in.gst.gstr1.monthly:2026-11",
+      "2026-12-20 in.gst.gstr3b.monthly:2026-11",
+      "2026-12-31 in.gst.gstr9.annual:FY2025-26",
+    ]);
+    for (const i of items.filter((x) => x.form !== "GSTR-9"))
+      expect(i.warnings.join(" "), i.statutoryKey).toContain("Filing frequency not recorded");
+    // A recorded frequency carries no such warning.
+    const monthly = generateStatutory([{ ...noFreq, frequency: "monthly" }], {
+      from: "2026-11-01",
+      to: "2026-11-30",
+    });
+    expect(monthly.flatMap((i) => i.warnings).join(" ")).not.toContain("not recorded");
+  });
+
+  it("composition: CMP-08 each quarter and GSTR-4 for the year, no GSTR-1/3B/9", () => {
+    const items = generateStatutory([COMPOSITION], { from: "2026-04-01", to: "2027-03-31" });
+    expect(items.map((i) => `${i.dueOn} ${i.statutoryKey}`)).toEqual([
+      "2026-04-18 g4:cmp-08:FY2025-26-Q4",
+      "2026-06-30 g4:gstr-4:FY2025-26",
+      "2026-07-18 g4:cmp-08:FY2026-27-Q1",
+      "2026-10-18 g4:cmp-08:FY2026-27-Q2",
+      "2027-01-18 g4:cmp-08:FY2026-27-Q3",
+    ]);
+    for (const i of items) expect(i.verified).toBe(false);
   });
 
   it("produces all four TDS return quarters and the March payment special case", () => {
     const items = generateStatutory([TAN], { from: "2026-04-01", to: "2027-05-31" });
     const ret = items.filter((i) => i.ruleKey === "in.tds.24q.quarterly").map((i) => i.dueOn);
     expect(ret).toEqual(["2026-05-31", "2026-07-31", "2026-10-31", "2027-01-31", "2027-05-31"]);
-    expect(items.find((i) => i.statutoryKey === "in.tds.payment.monthly:2027-03")?.dueOn).toBe(
+    expect(items.find((i) => rulePeriod(i) === "in.tds.payment.monthly:2027-03")?.dueOn).toBe(
       "2027-04-30",
     );
-    expect(items.find((i) => i.statutoryKey === "in.tds.payment.monthly:2026-03")?.dueOn).toBe(
+    expect(items.find((i) => rulePeriod(i) === "in.tds.payment.monthly:2026-03")?.dueOn).toBe(
       "2026-04-30",
     );
   });
@@ -324,9 +381,135 @@ describe("generateStatutory", () => {
       [KERALA_MONTHLY, DELHI_QRMP, TAN, COMPANY_IT, PRESUMPTIVE, COMPANY_ROC],
       { from: "2025-04-01", to: "2028-03-31" },
     );
-    const keys = items.map((i) => `${i.registrationId}|${i.statutoryKey}`);
+    const keys = items.map((i) => i.statutoryKey);
     expect(new Set(keys).size).toBe(keys.length);
     expect(items.length).toBeGreaterThan(100);
+    for (const i of items) expect(i.statutoryKey.startsWith(`${i.registrationId}:`)).toBe(true);
+  });
+
+  it("keys on registration, form and period, so a change of rule keeps the key", () => {
+    expect(formKey("TDS payment (challan ITNS 281)")).toBe("tds-payment-challan-itns-281");
+    expect(statutoryKey("g1", "GSTR-3B", "2026-10")).toBe("g1:gstr-3b:2026-10");
+    const range = { from: "2026-10-01", to: "2026-10-31" };
+    const kerala = { ...DELHI_QRMP, identifier: "32ABCDE1234F1Z5" };
+    const [a] = generateStatutory([kerala], range).filter((i) => i.form === "GSTR-3B");
+    const [b] = generateStatutory([DELHI_QRMP], range).filter((i) => i.form === "GSTR-3B");
+    expect(a?.ruleKey).not.toBe(b?.ruleKey);
+    expect(a?.statutoryKey).toBe(b?.statutoryKey);
+    // Two GSTINs for one client never share a key.
+    const two = generateStatutory([KERALA_MONTHLY, { ...KERALA_MONTHLY, id: "g9" }], range);
+    expect(new Set(two.map((i) => i.statutoryKey)).size).toBe(two.length);
+  });
+
+  it("advance tax: an instalment due before the registration began is not generated", () => {
+    const late: Registration = { ...COMPANY_IT, validFrom: "2026-10-01" };
+    const items = generateStatutory([late], { from: "2026-04-01", to: "2027-03-31" });
+    expect(items.filter((i) => i.form === "Advance tax").map((i) => i.dueOn)).toEqual([
+      "2026-12-15",
+      "2027-03-15",
+    ]);
+    const onTheDay: Registration = { ...COMPANY_IT, validFrom: "2026-09-15" };
+    const items2 = generateStatutory([onTheDay], { from: "2026-04-01", to: "2027-03-31" });
+    expect(items2.filter((i) => i.form === "Advance tax").map((i) => i.dueOn)).toEqual([
+      "2026-09-15",
+      "2026-12-15",
+      "2027-03-15",
+    ]);
+  });
+
+  it("an AGM date from another year is not used, and says so", () => {
+    const wrong: Registration = { ...COMPANY_ROC, events: { "FY2025-26": { agm: "2024-09-25" } } };
+    const items = generateStatutory([wrong], { from: "2026-10-01", to: "2026-11-30" });
+    expect(items.map((i) => `${i.dueOn} ${i.form}`)).toEqual([
+      "2026-10-30 AOC-4",
+      "2026-11-29 MGT-7",
+    ]);
+    for (const i of items) expect(i.warnings.join(" ")).toContain("cannot be that year's AGM");
+  });
+
+  it("an OPC files MGT-7A on 26 November, under the same key as MGT-7", () => {
+    const opc: Registration = { ...COMPANY_ROC, attributes: { companyType: "opc" }, events: {} };
+    const items = generateStatutory([opc], { from: "2026-09-01", to: "2026-11-30" });
+    expect(items.map((i) => `${i.dueOn} ${i.ruleKey} ${i.statutoryKey}`)).toEqual([
+      "2026-09-27 in.roc.aoc4.opc r1:aoc-4:FY2025-26",
+      "2026-11-26 in.roc.mgt7a.opc r1:mgt-7:FY2025-26",
+    ]);
+  });
+
+  it("a tax-audit case gets the audit report a month before the return", () => {
+    const items = generateStatutory([COMPANY_IT], { from: "2026-09-01", to: "2026-10-31" });
+    expect(items.map((i) => `${i.dueOn} ${i.form}`)).toEqual([
+      "2026-09-15 Advance tax",
+      "2026-09-30 Form 3CD",
+      "2026-10-31 ITR",
+    ]);
+  });
+});
+
+describe("coverage: what the calendar does not cover", () => {
+  it("lists not-covered obligations for each registration", () => {
+    const notes = statutoryCoverage([DELHI_QRMP, TAN, PRESUMPTIVE, COMPANY_ROC, KERALA_MONTHLY]);
+    const by = (id: string) => notes.filter((n) => n.registrationId === id).map((n) => n.form);
+    expect(by("g2")).toEqual(["PMT-06", "IFF", "GSTR-9C"]);
+    expect(by("t1")).toEqual(["Form 27Q", "Form 27EQ"]);
+    expect(by("i2")).toEqual(["Form 26QB / 26QC / 26QD"]);
+    expect(by("r1")).toEqual(["DIR-3 KYC"]);
+    expect(by("g1")).toEqual(["GSTR-9C"]);
+    for (const n of notes) {
+      expect(n.type).toBe("not_covered");
+      expect(n.source?.citation.length, n.form).toBeGreaterThan(5);
+      expect(n.reason.length, n.form).toBeGreaterThan(20);
+    }
+    for (const m of IN_PACK.notCovered ?? []) expect(m.verified, m.key).toBe(false);
+  });
+
+  it("an expected form with no fitting rule is reported, not dropped", () => {
+    const odd: Registration = {
+      id: "g8",
+      kind: "gst",
+      identifier: "27ABCDE1234F1Z5",
+      frequency: "monthly",
+      scheme: "qrmp",
+    };
+    const range = { from: "2026-10-01", to: "2027-03-31" };
+    expect(generateStatutory([odd], range).map((i) => i.form)).toEqual(["GSTR-9"]);
+    const gaps = statutoryCoverage([odd]).filter((n) => n.type === "no_rule");
+    expect(gaps.map((n) => n.form)).toEqual(["GSTR-1", "GSTR-3B"]);
+    expect(gaps[0]?.reason).toContain('frequency "monthly"');
+    expect(gaps[0]?.reason).toContain('scheme "qrmp"');
+
+    const forcedGroup: Registration = { ...DELHI_QRMP, attributes: { stateGroup: "C" } };
+    const forcedGaps = statutoryCoverage([forcedGroup]).filter((n) => n.type === "no_rule");
+    expect(forcedGaps.map((n) => n.form)).toEqual(["GSTR-3B"]);
+  });
+
+  it("a registration that no rule fits says so", () => {
+    const casual: Registration = { id: "g9", kind: "gst", frequency: "monthly", scheme: "casual" };
+    const other: Registration = { id: "o1", kind: "other" };
+    const notes = statutoryCoverage([casual, other]);
+    expect(notes.map((n) => [n.registrationId, n.type, n.title])).toEqual([
+      ["g9", "no_rule", "Nothing on the calendar for this registration"],
+      ["o1", "no_rule", "Nothing on the calendar for this registration"],
+    ]);
+  });
+
+  it("a fully covered registration has only its not-covered markers", () => {
+    expect(statutoryCoverage([COMPOSITION]).filter((n) => n.type === "no_rule")).toEqual([]);
+    expect(statutoryCoverage([COMPANY_IT]).map((n) => n.type)).toEqual(["not_covered"]);
+  });
+});
+
+describe("India extensions data", () => {
+  it("every extension names a pack rule, a parseable period, a real date and its source", () => {
+    for (const e of IN_EXTENSIONS) {
+      const rule = IN_PACK.rules.find((r) => r.key === e.ruleKey);
+      expect(rule, e.ruleKey).toBeDefined();
+      if (!rule) continue;
+      expect(parsePeriod(e.period, rule.periodType, IN_PACK.fyStartMonth), e.period).not.toBeNull();
+      expect(e.source).toMatch(/notification|circular|press release|order/i);
+      const r = resolveStatutory(e.ruleKey, e.period, { extensions: [e] });
+      expect(isDateError(r), e.ruleKey).toBe(false);
+    }
   });
 });
 
@@ -425,6 +608,54 @@ describe("order windows", () => {
     expect(r.dueOn).toBe("2026-09-30");
     expect(r.windowEndOn).toBeUndefined();
     expect(r.warnings.join(" ")).toContain("No fixed condonation limit");
+  });
+
+  it("ITAT: two months from the end of the month of communication, from 1 Oct 2024", () => {
+    const r = resolveOrderWindow(inOrderWindows, "in.it.appeal.itat", {
+      ...ctx,
+      anchors: { service: "2026-10-10" },
+    });
+    if (isDateError(r)) throw new Error(r.message);
+    expect(r.dueOn).toBe("2026-12-31");
+    expect(r.basis).toBe(
+      "Appeal to the Income Tax Appellate Tribunal: 2 months from the end of the month of service on 10 Oct 2026 (31 Oct 2026)",
+    );
+    expect(r.inputs.countedFrom).toBe("2026-10-31");
+    expect(r.windowRule.source.citation).toContain("Finance (No. 2) Act 2024");
+    // Communicated before 1 Oct 2024: the old rule, from the date itself.
+    const old = resolveOrderWindow(inOrderWindows, "in.it.appeal.itat", {
+      ...ctx,
+      anchors: { service: "2024-09-10" },
+    });
+    if (isDateError(old)) throw new Error(old.message);
+    expect(old.dueOn).toBe("2024-11-10");
+  });
+
+  it.each([
+    ["GST notice", "GST notice", "in.gst.appeal.s107"],
+    ["Show-cause notice under section 73 of the CGST Act", "Demand notice", "in.gst.appeal.s107"],
+    ["Income-tax notice", "Demand notice", "in.it.appeal.cita"],
+    ["TDS notice", null, "in.it.appeal.cita"],
+    ["Income-tax notice", "Notice under section 148A", "in.it.appeal.cita"],
+  ] as const)("order window for %s / %s → %s", (notice, doc, key) => {
+    expect(inOrderWindowFor(notice, doc)).toEqual({ key });
+  });
+
+  it.each([
+    ["GST notice", "Order of the Appellate Authority (APL-04)"],
+    ["GST notice", "Order-in-Appeal"],
+    ["GST notice", "Court or tribunal order"],
+    ["Income-tax notice", "Order of the CIT(A)"],
+    ["Income-tax notice", "ITAT order"],
+    ["GST notice", "Income-tax notice"],
+    ["Legal notice", "Notice"],
+    // Loose text that used to match: "it", bare section numbers.
+    ["Please treat it as urgent", "Order dated 14.3.2026 ref 156"],
+    [null, null],
+  ] as const)("no automatic window for %s / %s: flagged for review", (notice, doc) => {
+    const r = inOrderWindowFor(notice, doc);
+    expect(r.key).toBeNull();
+    expect("review" in r && r.review).toMatch(/by hand/);
   });
 
   it("needs the communication date before it can compute", () => {

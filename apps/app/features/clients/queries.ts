@@ -1,7 +1,7 @@
 /** Loaders for the client list and the client page, org-scoped through withOrg. */
 import "server-only";
 import { listOrgPeople } from "@dueproof/auth";
-import { addMonths } from "@dueproof/core";
+import { addMonths, type CoverageNote } from "@dueproof/core";
 import {
   and,
   asc,
@@ -25,6 +25,7 @@ import { type DeadlineRow, queryDeadlines } from "@/lib/deadline-rows";
 import { notFound } from "@/lib/errors";
 import { type ExposureView, loadExposure } from "@/lib/exposure";
 import { todayIn } from "@/lib/pipeline/status";
+import { registrationCoverage } from "@/lib/statutory";
 
 export interface ClientListRow {
   id: string;
@@ -107,6 +108,8 @@ export interface ClientPageData {
   today: string;
   client: typeof clients.$inferSelect;
   registrations: RegistrationRow[];
+  /** What the statutory calendar does not cover, per registration (never silently absent). */
+  coverage?: CoverageNote[];
   contacts: ContactRow[];
   cases: {
     id: string;
@@ -176,6 +179,7 @@ export async function getClientPage(ctx: AuthContext, clientId: string): Promise
       today,
       client,
       registrations: regs,
+      coverage: registrationCoverage(regs),
       contacts: people_,
       cases: caseRows.map((c) => ({ ...c, openedAt: c.openedAt.toISOString() })),
       deadlines: due,

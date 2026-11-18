@@ -97,6 +97,17 @@ export function registrationSummary(r: RegistrationRow): string {
   return parts.join(" · ") || "No calendar facts yet";
 }
 
+/** What the calendar does not cover for one registration, in a line. */
+export function coverageSummary(notes: ClientPageData["coverage"], registrationId: string): string {
+  const mine = (notes ?? []).filter((n) => n.registrationId === registrationId);
+  const check = mine.filter((n) => n.type === "no_rule").map((n) => n.title);
+  const missing = mine.filter((n) => n.type === "not_covered").map((n) => n.form);
+  const parts: string[] = [];
+  if (check.length) parts.push(`Check: ${check.join("; ")}`);
+  if (missing.length) parts.push(`Not on the calendar: ${missing.join(", ")}`);
+  return parts.join(" · ");
+}
+
 export function ClientPageView({ data }: { data: ClientPageData }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -212,7 +223,9 @@ export function ClientPageView({ data }: { data: ClientPageData }) {
                 <ListRow
                   key={r.id}
                   label={`${KIND_LABEL[r.kind]} · ${r.identifier}`}
-                  description={registrationSummary(r)}
+                  description={[registrationSummary(r), coverageSummary(data.coverage, r.id)]
+                    .filter(Boolean)
+                    .join(" · ")}
                   control={
                     data.canEdit ? (
                       <span className={styles.inlineActions}>

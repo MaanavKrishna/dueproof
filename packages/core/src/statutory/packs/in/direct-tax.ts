@@ -9,7 +9,7 @@
  *
  * Every value is marked `verified: false`. VERIFY AGAINST THE STATUTE IN M0.
  */
-import type { StatutoryRule } from "../../types";
+import type { NotCoveredMarker, StatutoryRule } from "../../types";
 
 const ITD = "https://incometaxindia.gov.in/";
 
@@ -141,7 +141,7 @@ export const directTaxRules: readonly StatutoryRule[] = [
     source: { citation: "Income-tax Act 1961 s.139(1), Explanation 2(c)", url: ITD },
     verified: false,
     notes:
-      "Verify for FY 2025-26 onward: later due dates for some non-audit business cases have been proposed and extensions are common. Belated return s.139(4) and fee s.234F are not generated.",
+      "VERIFY FOR FY 2025-26 ONWARD before July: a later date (31 August) for non-audit business and trust cases was legislated or proposed in 2026, and section numbers move to the Income-tax Act 2025 from 1 April 2026. Extensions are common: add them to extensions.ts with the CBDT circular. Belated return s.139(4) and fee s.234F are not generated.",
   },
   {
     key: "in.it.itr.audit",
@@ -155,7 +155,25 @@ export const directTaxRules: readonly StatutoryRule[] = [
     source: { citation: "Income-tax Act 1961 s.139(1), Explanation 2(a)", url: ITD },
     verified: false,
     notes:
-      "Companies, and assessees whose accounts must be audited. The tax audit report (Form 3CA/3CB-3CD) is due one month earlier and is not generated in v0.1.",
+      "Companies, and assessees whose accounts must be audited. The tax audit report (Form 3CA/3CB with 3CD) is generated separately, one month earlier.",
+  },
+  {
+    key: "in.it.tax_audit_report",
+    form: "Form 3CD",
+    title: "Tax audit report (Form 3CA/3CB with 3CD)",
+    appliesTo: { kind: "income_tax", match: { audit: [true], transferPricing: [null, false] } },
+    periodType: "fy",
+    due: { type: "fy_date", month: 9, day: 30, yearsAfterStart: 1 },
+    dueText: "30 September of the assessment year (one month before the return)",
+    rollForward: false,
+    source: {
+      citation:
+        'Income-tax Act 1961 s.44AB, Explanation (ii) ("specified date"); Income-tax Rules 1962 r.6G',
+      url: ITD,
+    },
+    verified: false,
+    notes:
+      "The specified date is one month before the s.139(1) due date, so it moves when the return date is extended: add a matching extension. For a transfer-pricing case it is 31 October (not generated: see the not-covered list).",
   },
   {
     key: "in.it.itr.transfer_pricing",
@@ -169,5 +187,55 @@ export const directTaxRules: readonly StatutoryRule[] = [
     source: { citation: "Income-tax Act 1961 s.139(1), Explanation 2(aa)", url: ITD },
     verified: false,
     notes: "Assessees required to furnish a report under s.92E.",
+  },
+];
+
+/** Direct-tax obligations the pack knows about but does not generate (shown as "not covered"). */
+export const directTaxNotCovered: readonly NotCoveredMarker[] = [
+  {
+    key: "in.tds.27q",
+    form: "Form 27Q",
+    title: "Form 27Q (TDS on payments to non-residents) is not on the calendar",
+    appliesTo: { kind: "tds" },
+    reason:
+      "Filed by a deductor that pays non-residents: same quarterly dates as 26Q (31 Jul, 31 Oct, 31 Jan, 31 May). Add it by hand if this deductor files it.",
+    source: { citation: "Income-tax Act 1961 s.200(3); Income-tax Rules 1962 r.31A(2)", url: ITD },
+    verified: false,
+  },
+  {
+    key: "in.tcs.27eq",
+    form: "Form 27EQ",
+    title: "Form 27EQ (TCS return) is not on the calendar",
+    appliesTo: { kind: "tds" },
+    reason:
+      "Filed by a collector of tax at source: 15th of the month after the quarter (15 May for January–March). Add it by hand if this registration collects TCS.",
+    source: {
+      citation: "Income-tax Act 1961 s.206C(3); Income-tax Rules 1962 r.31AA(2)",
+      url: ITD,
+    },
+    verified: false,
+  },
+  {
+    key: "in.tds.26qb",
+    form: "Form 26QB / 26QC / 26QD",
+    title: "TDS on property, rent and contract payments by individuals is not on the calendar",
+    appliesTo: { kind: "income_tax" },
+    reason:
+      "Transaction-based: the challan-cum-statement is due within 30 days from the end of the month of deduction. Add it by hand when the client makes such a payment.",
+    source: {
+      citation:
+        "Income-tax Act 1961 s.194-IA, s.194-IB, s.194M; Income-tax Rules 1962 r.30(2A)-(2C), r.31A(4A)-(4C)",
+      url: ITD,
+    },
+    verified: false,
+  },
+  {
+    key: "in.it.tax_audit_report.transfer_pricing",
+    form: "Form 3CD / 3CEB",
+    title: "Audit and transfer-pricing reports are not on the calendar for a transfer-pricing case",
+    appliesTo: { kind: "income_tax", match: { transferPricing: [true] } },
+    reason: "Due one month before the 30 November return date, i.e. 31 October. Add them by hand.",
+    source: { citation: "Income-tax Act 1961 s.44AB Explanation (ii), s.92E", url: ITD },
+    verified: false,
   },
 ];

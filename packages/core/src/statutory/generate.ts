@@ -9,7 +9,7 @@ import { isDateError } from "../dates/types";
 import { registrationFacts, ruleApplies } from "./match";
 import { IN_PACK } from "./packs/in";
 import { periodsStartingBetween } from "./periods";
-import { resolveStatutory } from "./resolve";
+import { baseDueDate, resolveStatutory } from "./resolve";
 import type { Extension, Registration, StatutoryItem, StatutoryPack } from "./types";
 
 export interface DateRange {
@@ -25,6 +25,23 @@ export interface GenerateOptions {
 
 /** How far before `from` a period may start and still fall due inside the range. */
 const LOOKBACK_MONTHS = 36;
+
+/** "GSTR-3B" → "gstr-3b"; "TDS payment (challan ITNS 281)" → "tds-payment-challan-itns-281". */
+export function formKey(form: string): string {
+  return form
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * The stable identity of one obligation: registration, form and period.
+ * Not the rule key, so a registration whose facts change which rule applies
+ * (state group A → B, audit flag set) keeps the same row and its history.
+ */
+export function statutoryKey(registrationId: string, form: string, period: string): string {
+  return `${registrationId}:${formKey(form)}:${period}`;
+}
 
 export function generateStatutory(
   registrations: readonly Registration[],
@@ -53,6 +70,13 @@ export function generateStatutory(
         // The registration must cover at least part of the period.
         if (reg.validFrom && compareIso(p.end, reg.validFrom) < 0) continue;
         if (reg.validTo && compareIso(p.start, reg.validTo) > 0) continue;
+        // An instalment period spans its whole year, so the test above always
+        // passes: compare the instalment's own date instead. An instalment
+        // that fell due before the registration began is not owed under it.
+        if (rule.periodType === "fy_instalment" && reg.validFrom) {
+          const base = baseDueDate(rule, p);
+          if (!("error" in base) && compareIso(base.dueOn, reg.validFrom) < 0) continue;
+        }
         const events = reg.events?.[p.canonical];
         const r = resolveStatutory(rule.key, p.canonical, {
           pack,
@@ -65,7 +89,7 @@ export function generateStatutory(
         if (isDateError(r)) continue; // e.g. a rule not yet in effect for an old period
         if (compareIso(r.dueOn, range.from) < 0 || compareIso(r.dueOn, range.to) > 0) continue;
         const item: StatutoryItem = {
-          statutoryKey: `${rule.key}:${p.canonical}`,
+          statutoryKey: statutoryKey(reg.id, rule.form, p.canonical),
           ruleKey: rule.key,
           period: p.canonical,
           periodLabel: p.label,

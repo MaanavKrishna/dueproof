@@ -63,6 +63,13 @@ export interface MonthlyInterestRule extends InterestRuleBase {
   resultRounding: Rounding;
   /** Rule 119A(a): a part of a month counts as a whole month. */
   partMonthIsFull: boolean;
+  /** How months are counted when a period starts mid-month (see `MonthCounting`). Default "calendar". */
+  monthCounting?: "calendar" | "elapsed";
+  /**
+   * 234B/234C: no interest unless the tax is at least this much, because
+   * advance tax is payable only from this amount (s.208).
+   */
+  minimumTax?: { minor: number; citation: string };
   /** 234B: interest applies only if advance tax paid is below this share of assessed tax. */
   thresholdBp?: number;
   /** 234B: when the interest period starts (1 April of the assessment year). */

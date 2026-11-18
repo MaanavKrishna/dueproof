@@ -45,6 +45,37 @@ describe("months or part of a month", () => {
     ["2028-02-01", "2028-02-29", 1],
   ] as const)("%s → %s = %s", (a, b, n) => {
     expect(monthsOrPart(a, b)).toBe(n);
+    // Both readings agree when the period starts on the 1st.
+    expect(monthsOrPart(a, b, "elapsed")).toBe(n);
+  });
+
+  // Starts on the 29th-31st, into a shorter month (r.119A(a); verify with a CA).
+  it.each([
+    ["2027-01-29", "2027-02-28", 2, 1],
+    ["2027-01-30", "2027-02-28", 2, 1],
+    ["2027-01-31", "2027-02-28", 2, 1],
+    ["2027-01-29", "2027-03-01", 3, 2],
+    ["2027-01-30", "2027-03-01", 3, 2],
+    ["2027-01-31", "2027-03-01", 3, 2],
+    ["2027-01-28", "2027-02-28", 2, 2],
+    ["2027-01-28", "2027-02-27", 2, 1],
+    ["2028-01-31", "2028-02-29", 2, 1],
+    // An extended mid-month due date: due 16 Sep, filed 5 Oct.
+    ["2025-09-17", "2025-10-05", 2, 1],
+    ["2025-09-17", "2025-10-16", 2, 1],
+    ["2025-09-17", "2025-10-17", 2, 2],
+  ] as const)("%s → %s: %s calendar months, %s elapsed", (a, b, calendar, elapsed) => {
+    expect(monthsOrPart(a, b)).toBe(calendar);
+    expect(monthsOrPart(a, b, "calendar")).toBe(calendar);
+    expect(monthsOrPart(a, b, "elapsed")).toBe(elapsed);
+  });
+
+  it("the India pack counts calendar months for 234A and 234B", () => {
+    for (const key of ["in.it.s234a", "in.it.s234b", "in.it.s234c"]) {
+      const r = IN_MONEY_PACK.interest.find((x) => x.key === key);
+      expect(r?.kind === "monthly_simple" && r.monthCounting, key).toBe("calendar");
+      expect(r?.verified, key).toBe(false);
+    }
   });
 });
 
@@ -190,7 +221,40 @@ describe("income-tax s.234A", () => {
   });
 });
 
+describe("income-tax s.234A, extended mid-month due date", () => {
+  it("due 16 Sep, filed 5 Oct: September and October, 2 months", () => {
+    const r = interest234A({
+      taxMinor: 100_000 * RUPEE,
+      dueOn: "2025-09-16",
+      filedOn: "2025-10-05",
+    });
+    expect(r.amountMinor).toBe(2_000 * RUPEE);
+    expect(r.workings[0]?.result).toBe("2 months");
+  });
+});
+
 describe("income-tax s.234B", () => {
+  it("no interest when assessed tax is below ₹10,000 (s.208)", () => {
+    const r = interest234B({
+      assessedTaxMinor: 5_000 * RUPEE,
+      advanceTaxPaidMinor: 0,
+      fy: "FY2025-26",
+      untilOn: "2026-07-31",
+    });
+    expect(r.amountMinor).toBe(0);
+    expect(r.workings[0]?.formula).toContain("s.208");
+    expect(r.workings[0]?.result).toBe("No");
+  });
+  it("applies from exactly ₹10,000", () => {
+    const r = interest234B({
+      assessedTaxMinor: 10_000 * RUPEE,
+      advanceTaxPaidMinor: 0,
+      fy: "FY2025-26",
+      untilOn: "2026-07-31",
+    });
+    // ₹10,000 × 1 % × 4 months
+    expect(r.amountMinor).toBe(400 * RUPEE);
+  });
   it("advance tax below 90 %: shortfall × 1 % × months from 1 April of the AY", () => {
     const r = interest234B({
       assessedTaxMinor: 1_000_000 * RUPEE,
@@ -305,6 +369,37 @@ describe("income-tax s.234C", () => {
       payments: [pay("2027-03-15", 40_000)],
     });
     expect(r.amountMinor).toBe(100 * RUPEE);
+  });
+
+  it("no interest when tax due is below ₹10,000 (s.208)", () => {
+    const r = interest234C({ taxDueMinor: 5_000 * RUPEE, fy: "FY2025-26", payments: [] });
+    expect(r.amountMinor).toBe(0);
+    expect(r.workings[0]?.formula).toContain("s.208");
+  });
+
+  it("nothing paid on ₹1,00,000: ₹5,050", () => {
+    const r = interest234C({ taxDueMinor, fy: "FY2025-26", payments: [] });
+    // 15,000 × 3 % + 45,000 × 3 % + 75,000 × 3 % + 1,00,000 × 1 %
+    expect(r.amountMinor).toBe(5_050 * RUPEE);
+  });
+
+  it("ignores payments dated outside the financial year, and says so", () => {
+    const r = interest234C({
+      taxDueMinor,
+      fy: "FY2025-26",
+      payments: [pay("2025-03-31", 100_000), pay("2026-04-01", 100_000)],
+    });
+    expect(r.amountMinor).toBe(5_050 * RUPEE);
+    expect(r.warnings[0]).toBe(
+      "2 payments are dated outside FY2025-26 (1 Apr 2025 to 31 Mar 2026) and not counted.",
+    );
+    const inYear = interest234C({
+      taxDueMinor,
+      fy: "FY2025-26",
+      payments: [pay("2025-04-01", 100_000)],
+    });
+    expect(inYear.amountMinor).toBe(0);
+    expect(inYear.warnings.join(" ")).not.toContain("outside");
   });
 
   it("rejects an unknown scheme", () => {
