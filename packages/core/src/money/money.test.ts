@@ -105,7 +105,8 @@ describe("GST s.50 interest", () => {
     });
     expect(r.workings[1]?.result).toBe("₹7,806.82");
     expect(r.workings[2]?.result).toBe("₹7,807");
-    expect(r.warnings.join(" ")).toContain("verify in M0");
+    expect(r.warnings.join(" ")).toContain("not yet checked by a chartered accountant");
+    expect(r.warnings.join(" ")).not.toMatch(/M0/);
   });
 
   it("counts the leap day", () => {
@@ -122,6 +123,20 @@ describe("GST s.50 interest", () => {
     expect(leap.workings[0]?.result).toBe("29 days");
     expect(plain.workings[0]?.result).toBe("28 days");
     expect(leap.amountMinor).toBe(6_469 * RUPEE); // 646,850.96 paise
+  });
+
+  it("says 'computed to', not 'paid on', when nothing was paid (M4)", () => {
+    const r = dailyInterest({
+      taxMinor: 45_230_000,
+      dueOn: "2026-11-20",
+      paidOn: "2026-12-25",
+      paid: false,
+    });
+    expect(r.workings[0]?.inputs).toEqual({
+      "due date": "20 Nov 2026",
+      "computed to": "25 Dec 2026",
+    });
+    expect(r.workings[0]?.formula).toContain("computed to");
   });
 
   it("is nil when paid on or before the due date", () => {

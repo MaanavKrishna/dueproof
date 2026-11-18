@@ -200,7 +200,8 @@ export async function queryDeadlines(
       snoozedUntil,
       ackNumber: detail.ackNumber ?? null,
       adjustments: detail.adjustments ?? [],
-      warnings: detail.warnings ?? [],
+      // Older rows carry an internal milestone note; never show it (M4).
+      warnings: (detail.warnings ?? []).map((w) => w.replace(/\s*\(verify in M0\)/, "")),
       statutory: st
         ? {
             form: st.form,

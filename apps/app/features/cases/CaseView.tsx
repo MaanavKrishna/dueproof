@@ -622,7 +622,8 @@ export function CaseView({
               steps={[
                 {
                   id: "stated",
-                  label: "As stated in the notice",
+                  // One answer, never both (M4): read from the notice, or typed by a person.
+                  label: d.findingId ? "As stated in the notice" : "Entered by hand",
                   inputs: [
                     {
                       label: "Tax",
@@ -649,14 +650,17 @@ export function CaseView({
                           value: `${w.formula} = ${w.result}`,
                         })),
                         result: <Amount minor={d.penalty.min} to={d.penalty.max} estimate />,
+                        ...(d.penaltyVerified
+                          ? {}
+                          : { note: "Not yet checked by a chartered accountant." }),
                       },
                     ]
                   : []),
               ]}
-              {...(d.interestMinor !== null && d.asOf
+              {...(d.interestMinor !== null && d.asOfLabel
                 ? {
                     total: {
-                      label: `Interest to ${d.asOf}`,
+                      label: `Interest computed to ${d.asOfLabel}`,
                       value: <Amount minor={d.interestMinor} size="lg" estimate />,
                     },
                   }
@@ -679,7 +683,8 @@ export function CaseView({
           headingLevel={2}
           padding="md"
         >
-          <DemandForm data={data} demand={null} onDone={done} />
+          {/* A second demand starts empty, so the notice's amount isn't entered twice (M4). */}
+          <DemandForm data={data} demand={null} fresh={data.demands.length > 0} onDone={done} />
         </Card>
       ) : !data.demands.length ? (
         <EmptyState

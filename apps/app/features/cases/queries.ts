@@ -115,6 +115,10 @@ export interface CaseDemand {
   penaltyRule: string | null;
   dueOn: string | null;
   asOf: string | null;
+  /** asOf in the house date format: "18 Nov 2026". */
+  asOfLabel: string | null;
+  /** False when the penalty rule is not yet checked by a chartered accountant. */
+  penaltyVerified: boolean;
   findingId: string | null;
   interestMinor: number | null;
   penalty: { min: number; max: number } | null;
@@ -516,13 +520,15 @@ export async function loadCase(
         penaltyRule: inputs.penaltyRule ?? null,
         dueOn: inputs.dueOn ?? null,
         asOf: inputs.asOf ?? null,
+        asOfLabel: inputs.asOf ? fmtDate(inputs.asOf, clock.locale) : null,
         findingId: d.findingId,
         interestMinor: comp.interest?.amountMinor ?? d.interestMinor,
         penalty: comp.penalty ? { min: comp.penalty.lowMinor, max: comp.penalty.highMinor } : null,
+        penaltyVerified: comp.penalty?.verified ?? true,
         workings: comp.interest?.workings ?? [],
         penaltyWorkings: comp.penalty?.workings ?? [],
         rateSource: comp.interest
-          ? `${comp.interest.source.citation}. ${comp.interest.verified ? "Checked." : "Not yet verified by a CA — verify."}`
+          ? `${comp.interest.source.citation}. ${comp.interest.verified ? "Checked by a chartered accountant." : "Not yet checked by a chartered accountant."}`
           : null,
         warnings: [...(comp.interest?.warnings ?? [])],
         error: comp.error,

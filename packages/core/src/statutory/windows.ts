@@ -82,7 +82,8 @@ export function resolveOrderWindow(
   const warnings = [...r.warnings];
   if (!w.condonable)
     warnings.push("No fixed condonation limit: a late appeal needs a condonation application.");
-  if (!w.verified) warnings.push("Period not yet verified against the statute (verify in M0).");
+  if (!w.verified)
+    warnings.push("Period not yet checked against the statute by a chartered accountant.");
   if (monthEnd && anchorOn) {
     const fmt = (d: string) => formatDate(d, { locale: ctx.locale ?? "en-IN" });
     return {

@@ -25,6 +25,8 @@ import {
 } from "@dueproof/db";
 import { handleLocalStorageRequest, LocalDiskStorage } from "@dueproof/storage";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { saveDemand } from "../features/cases/actions";
+import { loadCase } from "../features/cases/queries";
 import {
   nothingOwed,
   openCase,
@@ -165,6 +167,7 @@ describe("deadlines from unfiled documents (H2)", () => {
   it("count once the document is filed in a case", async () => {
     const r = await openCase({ documentId: ids.notice as string, newClientName: "Harbour Valley" });
     if (!r.ok) throw new Error(r.message);
+    ids.case = r.data.caseId;
     const today = await loadToday(ctx, "everyone", NOW);
     expect(today.hearings.map((h) => h.dueOn)).toEqual(["2026-11-18"]);
     expect(today.notFiled.some((n) => n.caseId)).toBe(false);
@@ -292,5 +295,33 @@ describe("No deadline found (M2)", () => {
     expect((await nothingOwed(poster, true)).ok).toBe(true);
     inbox = await loadInbox(ctx, NOW);
     expect(inbox.review.some((r) => r.documentId === poster)).toBe(true);
+  });
+});
+
+describe("demand workings (M4)", () => {
+  it("speak plainly: house dates, 'computed to', and the CA note on the penalty", async () => {
+    const caseId = ids.case as string;
+    const before = await loadCase(ctx, caseId, NOW);
+    const amount = before.findings.find((f) => f.kind === "amount" && f.amountMinor);
+    const r = await saveDemand({
+      caseId,
+      taxType: "gst",
+      principalMinor: amount?.amountMinor ?? 45_230_000,
+      ...(amount ? { findingId: amount.id } : {}),
+      interestRule: "in.gst.s50.1",
+      penaltyRule: "in.gst.s73",
+      dueOn: "2026-10-20",
+      asOf: "2026-11-16",
+    });
+    if (!r.ok) throw new Error(r.message);
+    const d = (await loadCase(ctx, caseId, NOW)).demands[0];
+    expect(d?.asOfLabel).toBe("16 Nov 2026");
+    expect(d?.penaltyVerified).toBe(false);
+    expect(d?.rateSource).toContain("Not yet checked by a chartered accountant.");
+    const text = JSON.stringify(d);
+    expect(text).not.toMatch(/M0|verify in/);
+    expect(d?.workings[0]?.inputs).toMatchObject({ "computed to": "16 Nov 2026" });
+    expect(d?.workings[0]?.inputs).not.toHaveProperty("paid on");
+    if (amount) expect(d?.findingId).toBe(amount.id);
   });
 });
