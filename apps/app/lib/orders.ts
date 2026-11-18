@@ -4,18 +4,20 @@
  * and the condonation window are two separate dates, each with its rule.
  */
 import "server-only";
-import { inOrderWindows, isDateError, resolveOrderWindow } from "@dueproof/core";
+import { inOrderWindowFor, inOrderWindows, isDateError, resolveOrderWindow } from "@dueproof/core";
 import { and, deadlines, documents, eq, type OrgTx, uuidv7 } from "@dueproof/db";
 import type { AuthContext } from "./authorize";
 import type { OrgCalendar } from "./calendar";
 import type { DeadlineDetail } from "./deadline-detail";
 
-/** Which appeal lies from an order, by the kind of notice the case is about. */
+/**
+ * Which appeal lies from an order, by the kind of notice the case is about
+ * and the order's document type. Conservative: null when it is not clear
+ * (an appellate, tribunal or court order, or text that names no law). See
+ * core's `inOrderWindowFor`.
+ */
 export function appealWindowKey(noticeType: string | null, docType: string | null): string | null {
-  const t = `${noticeType ?? ""} ${docType ?? ""}`.toLowerCase();
-  if (/gst/.test(t)) return "in.gst.appeal.s107";
-  if (/income|\bit\b|in\.it\.|tds|143|148|156/.test(t)) return "in.it.appeal.cita";
-  return null;
+  return inOrderWindowFor(noticeType, docType).key;
 }
 
 export type OrderWindowOutcome =
@@ -40,8 +42,9 @@ export async function addOrderWindow(
     .where(and(eq(documents.orgId, ctx.orgId), eq(documents.id, documentId)))
     .limit(1);
   if (doc?.role !== "order") return { added: false, reason: "Not an order." };
-  const key = appealWindowKey(caseRow.noticeType, doc.docType);
-  if (!key) return { added: false, reason: "No appeal window is known for this kind of order." };
+  const choice = inOrderWindowFor(caseRow.noticeType, doc.docType);
+  if (choice.key === null) return { added: false, reason: choice.review };
+  const key = choice.key;
   const existing = await tx
     .select({ id: deadlines.id, rule: deadlines.detail })
     .from(deadlines)
