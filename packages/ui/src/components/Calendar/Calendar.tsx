@@ -5,6 +5,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   HearingIcon,
+  HelpIcon,
   type Icon,
   NoticeIcon,
   OrderIcon,
@@ -49,6 +50,12 @@ export interface CalendarEvent {
   time?: string;
   /** "Harbour Valley Foods". */
   client?: string;
+  /**
+   * A caution that must travel with the chip: "Rule not yet checked by a CA".
+   * Spoken in the name, shown under the title in week view, and marked with
+   * an icon in month view.
+   */
+  note?: string;
 }
 
 export interface CalendarHoliday {
@@ -371,6 +378,7 @@ function EventChip({
     kind.word,
     rung.label,
     event.time ? `at ${event.time}` : null,
+    event.note ?? null,
   ]
     .filter(Boolean)
     .join(", ");
@@ -386,7 +394,11 @@ function EventChip({
       <KIcon size={12} strokeWidth={2} className={styles.chipIcon} />
       {event.time ? <span className={styles.chipTime}>{event.time}</span> : null}
       <span className={styles.chipTitle}>{event.title}</span>
+      {event.note && !detailed ? (
+        <HelpIcon size={12} strokeWidth={2} className={styles.chipIcon} />
+      ) : null}
       {detailed && event.client ? <span className={styles.chipClient}>{event.client}</span> : null}
+      {detailed && event.note ? <span className={styles.chipClient}>{event.note}</span> : null}
     </button>
   );
 }

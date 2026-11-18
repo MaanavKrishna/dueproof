@@ -37,7 +37,7 @@ export function useReturnFocus(
         returnFocus?.current ??
         (hasTrigger
           ? null
-          : [opener.current, menuTrigger.current].find((el) => el?.isConnected) ?? null);
+          : ([opener.current, menuTrigger.current].find((el) => el?.isConnected) ?? null));
       if (!target) return;
       event.preventDefault();
       target.focus();

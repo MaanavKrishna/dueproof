@@ -57,6 +57,9 @@ export function weekRange(monday: string): string {
     : `${dm(monday)} – ${dm(sunday)} ${year}`;
 }
 
+/** The group for deadlines read from documents not yet filed in a case. */
+export const UNFILED = "unfiled";
+
 export function groupByWeek(rows: DeadlineRow[], today: string): WeekGroup[] {
   const thisWeek = mondayOf(today);
   const nextWeek = fromEpoch(epoch(thisWeek) + 7);
@@ -65,9 +68,15 @@ export function groupByWeek(rows: DeadlineRow[], today: string): WeekGroup[] {
     (a, b) => a.dueOn.localeCompare(b.dueOn) || a.title.localeCompare(b.title),
   );
   for (const r of sorted) {
-    const overdue = r.status === "open" && r.dueOn < today;
-    const id = overdue ? "overdue" : mondayOf(r.dueOn);
+    // Read from a document nobody has filed: not counted as due until it is (H2).
+    const unfiled = r.status === "open" && r.unfiled;
+    const overdue = !unfiled && r.status === "open" && r.dueOn < today;
+    const id = unfiled ? UNFILED : overdue ? "overdue" : mondayOf(r.dueOn);
     let g = groups.get(id);
+    if (unfiled && !g) {
+      g = { id, label: "Not filed yet", range: null, rows: [] };
+      groups.set(id, g);
+    }
     if (!g) {
       const label = overdue
         ? "Overdue"
@@ -83,7 +92,6 @@ export function groupByWeek(rows: DeadlineRow[], today: string): WeekGroup[] {
     }
     g.rows.push(r);
   }
-  return [...groups.values()].sort((a, b) =>
-    a.id === "overdue" ? -1 : b.id === "overdue" ? 1 : a.id.localeCompare(b.id),
-  );
+  const rank = (id: string) => (id === "overdue" ? 0 : id === UNFILED ? 2 : 1);
+  return [...groups.values()].sort((a, b) => rank(a.id) - rank(b.id) || a.id.localeCompare(b.id));
 }

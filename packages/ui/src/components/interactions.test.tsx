@@ -1,7 +1,7 @@
 import { HomeIcon, InboxIcon } from "@dueproof/icons";
-import { useRef, useState } from "react";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useRef, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { addDays } from "../utils/dates";
 import { Amount } from "./Amount/Amount";
@@ -14,8 +14,8 @@ import { CommentComposer } from "./CommentComposer/CommentComposer";
 import { ConfirmDialog } from "./ConfirmDialog/ConfirmDialog";
 import { DatePicker } from "./DatePicker/DatePicker";
 import { Dialog } from "./Dialog/Dialog";
-import { Menu, MenuContent, MenuItem, MenuTrigger } from "./Menu/Menu";
 import { FilterBar, type FilterDefinition } from "./FilterBar/FilterBar";
+import { Menu, MenuContent, MenuItem, MenuTrigger } from "./Menu/Menu";
 import { StageStepper } from "./StageStepper/StageStepper";
 
 const tick = () => act(() => new Promise((r) => setTimeout(r, 0)));
@@ -287,28 +287,58 @@ describe("Calendar", () => {
     await user.click(screen.getByRole("button", { name: "Next week" }));
     expect(screen.getByRole("heading", { name: /23 Nov 2026 – 29 Nov 2026/ })).toBeInTheDocument();
   });
+
+  it("carries a chip's caution in its name and, in week view, as text (M5)", async () => {
+    const user = userEvent.setup();
+    const flagged: CalendarEvent[] = [
+      { ...events[1], note: "Rule not yet checked by a CA" } as CalendarEvent,
+    ];
+    render(<Calendar events={flagged} today="2026-11-16" />);
+    expect(
+      screen.getByRole("button", { name: /GSTR-3B \(Oct\).*Rule not yet checked by a CA/ }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("radio", { name: "Week" }));
+    expect(screen.getByText("Rule not yet checked by a CA")).toBeInTheDocument();
+  });
 });
 
+function Controlled({ withRef = false }: { withRef?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const target = useRef<HTMLButtonElement>(null);
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}>Correct the date</Button>
+      <Button ref={target}>Elsewhere</Button>
+      <Dialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Correct the received date"
+        {...(withRef ? { returnFocus: target } : {})}
+      >
+        <p>Body</p>
+      </Dialog>
+    </>
+  );
+}
+function FromMenu() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Menu>
+        <MenuTrigger>
+          <Button>More</Button>
+        </MenuTrigger>
+        <MenuContent>
+          <MenuItem onSelect={() => setOpen(true)}>Move stage</MenuItem>
+        </MenuContent>
+      </Menu>
+      <Dialog open={open} onOpenChange={setOpen} title="Move the stage">
+        <p>Body</p>
+      </Dialog>
+    </>
+  );
+}
 describe("Dialog focus return (WCAG 2.4.3)", () => {
-  function Controlled({ withRef = false }: { withRef?: boolean }) {
-    const [open, setOpen] = useState(false);
-    const target = useRef<HTMLButtonElement>(null);
-    return (
-      <>
-        <Button onClick={() => setOpen(true)}>Correct the date</Button>
-        <Button ref={target}>Elsewhere</Button>
-        <Dialog
-          open={open}
-          onOpenChange={setOpen}
-          title="Correct the received date"
-          {...(withRef ? { returnFocus: target } : {})}
-        >
-          <p>Body</p>
-        </Dialog>
-      </>
-    );
-  }
-
   it("returns focus to the opener when a dialog with no trigger closes", async () => {
     const user = userEvent.setup();
     render(<Controlled />);
@@ -333,24 +363,7 @@ describe("Dialog focus return (WCAG 2.4.3)", () => {
   });
   it("returns focus to the menu button when a menu item opened the dialog", async () => {
     const user = userEvent.setup();
-    function FromMenu() {
-      const [open, setOpen] = useState(false);
-      return (
-        <>
-          <Menu>
-            <MenuTrigger>
-              <Button>More</Button>
-            </MenuTrigger>
-            <MenuContent>
-              <MenuItem onSelect={() => setOpen(true)}>Move stage</MenuItem>
-            </MenuContent>
-          </Menu>
-          <Dialog open={open} onOpenChange={setOpen} title="Move the stage">
-            <p>Body</p>
-          </Dialog>
-        </>
-      );
-    }
+
     render(<FromMenu />);
     const more = screen.getByRole("button", { name: "More" });
     more.focus();

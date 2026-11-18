@@ -125,6 +125,8 @@ function row(p: Partial<DeadlineRow> & { id: string; dueOn: string }): DeadlineR
     caseId: null,
     caseTitle: null,
     findingId: null,
+    documentId: null,
+    unfiled: false,
     completedAt: null,
     snoozedUntil: null,
     ackNumber: null,
@@ -155,6 +157,26 @@ describe("deadline list", () => {
     ]);
     expect(mondayOf("2026-11-22")).toBe("2026-11-16");
     expect(weekRange("2026-11-30")).toBe("30 Nov – 6 Dec 2026");
+  });
+
+  it("keeps deadlines from unfiled documents apart, never in Overdue (H2)", () => {
+    const groups = groupByWeek(
+      [
+        row({ id: "late", dueOn: "2026-11-10" }),
+        row({
+          id: "invoice",
+          dueOn: "2026-11-01",
+          source: "notice",
+          findingId: "f",
+          unfiled: true,
+        }),
+      ],
+      today,
+    );
+    expect(groups.map((g) => [g.label, g.rows.map((r) => r.id)])).toEqual([
+      ["Overdue", ["late"]],
+      ["Not filed yet", ["invoice"]],
+    ]);
   });
 
   it("filters by client, person, source and status, with snoozed items apart", () => {

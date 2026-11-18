@@ -13,6 +13,7 @@ import {
   ClientIcon,
   DownloadIcon,
   FilterIcon,
+  HelpIcon,
   NoticeIcon,
   OrderIcon,
   UserIcon,
@@ -28,6 +29,7 @@ import {
   type FilterDefinition,
   type FilterValue,
   InsetGroupedList,
+  Link,
   ListPageTemplate,
   ListRow,
   SegmentedControl,
@@ -46,7 +48,7 @@ import { DeadlineActions } from "./DeadlineActions";
 import { DeadlineDetailDialog } from "./DeadlineDetailDialog";
 import styles from "./deadlines.module.css";
 import { FeedMenu } from "./FeedMenu";
-import { applyFilters, groupByWeek } from "./group";
+import { applyFilters, groupByWeek, UNFILED } from "./group";
 import { SOURCE_LABEL, TYPE_LABEL } from "./labels";
 import type { DeadlinesPageData } from "./queries";
 
@@ -96,7 +98,10 @@ export function DeadlinesView({
   const [filters, setFilters] = useState<FilterValue>(() =>
     filtersFromParams(new URLSearchParams(params.toString())),
   );
-  const [selected, setSelected] = useState<DeadlineRow | null>(null);
+  // ?deadline=<id> opens that deadline's detail, so a row is a real link.
+  const [selected, setSelected] = useState<DeadlineRow | null>(
+    () => data.rows.find((r) => r.id === params.get("deadline")) ?? null,
+  );
   const [adding, setAdding] = useState(false);
   const [, startTransition] = useTransition();
   const { toast } = useToast();
@@ -159,7 +164,8 @@ export function DeadlinesView({
     () => applyFilters(data.rows, filters, data.today),
     [data.rows, filters, data.today],
   );
-  const open = data.rows.filter((r) => r.status === "open");
+  // Deadlines from unfiled documents aren't counted as due (H2).
+  const open = data.rows.filter((r) => r.status === "open" && !r.unfiled);
   const overdue = open.filter((r) => r.state === "overdue").length;
 
   function syncUrl(nextFilters: FilterValue, nextView: View) {
@@ -242,6 +248,7 @@ export function DeadlinesView({
           data={data}
           onChanged={refresh}
           compact={phone}
+          onOpen={setSelected}
         />
       ) : view === "calendar" ? (
         <div className={styles.pad}>
@@ -256,7 +263,7 @@ export function DeadlinesView({
           />
         </div>
       ) : (
-        <DeadlineTimeline rows={rows} today={data.today} people={people} />
+        <DeadlineTimeline rows={rows} today={data.today} people={people} onOpen={setSelected} />
       )}
       <DeadlineDetailDialog
         row={selected}
@@ -274,24 +281,59 @@ export function DeadlinesView({
   );
 }
 
+const UNVERIFIED = "Rule not yet checked by a CA";
+
+/** Open, but read from a document nobody has filed yet (H2). */
+const notFiled = (r: DeadlineRow) => r.unfiled && r.status === "open";
+
 function toEvent(r: DeadlineRow): CalendarEvent {
+  const notes = [
+    notFiled(r) ? "Not filed yet" : null,
+    r.statutory && !r.statutory.verified ? UNVERIFIED : null,
+  ].filter(Boolean);
   return {
     id: r.id,
     date: r.dueOn,
     title: r.title,
-    state: r.state,
+    // Not filed: never painted overdue; the note says why.
+    state: notFiled(r) ? "later" : r.state,
     kind: r.source === "statutory" ? "statutory" : r.source === "order" ? "order" : "notice",
     ...(r.clientName ? { client: r.clientName } : {}),
+    ...(notes.length ? { note: notes.join(" · ") } : {}),
   };
+}
+
+/** The row's title as a link that opens its detail (H3): Enter, click or a new tab. */
+function RowTitle({ r, onOpen }: { r: DeadlineRow; onOpen: (r: DeadlineRow) => void }) {
+  return (
+    <Link
+      variant="subtle"
+      href={`?deadline=${encodeURIComponent(r.id)}`}
+      onClick={(e) => {
+        if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+        e.preventDefault();
+        onOpen(r);
+      }}
+    >
+      {r.title}
+    </Link>
+  );
+}
+
+function RowDue({ r }: { r: DeadlineRow }) {
+  return notFiled(r) ? (
+    <Badge size="sm">Not filed yet · {shortDate(r.dueOn)}</Badge>
+  ) : (
+    <DueChip state={r.state} detail={shortDate(r.dueOn)} size="sm" />
+  );
 }
 
 export function describeRow(r: DeadlineRow, people: Map<string, string>): string {
   const parts: string[] = [];
-  if (r.clientName) parts.push(r.clientName);
+  parts.push(r.clientName ?? "No client yet");
   parts.push(r.basis);
   parts.push(r.ownerUserId ? (people.get(r.ownerUserId) ?? "Someone") : "Unassigned");
   if (r.snoozedUntil) parts.push(`Snoozed until ${shortDate(r.snoozedUntil)}`);
-  if (r.statutory && !r.statutory.verified) parts.push("Rule not yet checked by a CA");
   return parts.join(" · ");
 }
 
@@ -302,12 +344,14 @@ function DeadlineList({
   data,
   onChanged,
   compact = false,
+  onOpen,
 }: {
   rows: DeadlineRow[];
   today: string;
   people: Map<string, string>;
   data: DeadlinesPageData;
   onChanged: () => void;
+  onOpen: (r: DeadlineRow) => void;
   /** Phones: the due chip sits under the title and the basis is left to the detail. */
   compact?: boolean;
 }) {
@@ -333,21 +377,32 @@ function DeadlineList({
               <span className={styles.muted}>{g.rows.length}</span>
             </span>
           }
+          {...(g.id === UNFILED
+            ? {
+                footer:
+                  "Read from documents not yet filed in a case. They aren't counted as due until someone files the document. If it isn't a notice, set it aside in the Inbox.",
+              }
+            : {})}
         >
           {g.rows.map((r) => (
             <ListRow
               key={r.id}
               label={
                 <span className={styles.rowTitle}>
-                  <span>{r.title}</span>
+                  <RowTitle r={r} onOpen={onOpen} />
                   <SourceBadge source={r.source} />
+                  {r.statutory && !r.statutory.verified ? (
+                    <Badge size="sm" tone="warning" icon={HelpIcon}>
+                      {UNVERIFIED}
+                    </Badge>
+                  ) : null}
                 </span>
               }
               description={
                 <span className={styles.rowDescription}>
                   {compact ? (
                     <span>
-                      <DueChip state={r.state} detail={shortDate(r.dueOn)} size="sm" />
+                      <RowDue r={r} />
                     </span>
                   ) : null}
                   <span>{compact ? (r.clientName ?? "No client") : describeRow(r, people)}</span>
@@ -359,9 +414,7 @@ function DeadlineList({
                   ) : null}
                 </span>
               }
-              {...(compact
-                ? {}
-                : { value: <DueChip state={r.state} detail={shortDate(r.dueOn)} size="sm" /> })}
+              {...(compact ? {} : { value: <RowDue r={r} /> })}
               control={<DeadlineActions row={r} data={data} onChanged={onChanged} />}
             />
           ))}
@@ -383,29 +436,40 @@ function DeadlineTimeline({
   rows,
   today,
   people,
+  onOpen,
 }: {
   rows: DeadlineRow[];
   today: string;
   people: Map<string, string>;
+  onOpen: (r: DeadlineRow) => void;
 }) {
   const items: TimelineItem[] = [...rows]
     .sort((a, b) => a.dueOn.localeCompare(b.dueOn))
     .slice(0, 300)
     .map((r) => ({
       id: r.id,
-      title: r.title,
+      title: <RowTitle r={r} onOpen={onOpen} />,
       time: shortDate(r.dueOn),
       dateTime: r.dueOn,
-      description: describeRow(r, people),
+      description: [
+        describeRow(r, people),
+        r.statutory && !r.statutory.verified ? UNVERIFIED : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
       icon: SOURCE_ICON[r.source],
-      tone: TONE[r.state],
+      tone: notFiled(r) ? "neutral" : TONE[r.state],
       status:
         r.status !== "open" || r.dueOn < today
           ? "complete"
           : r.dueOn === today
             ? "current"
             : "upcoming",
-      meta: <DueChip state={r.state} size="sm" />,
+      meta: notFiled(r) ? (
+        <Badge size="sm">Not filed yet</Badge>
+      ) : (
+        <DueChip state={r.state} size="sm" />
+      ),
       ...(r.windowEndOn
         ? {
             children: (

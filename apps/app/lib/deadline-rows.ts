@@ -12,6 +12,7 @@ import {
   clients,
   deadlines,
   eq,
+  findings,
   gte,
   inArray,
   isNull,
@@ -46,6 +47,14 @@ export interface DeadlineRow {
   caseId: string | null;
   caseTitle: string | null;
   findingId: string | null;
+  /** The document the finding was read from: the page that proves the date. */
+  documentId: string | null;
+  /**
+   * Read from a document that isn't filed in a case yet. Such an item is
+   * shown as "Not filed yet" and left out of the due counts until a person
+   * files the document (H2): nobody has accepted it as a notice.
+   */
+  unfiled: boolean;
   completedAt: string | null;
   /** Hidden from the open list until this date. */
   snoozedUntil: string | null;
@@ -98,6 +107,17 @@ export function toDueState(dueOn: string, today: string, status: DeadlineStatus)
   return bucket === "this_week" ? "week" : bucket;
 }
 
+/** A deadline read from a document that no case holds yet (see DeadlineRow.unfiled). */
+export function isUnfiled(d: {
+  findingId: string | null;
+  caseId: string | null;
+  source: string;
+}): boolean {
+  return (
+    d.findingId !== null && d.caseId === null && (d.source === "notice" || d.source === "order")
+  );
+}
+
 type Condition = Parameters<typeof and>[number];
 type Detail = DeadlineDetail & { snoozedUntil?: string; ackNumber?: string };
 
@@ -136,15 +156,20 @@ export async function queryDeadlines(
       clientName: clients.name,
       caseTitle: cases.title,
       noticeType: cases.noticeType,
+      documentId: findings.documentId,
     })
     .from(deadlines)
     .leftJoin(clients, and(eq(clients.orgId, deadlines.orgId), eq(clients.id, deadlines.clientId)))
     .leftJoin(cases, and(eq(cases.orgId, deadlines.orgId), eq(cases.id, deadlines.caseId)))
+    .leftJoin(
+      findings,
+      and(eq(findings.orgId, deadlines.orgId), eq(findings.id, deadlines.findingId)),
+    )
     .where(and(...where))
     .orderBy(asc(deadlines.dueOn), asc(deadlines.title));
 
   const out: DeadlineRow[] = [];
-  for (const { d, clientName, caseTitle, noticeType } of rows) {
+  for (const { d, clientName, caseTitle, noticeType, documentId } of rows) {
     const detail = (d.detail ?? {}) as unknown as Partial<Detail>;
     const st = detail.statutory;
     const type = deadlineType(st?.ruleKey ?? null, noticeType);
@@ -169,6 +194,8 @@ export async function queryDeadlines(
       caseId: d.caseId,
       caseTitle,
       findingId: d.findingId,
+      documentId,
+      unfiled: isUnfiled(d),
       completedAt: d.completedAt ? d.completedAt.toISOString() : null,
       snoozedUntil,
       ackNumber: detail.ackNumber ?? null,
