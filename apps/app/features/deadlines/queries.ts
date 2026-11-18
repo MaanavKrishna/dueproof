@@ -23,7 +23,7 @@ const auditLog = schema.audit;
 
 import type { AuthContext } from "@/lib/authorize";
 import { loadOrgCalendar } from "@/lib/calendar";
-import { inScope } from "@/lib/can";
+import { inScope, may } from "@/lib/can";
 import { type DeadlineQuery, type DeadlineRow, queryDeadlines } from "@/lib/deadline-rows";
 import { todayIn } from "@/lib/pipeline/status";
 
@@ -42,6 +42,8 @@ export interface DeadlinesPageData {
   clients: Option[];
   cases: (Option & { clientId: string | null })[];
   me: string;
+  /** May add, close, assign and snooze deadlines (not viewers). */
+  canEdit: boolean;
 }
 
 export async function loadDeadlinesPage(
@@ -84,6 +86,7 @@ export async function loadDeadlinesPage(
       clients: cl,
       cases: cs,
       me: ctx.userId,
+      canEdit: may(ctx, "deadline.edit"),
     };
   });
 }

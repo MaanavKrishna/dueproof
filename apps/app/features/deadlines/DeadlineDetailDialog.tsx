@@ -20,6 +20,7 @@ export function DeadlineDetailDialog({
   row,
   onOpenChange,
   people,
+  data,
   onChanged,
 }: {
   row: DeadlineRow | null;
@@ -38,7 +39,7 @@ export function DeadlineDetailDialog({
       description={row.clientName ?? undefined}
       size="md"
       footer={
-        row.status === "open" ? (
+        !data.canEdit ? undefined : row.status === "open" ? (
           <Button variant="primary" onClick={() => cmd.done(row)}>
             Mark done
           </Button>

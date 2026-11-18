@@ -196,15 +196,18 @@ export function DeadlinesView({
               Export CSV
             </Button>
           )}
-          <AddDeadlineDialog
-            open={adding}
-            onOpenChange={setAdding}
-            data={data}
-            onAdded={() => {
-              toast({ title: "Deadline added", tone: "success" });
-              refresh();
-            }}
-          />
+          {/* Viewers read only: no button that the server would refuse. */}
+          {data.canEdit ? (
+            <AddDeadlineDialog
+              open={adding}
+              onOpenChange={setAdding}
+              data={data}
+              onAdded={() => {
+                toast({ title: "Deadline added", tone: "success" });
+                refresh();
+              }}
+            />
+          ) : null}
         </>
       }
       filterBar={
@@ -362,7 +365,9 @@ function DeadlineList({
               {...(compact
                 ? {}
                 : { value: <DueChip state={r.state} detail={shortDate(r.dueOn)} size="sm" /> })}
-              control={<DeadlineActions row={r} data={data} onChanged={onChanged} />}
+              {...(data.canEdit
+                ? { control: <DeadlineActions row={r} data={data} onChanged={onChanged} /> }
+                : {})}
             />
           ))}
         </InsetGroupedList>
