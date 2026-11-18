@@ -280,6 +280,17 @@
   --dp-layout-dialog-md: 560px;
   --dp-layout-dialog-lg: 760px;
   --dp-layout-sheet: 440px;
+  --dp-layout-page-narrow: 640px;
+  --dp-layout-page-readable: 1120px;
+  --dp-layout-page-wide: 1680px;
+  --dp-layout-gutter-compact: 16px;
+  --dp-layout-gutter-regular: 24px;
+  --dp-layout-gutter-roomy: 32px;
+  --dp-layout-gap-grid: 16px;
+  --dp-layout-gap-section: 24px;
+  --dp-layout-column-stat: 160px;
+  --dp-layout-column-card: 288px;
+  --dp-layout-column-panel: 384px;
   --dp-accent-solid: light-dark(#1f3a8a, #4766da);
   --dp-accent-hover: light-dark(#1a3176, #4a69dd);
   --dp-accent-pressed: light-dark(#152862, #3d5bd0);

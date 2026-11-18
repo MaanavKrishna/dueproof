@@ -169,6 +169,26 @@ export const layout: TokenGroup = {
   dialogMd: dim(560),
   dialogLg: dim(760),
   sheet: dim(440),
+  /**
+   * Page widths: the most a page's content (inside the gutters) may span.
+   * `full` has no limit: dashboards, tables and calendars use the space.
+   * Narrower pages centre as one column, header and content together, so the
+   * title always shares the content's left edge (packages/ui README, "Layout").
+   */
+  page: {
+    /** One task in one column: Capture, sign-in, a wizard step. */
+    narrow: dim(640),
+    /** Forms and reading: Settings (navigation and forms), long text. */
+    readable: dim(1120),
+    /** Records: the case and client pages, search results. */
+    wide: dim(1680),
+  },
+  /** Page gutters per breakpoint: phones, tablets and laptops, desktops (1440 and up). */
+  gutter: { compact: dim(16), regular: dim(24), roomy: dim(32) },
+  /** Gaps between items in a grid, and between a page's sections. */
+  gap: { grid: dim(16), section: dim(24) },
+  /** The narrowest comfortable column for each kind of grid item. */
+  column: { stat: dim(160), card: dim(288), panel: dim(384) },
 };
 
 /** Breakpoints are for TS (media queries cannot read CSS variables). */

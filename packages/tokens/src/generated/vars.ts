@@ -360,6 +360,25 @@ export const vars = {
     dialogMd: "var(--dp-layout-dialog-md)",
     dialogLg: "var(--dp-layout-dialog-lg)",
     sheet: "var(--dp-layout-sheet)",
+    page: {
+      narrow: "var(--dp-layout-page-narrow)",
+      readable: "var(--dp-layout-page-readable)",
+      wide: "var(--dp-layout-page-wide)",
+    },
+    gutter: {
+      compact: "var(--dp-layout-gutter-compact)",
+      regular: "var(--dp-layout-gutter-regular)",
+      roomy: "var(--dp-layout-gutter-roomy)",
+    },
+    gap: {
+      grid: "var(--dp-layout-gap-grid)",
+      section: "var(--dp-layout-gap-section)",
+    },
+    column: {
+      stat: "var(--dp-layout-column-stat)",
+      card: "var(--dp-layout-column-card)",
+      panel: "var(--dp-layout-column-panel)",
+    },
   },
   accent: {
     solid: "var(--dp-accent-solid)",
