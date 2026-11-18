@@ -16,7 +16,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createFakeProvider, type FakeProvider, generateMasterKey } from "@dueproof/ai";
-import { createAuth } from "@dueproof/auth";
+import { createAuth, inviteToken } from "@dueproof/auth";
 import {
   aiRuns,
   aiSettings,
@@ -77,9 +77,17 @@ let minutes: Uint8Array;
 let scan: Uint8Array;
 const heavyCalls: string[] = [];
 
-async function signUp(email: string): Promise<AuthContext> {
+async function signUp(email: string, invitationId?: string): Promise<AuthContext> {
   const res = await container.auth.api.signUpEmail({
-    body: { email, name: email.split("@")[0] ?? "x", password: "a-long-test-password" },
+    body: {
+      email,
+      name: email.split("@")[0] ?? "x",
+      password: "a-long-test-password",
+      // An invitation's link carries its token (H1).
+      ...(invitationId
+        ? { inviteToken: inviteToken(container.env.AUTH_SECRET, invitationId) }
+        : {}),
+    },
     returnHeaders: true,
   });
   const cookie = (res.headers.get("set-cookie") ?? "").split(";")[0] ?? "";
@@ -261,10 +269,11 @@ describe("Settings → AI", () => {
     const admin = await authorize("case.view", {
       headers: new Headers({ cookie: await signInCookie("settings@harbour.test") }),
     });
+    const invitationId = uuidv7();
     await unsafeRawDb(database)
       .insert(invitation)
       .values({
-        id: uuidv7(),
+        id: invitationId,
         organizationId: admin.orgId,
         email: "member@harbour.test",
         role: "member",
@@ -272,7 +281,7 @@ describe("Settings → AI", () => {
         expiresAt: new Date(Date.now() + 86_400_000),
         inviterId: admin.userId,
       });
-    const member = await signUp("member@harbour.test");
+    const member = await signUp("member@harbour.test", invitationId);
     expect(member.orgId).toBe(admin.orgId);
     for (const res of [
       await getAiSettings(),

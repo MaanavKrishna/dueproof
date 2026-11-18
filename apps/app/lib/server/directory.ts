@@ -7,6 +7,7 @@
  * authorised for. Callers authorise first and write the audit entry.
  */
 import "server-only";
+import { openInvitation } from "@dueproof/auth";
 import type { Role } from "@dueproof/contracts";
 import {
   and,
@@ -231,25 +232,20 @@ export async function cancelInvitation(
   return rows.length > 0;
 }
 
-/** A pending invitation for this address, with its organisation's name (sign-up page). */
-export async function findInvitationByEmail(
+/**
+ * The pending, unexpired invitation an invitation link's token opens, with
+ * its organisation's name (sign-up page). Only a valid token reveals
+ * anything: there is no lookup by address (H1).
+ */
+export async function findInvitationByToken(
   database: Database,
-  email: string,
-): Promise<{ orgName: string; role: Role } | null> {
-  const [row] = await unsafeRawDb(database)
-    .select({ orgName: organization.name, role: invitation.role })
-    .from(invitation)
-    .innerJoin(organization, eq(organization.id, invitation.organizationId))
-    .where(
-      and(
-        sql`lower(${invitation.email}) = lower(${email})`,
-        eq(invitation.status, "pending"),
-        gt(invitation.expiresAt, new Date()),
-      ),
-    )
-    .orderBy(asc(invitation.createdAt))
-    .limit(1);
-  return row ? { orgName: row.orgName, role: (row.role ?? "member") as Role } : null;
+  secret: string,
+  token: string,
+): Promise<{ email: string; orgName: string; role: Role } | null> {
+  const row = await openInvitation(unsafeRawDb(database), secret, token);
+  return row
+    ? { email: row.email, orgName: row.orgName, role: (row.role ?? "member") as Role }
+    : null;
 }
 
 export async function memberExistsByEmail(

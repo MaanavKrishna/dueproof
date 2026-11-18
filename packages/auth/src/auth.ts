@@ -6,11 +6,13 @@
  *
  * Sign-up policy:
  * - "first-user" (self-hosted, desktop): the first person to sign up creates
- *   the organisation and becomes its owner. After that, sign-up is open only
- *   to email addresses with a pending invitation; they join with the invited
- *   role.
- * - "open" (hosted): anyone may sign up. Someone with a pending invitation
- *   joins that organisation; anyone else gets a new organisation as owner.
+ *   the organisation and becomes its owner. After that, sign-up needs an
+ *   invitation link: its token (`inviteToken` in the sign-up body) must
+ *   open a pending, unexpired invitation for the same address. They join
+ *   with the invited role, and the invitation is used up.
+ * - "open" (hosted): anyone may sign up. With a valid invitation token they
+ *   join that organisation; anyone else gets a new organisation as owner.
+ *   Knowing an invited address is never enough (H1).
  */
 
 import { passkey } from "@better-auth/passkey";
@@ -38,6 +40,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { organization as organizationPlugin } from "better-auth/plugins/organization";
 import { twoFactor } from "better-auth/plugins/two-factor";
+import { type OpenInvitation, openInvitation } from "./invite";
 import { hashPassword, verifyPassword } from "./password";
 import { APPROVER_ROLES_BY_DEFAULT, ac, roles } from "./roles";
 
@@ -74,7 +77,12 @@ export interface AuthConfig {
    * user, so a password sign-up never qualifies. Their organisation comes
    * from the provider, so no organisation is created for them.
    */
-  externalSignUp?: (email: string, path: string | undefined) => Promise<boolean>;
+  externalSignUp?: (
+    email: string,
+    path: string | undefined,
+    /** The endpoint's path parameters, e.g. the asserting SSO provider's id. */
+    params?: Record<string, string | undefined>,
+  ) => Promise<boolean>;
   /**
    * Sends a password reset link (the app's mail driver). Without it, asking
    * for a reset is refused. The link is a secret: never log it.
@@ -253,13 +261,23 @@ export function createAuth(config: AuthConfig) {
       user: {
         create: {
           before: async (user, ctx) => {
+            const token = inviteTokenOf(ctx);
+            if (token !== undefined) {
+              // A link was used: it must be good, and for this address.
+              if (!(await openInvitation(raw, config.secret, token, user.email)))
+                throw new APIError("FORBIDDEN", {
+                  message:
+                    "This invitation link has expired, was cancelled or was already used, or it's for another address. Ask for a new one.",
+                });
+              return { data: user };
+            }
             const allowed =
-              (await maySignUp(raw, config.signupPolicy, user.email)) ||
-              ((await config.externalSignUp?.(user.email, ctx?.path)) ?? false);
+              (await maySignUp(raw, config.signupPolicy)) ||
+              ((await config.externalSignUp?.(user.email, ctx?.path, ctx?.params)) ?? false);
             if (!allowed) {
               throw new APIError("FORBIDDEN", {
                 message:
-                  "Sign-up is by invitation. Ask an administrator of your organisation to invite you.",
+                  "Sign-up is by invitation. Open the link in your invitation, or ask an administrator of your organisation to invite you.",
               });
             }
             return { data: user };
@@ -270,6 +288,8 @@ export function createAuth(config: AuthConfig) {
               raw,
               { id: user.id, email: user.email, name: user.name },
               ctx?.path,
+              inviteTokenOf(ctx),
+              ctx?.params,
             );
           },
         },
@@ -295,62 +315,83 @@ export function createAuth(config: AuthConfig) {
 
 export type Auth = ReturnType<typeof createAuth>;
 
-async function pendingInvitation(raw: AnyPgDatabase, email: string) {
-  const [row] = await raw
-    .select()
-    .from(invitation)
-    .where(
-      and(
-        sql`lower(${invitation.email}) = lower(${email})`,
-        eq(invitation.status, "pending"),
-        gt(invitation.expiresAt, new Date()),
-      ),
-    )
-    .orderBy(asc(invitation.createdAt))
-    .limit(1);
-  return row;
+/** The invitation token in a sign-up request's body, if one was sent. */
+function inviteTokenOf(ctx: { body?: unknown } | null | undefined): string | undefined {
+  const body = ctx?.body;
+  if (!body || typeof body !== "object" || !("inviteToken" in body)) return undefined;
+  const token = (body as { inviteToken?: unknown }).inviteToken;
+  return typeof token === "string" && token ? token : undefined;
 }
 
-async function maySignUp(
-  raw: AnyPgDatabase,
-  policy: SignupPolicy,
-  email: string,
-): Promise<boolean> {
+/** Without an invitation link: open sign-up, or the very first account of an install. */
+async function maySignUp(raw: AnyPgDatabase, policy: SignupPolicy): Promise<boolean> {
   if (policy === "open") return true;
   const [orgs] = await raw.select({ n: count() }).from(organization);
-  if (!orgs || orgs.n === 0) return true; // first run
-  return (await pendingInvitation(raw, email)) !== undefined;
+  return !orgs || orgs.n === 0; // first run
 }
 
-/** After sign-up: join the invited organisation, or create one and become its owner. */
+/** Undo an account whose sign-up can't complete, then refuse. */
+async function refuseNewUser(raw: AnyPgDatabase, userId: string, message: string): Promise<never> {
+  await raw.execute(sql`delete from "user" where id = ${userId}`);
+  throw new APIError("FORBIDDEN", { message });
+}
+
+/**
+ * After sign-up: join the invitation's organisation (the token was checked
+ * before the account was made), or create one and become its owner.
+ */
 async function placeNewUser(
   config: AuthConfig,
   raw: AnyPgDatabase,
   user: { id: string; email: string; name: string },
   path: string | undefined,
+  token: string | undefined,
+  params: Record<string, string | undefined> | undefined,
 ): Promise<void> {
-  const invite = await pendingInvitation(raw, user.email);
-  if (!invite && (await config.externalSignUp?.(user.email, path))) return;
+  let invite: OpenInvitation | null = null;
+  if (token !== undefined) {
+    invite = await openInvitation(raw, config.secret, token, user.email);
+    if (!invite)
+      return refuseNewUser(raw, user.id, "This invitation link has expired or was already used.");
+  } else if (await config.externalSignUp?.(user.email, path, params)) {
+    return;
+  }
   if (invite) {
-    const role = (invite.role ?? "member") as Role;
-    await raw.transaction(async (tx) => {
+    const accepted = invite;
+    const role = (accepted.role ?? "member") as Role;
+    const used = await raw.transaction(async (tx) => {
+      // Single use: only the request that flips it from pending joins.
+      const rows = await tx
+        .update(invitation)
+        .set({ status: "accepted" })
+        .where(
+          and(
+            eq(invitation.id, accepted.id),
+            eq(invitation.status, "pending"),
+            gt(invitation.expiresAt, new Date()),
+          ),
+        )
+        .returning({ id: invitation.id });
+      if (rows.length === 0) return false;
       await tx.insert(member).values({
         id: uuidv7(),
-        organizationId: invite.organizationId,
+        organizationId: accepted.organizationId,
         userId: user.id,
         role,
         mayApproveReplies: APPROVER_ROLES_BY_DEFAULT.includes(role),
         createdAt: new Date(),
       });
-      await tx.update(invitation).set({ status: "accepted" }).where(eq(invitation.id, invite.id));
+      return true;
     });
-    await withOrg(config.database, invite.organizationId, (tx, ctx) =>
+    if (!used)
+      return refuseNewUser(raw, user.id, "This invitation link has expired or was already used.");
+    await withOrg(config.database, accepted.organizationId, (tx, ctx) =>
       audit.write(tx, ctx, {
         actor: user.id,
         action: "member.join",
         targetType: "user",
         targetId: user.id,
-        detail: { role, invitationId: invite.id },
+        detail: { role, invitationId: accepted.id },
       }),
     );
     return;

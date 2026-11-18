@@ -10,7 +10,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
-import { createAuth } from "@dueproof/auth";
+import { createAuth, inviteToken } from "@dueproof/auth";
 import { createDatabase, type Database, invitation, migrate, uuidv7 } from "@dueproof/db";
 import { unsafeRawDb } from "@dueproof/db/internal";
 import { NO_LICENCE } from "@dueproof/plugins";
@@ -43,9 +43,17 @@ let container: Container;
 let owner: string;
 let admin: string;
 
-async function signUp(email: string, name: string): Promise<string> {
+async function signUp(email: string, name: string, invitationId?: string): Promise<string> {
   const res = await container.auth.api.signUpEmail({
-    body: { email, name, password: "a-long-test-password" },
+    body: {
+      email,
+      name,
+      password: "a-long-test-password",
+      // An invitation's link carries its token (H1).
+      ...(invitationId
+        ? { inviteToken: inviteToken(container.env.AUTH_SECRET, invitationId) }
+        : {}),
+    },
     returnHeaders: true,
   });
   return (res.headers.get("set-cookie") ?? "").split(";")[0] ?? "";
@@ -91,10 +99,11 @@ beforeAll(async () => {
   owner = await signUp("owner@firm.test", "Owner");
   as(owner);
   const ctx = await authorize("team.manage");
+  const invitationId = uuidv7();
   await unsafeRawDb(database)
     .insert(invitation)
     .values({
-      id: uuidv7(),
+      id: invitationId,
       organizationId: ctx.orgId,
       email: "admin@firm.test",
       role: "admin",
@@ -102,7 +111,7 @@ beforeAll(async () => {
       expiresAt: new Date(Date.now() + 86_400_000),
       inviterId: ctx.userId,
     });
-  admin = await signUp("admin@firm.test", "Admin");
+  admin = await signUp("admin@firm.test", "Admin", invitationId);
 });
 
 afterEach(() => setEeForTests(undefined));

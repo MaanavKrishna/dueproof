@@ -18,14 +18,44 @@ import { createAuthEndpoint } from "better-auth/api";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { z } from "zod";
 import { type Auth, createAuth, getMembership, isFirstRun } from "./auth";
+import { invitationIdFromToken, inviteToken } from "./invite";
 import { hashPassword, verifyPassword } from "./password";
 
 const BASE = "https://dueproof.test";
+const SECRET = "test-secret-test-secret-test-secret-0123";
 let database: Database;
 let auth: Auth;
 
-function signUp(email: string, name = "Asha Rao") {
-  return auth.api.signUpEmail({ body: { email, password: "correct horse battery", name } });
+function signUp(email: string, name = "Asha Rao", inviteToken?: string) {
+  return auth.api.signUpEmail({
+    body: {
+      email,
+      password: "correct horse battery",
+      name,
+      ...(inviteToken ? { inviteToken } : {}),
+    },
+  });
+}
+
+/** An invitation row as the app's team action makes it; returns its link token. */
+async function invite(
+  orgId: string,
+  inviterId: string,
+  email: string,
+  role = "member",
+  expiresAt = new Date(Date.now() + 86_400_000),
+): Promise<string> {
+  const id = uuidv7();
+  await unsafeRawDb(database).insert(invitation).values({
+    id,
+    organizationId: orgId,
+    email,
+    role,
+    status: "pending",
+    expiresAt,
+    inviterId,
+  });
+  return inviteToken(SECRET, id);
 }
 
 beforeAll(async () => {
@@ -34,7 +64,7 @@ beforeAll(async () => {
   auth = createAuth({
     database,
     baseURL: BASE,
-    secret: "test-secret-test-secret-test-secret-0123",
+    secret: SECRET,
     signupPolicy: "first-user",
     rateLimit: false,
   });
@@ -110,19 +140,11 @@ describe("first run (self-hosted)", () => {
     await expect(signUp("stranger@elsewhere.test")).rejects.toThrow(/invitation/);
   });
 
-  it("an invited person can sign up and joins with the invited role", async () => {
+  it("an invited person signs up with their link and joins with the invited role", async () => {
     const raw = unsafeRawDb(database);
     const [org] = await raw.select().from(organization);
-    await raw.insert(invitation).values({
-      id: uuidv7(),
-      organizationId: org?.id ?? "",
-      email: "Clerk@Firm.test",
-      role: "member",
-      status: "pending",
-      expiresAt: new Date(Date.now() + 86_400_000),
-      inviterId: ownerId,
-    });
-    const res = await signUp("clerk@firm.test", "Ravi");
+    const token = await invite(org?.id ?? "", ownerId, "Clerk@Firm.test");
+    const res = await signUp("clerk@firm.test", "Ravi", token);
     const m = await getMembership(database, res.user.id, org?.id ?? "");
     expect(m?.role).toBe("member");
     expect(m?.mayApproveReplies).toBe(false);
@@ -131,6 +153,65 @@ describe("first run (self-hosted)", () => {
     expect(await raw.select().from(organization)).toHaveLength(1);
     const members = await raw.select().from(member);
     expect(members).toHaveLength(2);
+  });
+
+  it("knowing an invited address is not enough (H1)", async () => {
+    const raw = unsafeRawDb(database);
+    const [org] = await raw.select().from(organization);
+    const orgId = org?.id ?? "";
+    const token = await invite(orgId, ownerId, "partner@firm.test", "admin");
+    const other = await invite(orgId, ownerId, "someone.else@firm.test", "viewer");
+    // The invited address, any case, without the link's token.
+    await expect(signUp("Partner@firm.test", "Mallory")).rejects.toThrow(/invitation/);
+    // Someone else's token, a forged one, or a token for a different address.
+    await expect(signUp("partner@firm.test", "Mallory", other)).rejects.toThrow(/invitation/);
+    const id = invitationIdFromToken(SECRET, token) ?? "";
+    await expect(signUp("partner@firm.test", "Mallory", `${id}.${"A".repeat(43)}`)).rejects.toThrow(
+      /invitation/,
+    );
+    await expect(signUp("mallory@evil.test", "Mallory", token)).rejects.toThrow(/invitation/);
+    // A token signed with another secret.
+    await expect(
+      signUp("partner@firm.test", "Mallory", inviteToken("another-secret-another-secret-0000", id)),
+    ).rejects.toThrow(/invitation/);
+    expect(await raw.select().from(member)).toHaveLength(2);
+
+    // The real invitee, with the link, joins as admin. The link works once.
+    const res = await signUp("partner@firm.test", "Priya", token);
+    expect((await getMembership(database, res.user.id, orgId))?.role).toBe("admin");
+    await expect(signUp("partner2@firm.test", "Again", token)).rejects.toThrow(/invitation/);
+    const [used] = await raw.select().from(invitation).where(eq(invitation.id, id));
+    expect(used?.status).toBe("accepted");
+  });
+
+  it("an expired or cancelled invitation's link no longer works", async () => {
+    const raw = unsafeRawDb(database);
+    const [org] = await raw.select().from(organization);
+    const orgId = org?.id ?? "";
+    const expired = await invite(
+      orgId,
+      ownerId,
+      "late@firm.test",
+      "member",
+      new Date(Date.now() - 1000),
+    );
+    await expect(signUp("late@firm.test", "Late", expired)).rejects.toThrow(/invitation/);
+    const cancelled = await invite(orgId, ownerId, "gone@firm.test");
+    await raw
+      .update(invitation)
+      .set({ status: "canceled" })
+      .where(eq(invitation.id, invitationIdFromToken(SECRET, cancelled) ?? ""));
+    await expect(signUp("gone@firm.test", "Gone", cancelled)).rejects.toThrow(/invitation/);
+  });
+
+  it("tokens are bound to their invitation and to the secret", () => {
+    const t = inviteToken(SECRET, "0192-abc");
+    expect(invitationIdFromToken(SECRET, t)).toBe("0192-abc");
+    expect(invitationIdFromToken("x".repeat(40), t)).toBeNull();
+    expect(invitationIdFromToken(SECRET, t.replace("0192-abc", "0192-abd"))).toBeNull();
+    expect(invitationIdFromToken(SECRET, "0192-abc")).toBeNull();
+    expect(invitationIdFromToken(SECRET, 42)).toBeNull();
+    expect(t.split(".")[1]).toHaveLength(43);
   });
 });
 
@@ -141,7 +222,7 @@ describe("open sign-up (hosted)", () => {
     const hosted = createAuth({
       database: db2,
       baseURL: "http://localhost:3000",
-      secret: "test-secret-test-secret-test-secret-0123",
+      secret: SECRET,
       signupPolicy: "open",
       rateLimit: false,
     });
@@ -158,6 +239,35 @@ describe("open sign-up (hosted)", () => {
     expect(ma[0]?.role).toBe("owner");
     expect(mb[0]?.role).toBe("owner");
     expect(ma[0]?.organizationId).not.toBe(mb[0]?.organizationId);
+
+    // H1: signing up with an invited address but no token doesn't join the
+    // inviting organisation; it gets one of its own, and the invitation stays.
+    const orgA = ma[0]?.organizationId ?? "";
+    await invite(orgA, a.user.id, "partner@a.test", "admin");
+    const squatter = await hosted.api.signUpEmail({
+      body: { email: "Partner@a.test", password: "c-long-password", name: "M" },
+    });
+    expect(await getMembership(db2, squatter.user.id, orgA)).toBeNull();
+    const [still] = await raw.select().from(invitation).where(eq(invitation.organizationId, orgA));
+    expect(still?.status).toBe("pending");
+    // With a token: it must be good. A bad one is refused, not turned into a new organisation.
+    const forged = {
+      email: "x@a.test",
+      password: "d-long-password",
+      name: "X",
+      inviteToken: "nope.x",
+    };
+    await expect(hosted.api.signUpEmail({ body: forged })).rejects.toThrow(/invitation/);
+    // A good one joins.
+    const token = await invite(orgA, a.user.id, "clerk@a.test", "viewer");
+    const withToken = {
+      email: "clerk@a.test",
+      password: "e-long-password",
+      name: "C",
+      inviteToken: token,
+    };
+    const clerk = await hosted.api.signUpEmail({ body: withToken });
+    expect((await getMembership(db2, clerk.user.id, orgA))?.role).toBe("viewer");
   });
 });
 
@@ -186,7 +296,7 @@ describe("external sign-up (SSO from ee/, through AuthConfig.plugins)", () => {
     const withSso = createAuth({
       database: db3,
       baseURL: BASE,
-      secret: "test-secret-test-secret-test-secret-0123",
+      secret: SECRET,
       signupPolicy: "first-user",
       rateLimit: false,
       plugins: [fakeSso],
@@ -226,7 +336,7 @@ describe("password reset", () => {
     const withMail = createAuth({
       database,
       baseURL: BASE,
-      secret: "test-secret-test-secret-test-secret-0123",
+      secret: SECRET,
       signupPolicy: "first-user",
       rateLimit: false,
       sendResetPassword: async ({ user, url }) => {
@@ -281,7 +391,7 @@ describe("rate limits", () => {
     const limited = createAuth({
       database: db3,
       baseURL: BASE,
-      secret: "test-secret-test-secret-test-secret-0123",
+      secret: SECRET,
       signupPolicy: "first-user",
       ipAddressHeaders: ["x-forwarded-for"],
     });

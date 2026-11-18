@@ -45,10 +45,11 @@ import {
   resetPasswordSender,
   setContainer,
 } from "../lib/server/container";
-import { findInvitationByEmail, getOrg, listMembers } from "../lib/server/directory";
+import { findInvitationByToken, getOrg, listMembers } from "../lib/server/directory";
 import { safeNext } from "../lib/server/page";
 import { getOrganisationFor, sniffLogo } from "../lib/settings";
 import { backupStatus, outboundHosts } from "../lib/system";
+import { getTeamFor } from "../lib/team";
 
 const APP = "http://localhost:3000";
 const request = vi.hoisted(() => ({
@@ -75,9 +76,14 @@ const testMailer = {
   },
 };
 
-async function signUp(email: string, name: string): Promise<string> {
+async function signUp(email: string, name: string, inviteToken?: string): Promise<string> {
   const res = await container.auth.api.signUpEmail({
-    body: { email, name, password: "a-long-test-password" },
+    body: {
+      email,
+      name,
+      password: "a-long-test-password",
+      ...(inviteToken ? { inviteToken } : {}),
+    },
     returnHeaders: true,
   });
   return (res.headers.get("set-cookie") ?? "").split(";")[0] ?? "";
@@ -342,24 +348,42 @@ describe("settings and team", () => {
       "ananya@mehtaiyer.test",
     ]);
     expect(res.data.skipped).toEqual(["priya@mehtaiyer.test"]);
-    // Each invitee is emailed the same working link the admin can copy.
-    const link = `${APP}/sign-up?email=rahul%40mehtaiyer.test`;
-    expect(res.data.invited[0]).toMatchObject({ link, emailed: true });
+    // Each invitee is emailed the same working link the admin can copy. It
+    // carries the invitation's token, not the address (H1).
+    const link = res.data.invited[0]?.link ?? "";
+    expect(link).toMatch(new RegExp(`^${APP}/sign-up\\?invite=[\\w.%-]+$`));
+    expect(link).not.toContain("rahul");
+    expect(res.data.invited[0]).toMatchObject({ emailed: true });
+    const token = new URL(link).searchParams.get("invite") ?? "";
     const mail = outbox.find((m) => m.to === "rahul@mehtaiyer.test");
     expect(mail?.subject).toBe("Join Mehta Iyer & Associates on Dueproof");
     expect(mail?.text).toContain(link);
-    expect(mail?.html).toContain(link);
+    expect(mail?.html).toContain(link.replace(/&/g, "&amp;"));
     expect(mail?.html).toContain("Mehta Iyer &amp; Associates");
-    expect(await findInvitationByEmail(database, "rahul@mehtaiyer.test")).toMatchObject({
+    const secret = container.env.AUTH_SECRET;
+    expect(await findInvitationByToken(database, secret, token)).toEqual({
+      email: "rahul@mehtaiyer.test",
       orgName: "Mehta Iyer & Associates",
       role: "member",
     });
-    // Cancel Ananya's; she can no longer sign up.
+    // Only the token opens it: a bad one reveals nothing.
+    expect(await findInvitationByToken(database, secret, `${token}x`)).toBeNull();
+    // Team & access shows the same link to copy.
+    as(owner);
+    const team = await getTeamFor(await authorize("team.manage"), true);
+    expect(team.invitations.find((i) => i.email === "rahul@mehtaiyer.test")?.link).toBe(link);
+    // Cancel Ananya's; her link no longer works.
     const ananya = res.data.invited[1];
     if (ananya) expect(await cancelInvitation(ananya.id)).toMatchObject({ ok: true });
-    await expect(signUp("ananya@mehtaiyer.test", "Ananya")).rejects.toBeTruthy();
+    const ananyaToken = new URL(ananya?.link ?? "").searchParams.get("invite") ?? "";
+    expect(await findInvitationByToken(database, secret, ananyaToken)).toBeNull();
+    await expect(signUp("ananya@mehtaiyer.test", "Ananya", ananyaToken)).rejects.toBeTruthy();
+    // Rahul's address without his link is not enough.
+    await expect(signUp("rahul@mehtaiyer.test", "Mallory")).rejects.toBeTruthy();
 
-    rahul = await signUp("rahul@mehtaiyer.test", "Rahul");
+    rahul = await signUp("rahul@mehtaiyer.test", "Rahul", token);
+    // The link works once.
+    expect(await findInvitationByToken(database, secret, token)).toBeNull();
     as(rahul);
     const ctx = await authorize("case.view");
     expect(ctx.orgId).toBe(orgId);
