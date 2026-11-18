@@ -7,6 +7,7 @@ import {
   ArrowLeftIcon,
   CalendarStatutoryIcon,
   DocumentIcon,
+  DoneIcon,
   EditIcon,
   FiledAckIcon,
   HearingPackIcon,
@@ -15,6 +16,7 @@ import {
   OrderIcon,
   PrintIcon,
   ProofIcon,
+  UndoIcon,
   UserIcon,
 } from "@dueproof/icons";
 import {
@@ -178,6 +180,26 @@ export function CaseView({
     });
   }
 
+  /** Mark a duty done (or reopen it), with Undo in the toast, as on Deadlines (M3). */
+  async function toggleDone(dl: { id: string; status: string }, duty: string) {
+    const next = dl.status === "done" ? "open" : "done";
+    const r = await setDeadlineStatus({ deadlineId: dl.id, status: next });
+    if (!r.ok) return fail(r.message);
+    router.refresh();
+    toast({
+      tone: "success",
+      title: next === "done" ? `Marked done: ${duty}` : `Reopened: ${duty}`,
+      action: {
+        label: "Undo",
+        altText: "Undo the last change",
+        onClick: () =>
+          void setDeadlineStatus({ deadlineId: dl.id, status: dl.status as "open" | "done" }).then(
+            (back) => (back.ok ? router.refresh() : fail(back.message)),
+          ),
+      },
+    });
+  }
+
   const duties = data.findings.filter(
     (f) =>
       f.status !== "dismissed" && ["obligation", "deadline", "hearing", "amount"].includes(f.kind),
@@ -196,7 +218,8 @@ export function CaseView({
     <NoticeHeader
       authority={data.authority}
       type={data.typeLabel}
-      reference={data.reference ?? "No reference read"}
+      reference={data.reference}
+      title={data.title}
       issuingOffice={data.issuingOffice}
       {...(data.amountMinor ? { amount: data.amountMinor } : {})}
       {...(data.sections.length ? { sections: data.sections } : {})}
@@ -392,58 +415,61 @@ export function CaseView({
               : {})}
             actions={
               data.can.editDeadlines || data.can.review ? (
-                <Menu>
-                  <MenuTrigger>
-                    <IconButton icon={MoreIcon} label="More actions" size="sm" variant="ghost" />
-                  </MenuTrigger>
-                  <MenuContent align="end">
-                    {dl && data.can.editDeadlines ? (
-                      <>
+                <span className={styles.row}>
+                  {dl && data.can.editDeadlines ? (
+                    <Button
+                      size="sm"
+                      variant={dl.status === "done" ? "plain" : "secondary"}
+                      icon={dl.status === "done" ? UndoIcon : DoneIcon}
+                      onClick={() => void toggleDone(dl, f.duty)}
+                    >
+                      {dl.status === "done" ? "Reopen" : "Mark done"}
+                    </Button>
+                  ) : null}
+                  <Menu>
+                    <MenuTrigger>
+                      <IconButton
+                        icon={MoreIcon}
+                        label={`More for ${f.duty}`}
+                        size="sm"
+                        variant="ghost"
+                      />
+                    </MenuTrigger>
+                    <MenuContent align="end">
+                      {dl && data.can.editDeadlines ? (
+                        <>
+                          <MenuItem
+                            icon={EditIcon}
+                            onSelect={() =>
+                              setCorrectDue({
+                                deadlineId: dl.id,
+                                title: f.duty,
+                                iso: dl.iso,
+                              })
+                            }
+                          >
+                            Correct due date
+                          </MenuItem>
+                        </>
+                      ) : null}
+                      {data.can.review ? (
                         <MenuItem
                           onSelect={() =>
-                            void setDeadlineStatus({
-                              deadlineId: dl.id,
-                              status: dl.status === "done" ? "open" : "done",
-                            }).then((r) =>
-                              r.ok
-                                ? done(dl.status === "done" ? "Reopened." : "Marked done.")
-                                : fail(r.message),
-                            )
-                          }
-                        >
-                          {dl.status === "done" ? "Reopen" : "Mark done"}
-                        </MenuItem>
-                        <MenuItem
-                          icon={EditIcon}
-                          onSelect={() =>
-                            setCorrectDue({
-                              deadlineId: dl.id,
-                              title: f.duty,
-                              iso: dl.iso,
+                            setEditing({
+                              id: f.id,
+                              duty: f.duty,
+                              dueIso: f.deadline?.iso ?? null,
+                              amountMinor: f.amountMinor,
+                              kind: f.kind,
                             })
                           }
                         >
-                          Correct due date
+                          Correct the finding
                         </MenuItem>
-                      </>
-                    ) : null}
-                    {data.can.review ? (
-                      <MenuItem
-                        onSelect={() =>
-                          setEditing({
-                            id: f.id,
-                            duty: f.duty,
-                            dueIso: f.deadline?.iso ?? null,
-                            amountMinor: f.amountMinor,
-                            kind: f.kind,
-                          })
-                        }
-                      >
-                        Correct the finding
-                      </MenuItem>
-                    ) : null}
-                  </MenuContent>
-                </Menu>
+                      ) : null}
+                    </MenuContent>
+                  </Menu>
+                </span>
               ) : undefined
             }
           />
