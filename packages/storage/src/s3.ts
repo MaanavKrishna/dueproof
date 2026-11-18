@@ -55,6 +55,11 @@ export class S3Storage implements StoragePort {
       ...(options.endpoint ? { endpoint: options.endpoint } : {}),
       forcePathStyle: options.forcePathStyle ?? false,
       credentials: { accessKeyId: options.accessKeyId, secretAccessKey: options.secretAccessKey },
+      // By default the SDK puts a CRC32 into every presigned PUT, computed over
+      // an empty body (`x-amz-checksum-crc32=AAAAAA==`), so the store refuses the
+      // browser's upload of the real file. Checksums only where an API needs one.
+      requestChecksumCalculation: "WHEN_REQUIRED",
+      responseChecksumValidation: "WHEN_REQUIRED",
     });
   }
 
