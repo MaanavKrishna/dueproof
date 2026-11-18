@@ -82,6 +82,10 @@ export interface CaseFinding {
     basis: string;
     windowEnd: string | null;
     windowBasis: string | null;
+    /** What a person should look at (the date engine's warnings). */
+    warnings: string[];
+    /** Counted from a received date nobody gave: shown as "received date assumed: confirm". */
+    receivedAssumed: boolean;
     status: string;
   } | null;
 }
@@ -93,6 +97,8 @@ export interface CaseDocument {
   status: string;
   received: string;
   receivedIso: string | null;
+  /** Nobody gave the received date: the upload day stands in until a person confirms it. */
+  receivedAssumed: boolean;
   pages: number;
   languages: string[];
   docType: string | null;
@@ -316,6 +322,7 @@ export async function loadCase(
       status: d.status,
       received: fmtDate(d.receivedOn, clock.locale),
       receivedIso: d.receivedOn,
+      receivedAssumed: d.receivedOnAssumed,
       pages: d.pageCount,
       languages: d.languages,
       docType: d.docType,
@@ -330,7 +337,11 @@ export async function loadCase(
       .map(({ f, page }) => {
         const dl = deadlineByFinding.get(f.id);
         const reasons = reviewReasons({ ...f, hasDeadline: Boolean(dl) });
-        const detail = (dl?.detail ?? null) as { windowBasis?: string } | null;
+        const detail = (dl?.detail ?? null) as {
+          windowBasis?: string;
+          warnings?: string[];
+          receivedOnAssumed?: boolean;
+        } | null;
         return {
           id: f.id,
           documentId: f.documentId,
@@ -357,6 +368,8 @@ export async function loadCase(
                 basis: dl.basis,
                 windowEnd: dl.windowEndOn ? fmtDate(dl.windowEndOn, clock.locale) : null,
                 windowBasis: detail?.windowBasis ?? null,
+                warnings: detail?.warnings ?? [],
+                receivedAssumed: detail?.receivedOnAssumed === true,
                 status: dl.status,
               }
             : null,

@@ -37,6 +37,8 @@ import { type AuthContext, authorize } from "../lib/authorize";
 import { getDocumentDetail } from "../lib/documents";
 import { parseEnv } from "../lib/env";
 import type { HeavyEngine } from "../lib/heavy-engine";
+import { aiAssistStage, aiStepKey } from "../lib/pipeline/ai-assist";
+import { analyzeStage, linkStage } from "../lib/pipeline/stages";
 import { type Container, createEngine, setContainer } from "../lib/server/container";
 import { completeUpload, initUpload } from "../lib/upload";
 import { processDocument } from "../workflows/process-document";
@@ -347,6 +349,24 @@ describe("BYOK on a notice the rules aren't confident about", () => {
       "started",
       "sonnet: 3 findings; 2 calls; stopped: opus_cap",
     ]);
+  });
+
+  it("a retried ai_assist step replays the stored answer: no second call, no second bill", async () => {
+    const ref = { orgId: owner.orgId, documentId: detail.document.id };
+    const analysis = await analyzeStage(container, ref, {});
+    const link = await linkStage(container, ref, analysis);
+    const calls = provider.calls.length;
+    const runs = (await runsFor(owner.orgId)).length;
+    const first = await aiAssistStage(container, ref, analysis, link, []);
+    const again = await aiAssistStage(container, ref, analysis, link, []);
+    expect(provider.calls.length).toBe(calls);
+    expect(await runsFor(owner.orgId)).toHaveLength(runs);
+    expect(again).toEqual(first);
+    expect(first.calls).toBe(runs);
+    // The stored answer sits under the document, keyed by the step's input.
+    const key = aiStepKey(ref, analysis, link, []);
+    expect(key).toContain(`/documents/${detail.document.id}/steps/ai_assist-`);
+    expect(await container.storage.get(key)).not.toBeNull();
   });
 
   it("drops an AI date its quote does not state, and keeps the rules' date", () => {

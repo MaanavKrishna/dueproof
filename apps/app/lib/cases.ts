@@ -21,6 +21,7 @@ import {
 import { z } from "zod";
 import type { AuthContext } from "./authorize";
 import { loadOrgCalendar, type OrgCalendar } from "./calendar";
+import { reownForCase } from "./deadline-owner";
 import { notFound } from "./errors";
 import { addOrderWindow, type OrderWindowOutcome } from "./orders";
 
@@ -52,6 +53,8 @@ async function fileInto(
       .set({ caseId: c.id, clientId: c.clientId })
       .where(and(eq(deadlines.orgId, ctx.orgId), eq(deadlines.findingId, f.id)));
   }
+  // Deadlines the app assigned (to the uploader) follow the case owner (lib/deadline-owner.ts).
+  await reownForCase(tx, ctx.orgId, documentId, c);
   const [doc] = await tx
     .select({ role: documents.role })
     .from(documents)

@@ -163,6 +163,17 @@ export const MIGRATIONS: EmbeddedMigration[] = [
       'CREATE TABLE "document_passwords" (\n\t"org_id" text NOT NULL,\n\t"document_id" text NOT NULL,\n\t"ciphertext" text NOT NULL,\n\t"expires_at" timestamp with time zone NOT NULL,\n\t"created_at" timestamp with time zone DEFAULT now() NOT NULL,\n\tCONSTRAINT "document_passwords_org_id_document_id_pk" PRIMARY KEY("org_id","document_id")\n);\n',
     ],
   },
+  {
+    tag: "0007_contract_received_assumed_unique_writes",
+    folderMillis: 1795019649068,
+    hash: "feaebc84ba7b3ac81847c12eca7e0cbc0c98fb2fe54bbe36cb4bff671d191801",
+    bps: true,
+    sql: [
+      'ALTER TABLE "documents" ADD COLUMN "received_on_assumed" boolean DEFAULT false NOT NULL;',
+      '\nCREATE UNIQUE INDEX "deadlines_org_finding" ON "deadlines" USING btree ("org_id","finding_id");',
+      '\nCREATE UNIQUE INDEX "findings_org_doc_ord" ON "findings" USING btree ("org_id","document_id","ord");',
+    ],
+  },
 ];
 
 export const RLS_SQL: string[] = [

@@ -39,8 +39,10 @@ import type { AnalyzeResponse, LinkResponse, PageText } from "@dueproof/engine-c
 import { orgKey } from "@dueproof/storage";
 import { loadOrgCalendar } from "../calendar";
 import type { DeadlineDetail } from "../deadline-detail";
+import { defaultOwner, ownerDetail } from "../deadline-owner";
 import { clearDocumentPassword, getDocumentPassword } from "../document-passwords";
 import { lineLanguageDetector, ocrLanguages } from "../languages";
+import { findingAnchors, flagAssumed, restsOnAssumedReceipt } from "../received-date";
 import type { Container } from "../server/container";
 import { getOrg } from "../server/directory";
 import { announce, setStatus, writeStatus } from "./status";
@@ -458,10 +460,7 @@ export async function loadDateContext(
   const doc = await loadDocument(c, ref);
   const cal = await loadOrgCalendar(c, ref.orgId);
   return {
-    anchors: {
-      ...(doc.receivedOn ? { receipt: doc.receivedOn } : {}),
-      ...(issuedOn ? { issue: issuedOn } : {}),
-    },
+    anchors: findingAnchors({ receivedOn: doc.receivedOn, issuedOn: issuedOn ?? null }),
     holidays: cal.holidays,
     workingDays: cal.workingDays,
     locale: cal.locale,
@@ -567,10 +566,25 @@ export async function writeStage(
   const review =
     items.some((f) => f.needsReview || f.deadline === "after_review") || Boolean(ai?.needsReview);
   const dateErrors = dates.some((d) => "error" in d);
+  // A deadline counted from a received date nobody gave waits for a person to confirm the date.
+  const assumedReceipt = items.some((f) => {
+    const date = dateById.get(f.id);
+    return (
+      f.deadline === "auto" &&
+      date !== undefined &&
+      "resolved" in date &&
+      restsOnAssumedReceipt(doc, date.resolved.rule)
+    );
+  });
   // Rules that weren't confident are covered when the model's reading was kept without review.
   const confident = analysis.confident || Boolean(ai?.accepted);
   const status: WriteResult["status"] =
-    confident && !review && !dateErrors && !needsEscalation.length && items.length
+    confident &&
+    !review &&
+    !dateErrors &&
+    !assumedReceipt &&
+    !needsEscalation.length &&
+    items.length
       ? "ready"
       : "needs_review";
 
@@ -585,6 +599,8 @@ export async function writeStage(
       return { findings: 0, deadlines: 0, skipped: true };
     }
 
+    // Someone is reminded about every deadline written here (lib/deadline-owner.ts).
+    const owner = await defaultOwner(tx, ref.orgId, doc);
     let deadlineCount = 0;
     for (const [ord, f] of items.entries()) {
       const source = (f.ruleSource ?? f.aiSource)?.finding;
@@ -627,15 +643,19 @@ export async function writeStage(
       const date = dateById.get(f.id);
       if (f.deadline === "auto" && date && "resolved" in date) {
         const r = date.resolved;
-        const detail: DeadlineDetail = {
-          adjustments: r.adjustments,
-          warnings: r.warnings,
-          ...(r.windowBasis ? { windowBasis: r.windowBasis } : {}),
-          ...(r.originalDueOn ? { originalDueOn: r.originalDueOn } : {}),
-          inputs: r.inputs,
-          origin: f.origin,
-          verification: f.grade,
-        };
+        const detail: DeadlineDetail = flagAssumed(
+          {
+            adjustments: r.adjustments,
+            warnings: r.warnings,
+            ...(r.windowBasis ? { windowBasis: r.windowBasis } : {}),
+            ...(r.originalDueOn ? { originalDueOn: r.originalDueOn } : {}),
+            inputs: r.inputs,
+            origin: f.origin,
+            verification: f.grade,
+            ...ownerDetail(owner),
+          },
+          restsOnAssumedReceipt(doc, r.rule),
+        );
         await tx.insert(deadlines).values({
           id: uuidv7(),
           orgId: ref.orgId,
@@ -649,6 +669,7 @@ export async function writeStage(
           rule: r.rule,
           basis: r.basis,
           detail: { ...detail },
+          ownerUserId: owner.userId,
         });
         deadlineCount += 1;
       }
@@ -667,6 +688,7 @@ export async function writeStage(
         aiFirstNUsed: reconciled.aiFirstNUsed,
         conflicts: items.filter((f) => f.conflicts.length).length,
         ...(needsEscalation.length ? { reviewPages: needsEscalation } : {}),
+        ...(assumedReceipt ? { receivedOnAssumed: true } : {}),
         ...(ai ? { aiAccepted: ai.accepted, aiNeedsReview: ai.needsReview } : {}),
       },
     });

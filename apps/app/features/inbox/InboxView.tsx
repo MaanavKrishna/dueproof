@@ -6,6 +6,7 @@ import {
   Button,
   Card,
   Combobox,
+  DatePicker,
   Dialog,
   EmptyState,
   FindingCard,
@@ -21,6 +22,7 @@ import {
 import { useRouter } from "next/navigation";
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { confirmFinding, dismissFinding, restoreFinding } from "@/app/actions/findings";
+import { setReceivedDate } from "@/app/actions/upload";
 import { type EditableFinding, EditFindingDialog } from "@/components/EditFindingDialog";
 import styles from "@/components/screen.module.css";
 import { UploadPanel } from "@/components/UploadPanel";
@@ -29,18 +31,84 @@ import { stageOf } from "@/components/useUploads";
 import { fileInCase, openCase } from "./actions";
 import type { FileItem, InboxData, ReviewItem } from "./queries";
 
+/** "Received date assumed: confirm": keep the upload day, or set the day it arrived. */
+function ReceivedDateCard({
+  item,
+  today,
+  canEdit,
+}: {
+  item: ReviewItem;
+  today: string;
+  canEdit: boolean;
+}) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [date, setDate] = useState<string | null>(item.received?.iso ?? null);
+  const [busy, setBusy] = useState(false);
+  const same = date === item.received?.iso;
+
+  async function save() {
+    if (!date) return;
+    setBusy(true);
+    const r = await setReceivedDate({ documentId: item.documentId, receivedOn: date });
+    setBusy(false);
+    if (!r.ok) return toast({ tone: "danger", title: "Not saved", description: r.message });
+    toast({
+      tone: "success",
+      title: same ? "Received date confirmed" : "Received date set",
+      description:
+        r.data.recomputed > 0
+          ? `${r.data.recomputed} due date${r.data.recomputed === 1 ? "" : "s"} recomputed.`
+          : undefined,
+    });
+    router.refresh();
+  }
+
+  return (
+    <Card
+      padding="md"
+      variant="outline"
+      title={item.duty}
+      description={`${item.client ?? "No client yet"} · ${item.documentName}`}
+      headingLevel={3}
+    >
+      <div className={styles.stackTight}>
+        <p className={styles.small}>{item.reason}</p>
+        {canEdit ? (
+          <div className={styles.row}>
+            <DatePicker
+              label={`Received on, ${item.documentName}`}
+              hideLabel
+              value={date}
+              onValueChange={setDate}
+              max={today}
+              today={today}
+              size="sm"
+            />
+            <Button size="sm" variant="primary" loading={busy} onClick={() => void save()}>
+              {same ? "Confirm received date" : "Set received date"}
+            </Button>
+          </div>
+        ) : null}
+      </div>
+    </Card>
+  );
+}
+
 function ReviewQueue({
   items,
   activeId,
   onActive,
   onEdit,
   canReview,
+  today,
 }: {
   items: ReviewItem[];
   activeId: string | null;
   onActive: (id: string | null) => void;
   onEdit: (f: EditableFinding) => void;
   canReview: boolean;
+  today: string;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -163,7 +231,9 @@ function ReviewQueue({
           onFocus={() => onActive(item.id)}
           aria-busy={busy === item.id}
         >
-          {item.kind === "nothing_found" ? (
+          {item.kind === "received_date" ? (
+            <ReceivedDateCard item={item} today={today} canEdit={canReview} />
+          ) : item.kind === "nothing_found" ? (
             <Card
               padding="md"
               variant="outline"
@@ -459,6 +529,7 @@ export function InboxView({
             onActive={onActive}
             onEdit={setEditing}
             canReview={canReview}
+            today={data.today}
           />
         </section>
 
@@ -478,6 +549,7 @@ export function InboxView({
                       <span className={styles.small}>
                         {d.client?.name ?? "Client not matched"}
                         {d.reference ? ` · ${d.reference}` : ""} · received {d.received}
+                        {d.receivedAssumed ? " (assumed: confirm)" : ""}
                       </span>
                     </span>
                     <StatusPill

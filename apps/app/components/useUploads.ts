@@ -3,17 +3,23 @@
  * Upload tray state: hash → init → signed PUT → complete, then live status
  * over server-sent events (/api/v1/documents/{id}/events) until the
  * document settles. Used by the Inbox and the case page's thread.
+ *
+ * Each file carries the day it was received (`receivedOn`): the panel's
+ * "Received on" date when the file was added, today by default, and it can
+ * be changed per file before or after the upload (`setReceived`).
  */
 import type { UploadItem, UploadStage } from "@dueproof/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { retryDocument, unlockDocument } from "@/app/actions/documents";
-import { finishUpload, startUpload } from "@/app/actions/upload";
+import { finishUpload, setReceivedDate, startUpload } from "@/app/actions/upload";
 
 export type UploadRole = "notice" | "reply" | "acknowledgement" | "order" | "appeal" | "attachment";
 
 export interface TrackedUpload extends UploadItem {
   documentId?: string;
   file?: File;
+  /** The day this file was received (ISO), as sent with it. */
+  receivedOn?: string;
 }
 
 const FINAL = new Set(["ready", "needs_review", "needs_password", "failed", "quarantined"]);
@@ -64,6 +70,8 @@ export interface UseUploadsOptions {
   onSettled?: (documentId: string, status: string) => void;
   /** Documents already processing, from the server, to keep watching. */
   initial?: TrackedUpload[];
+  /** The received date for files added from now on (ISO). Left out, the server assumes the upload day. */
+  receivedOn?: string;
 }
 
 export function useUploads(options: UseUploadsOptions = {}) {
@@ -119,15 +127,19 @@ export function useUploads(options: UseUploadsOptions = {}) {
     };
   }, [watch]);
 
+  const receivedRef = useRef(new Map<string, string>());
+
   const send = useCallback(
     async (id: string, file: File) => {
       const o = optionsRef.current;
+      const receivedOn = receivedRef.current.get(id);
       patch(id, { stage: "uploading", progress: 0 });
       const init = await startUpload({
         filename: file.name,
         size: file.size,
         mime: file.type || "application/pdf",
         sha256: await sha256Hex(file),
+        ...(receivedOn ? { receivedOn } : {}),
         ...(o.role ? { role: o.role } : {}),
         ...(o.caseId ? { caseId: o.caseId } : {}),
       });
@@ -156,13 +168,16 @@ export function useUploads(options: UseUploadsOptions = {}) {
 
   const add = useCallback(
     (files: File[]) => {
+      const receivedOn = optionsRef.current.receivedOn;
       const fresh = files.map((file) => ({
         id: `${file.name}-${file.size}-${Math.random().toString(36).slice(2, 8)}`,
         name: file.name,
         size: file.size,
         stage: "queued" as UploadStage,
         file,
+        ...(receivedOn ? { receivedOn } : {}),
       }));
+      for (const f of fresh) if (receivedOn) receivedRef.current.set(f.id, receivedOn);
       setItems((list) => [...fresh, ...list]);
       // One at a time keeps hashing and PUTs from fighting for bandwidth.
       void (async () => {
@@ -200,6 +215,26 @@ export function useUploads(options: UseUploadsOptions = {}) {
     [items, patch, watch],
   );
 
+  /**
+   * Change one file's received date. Before its upload starts the new date
+   * goes with it; afterwards the server sets it and recomputes the
+   * deadlines that count from it. Returns a problem in words, or null.
+   */
+  const setReceived = useCallback(
+    async (id: string, receivedOn: string): Promise<string | null> => {
+      const item = items.find((i) => i.id === id);
+      if (!item) return "That file is no longer in the list.";
+      receivedRef.current.set(id, receivedOn);
+      if (item.documentId) {
+        const r = await setReceivedDate({ documentId: item.documentId, receivedOn });
+        if (!r.ok) return r.message;
+      }
+      patch(id, { receivedOn });
+      return null;
+    },
+    [items, patch],
+  );
+
   const remove = useCallback((id: string) => {
     sources.current.get(id)?.close();
     sources.current.delete(id);
@@ -210,5 +245,5 @@ export function useUploads(options: UseUploadsOptions = {}) {
     setItems((list) => list.filter((i) => !["done", "duplicate"].includes(i.stage)));
   }, []);
 
-  return { items, add, retry, unlock, remove, clearDone };
+  return { items, add, retry, unlock, remove, clearDone, setReceived };
 }
