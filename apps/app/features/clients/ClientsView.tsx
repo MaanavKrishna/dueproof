@@ -15,6 +15,7 @@ import {
 } from "@dueproof/ui";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { plural } from "@/lib/plural";
 import { ClientFormDialog } from "./ClientFormDialog";
 import styles from "./clients.module.css";
 import { ImportDialog } from "./ImportDialog";
@@ -143,7 +144,7 @@ export function ClientsView({
   return (
     <ListPageTemplate
       title="Clients"
-      subtitle={`${rows.length.toLocaleString("en-IN")} clients · ${withOverdue.toLocaleString("en-IN")} with something overdue`}
+      subtitle={`${plural(rows.length, "client")} · ${withOverdue.toLocaleString("en-IN")} with something overdue`}
       actions={
         <>
           <Button

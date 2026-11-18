@@ -36,6 +36,7 @@ import {
 import { useRouter } from "next/navigation";
 import { type FormEvent, useMemo, useState } from "react";
 import styles from "@/components/screen.module.css";
+import { plural } from "@/lib/plural";
 import { bulkUpdate, deleteView, exportNoticesCsv, saveView, undoBulk } from "./actions";
 import { applyFilters, NO_OWNER, type NoticeRow } from "./model";
 import type { NoticesData } from "./queries";
@@ -292,7 +293,7 @@ export function NoticesView({
     a.download = r.data.filename;
     a.click();
     URL.revokeObjectURL(url);
-    toast({ tone: "success", title: `Exported ${r.data.count} rows` });
+    toast({ tone: "success", title: `Exported ${plural(r.data.count, "row")}` });
   }
 
   const mine = data.views.find((v) => v.id === viewId && v.mine);
