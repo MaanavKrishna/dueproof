@@ -188,7 +188,7 @@ export const layout: TokenGroup = {
   /** Gaps between items in a grid, and between a page's sections. */
   gap: { grid: dim(16), section: dim(24) },
   /** The narrowest comfortable column for each kind of grid item. */
-  column: { stat: dim(160), card: dim(288), panel: dim(384) },
+  column: { stat: dim(208), card: dim(288), panel: dim(384) },
 };
 
 /** Breakpoints are for TS (media queries cannot read CSS variables). */
