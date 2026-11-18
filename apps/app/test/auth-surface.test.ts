@@ -21,6 +21,7 @@ import { authorize } from "../lib/authorize";
 import { parseEnv } from "../lib/env";
 import type { Container } from "../lib/server/container";
 import { getContainer, setContainer } from "../lib/server/container";
+import { mayGrant } from "../lib/team";
 
 const APP = "http://localhost:3000";
 const request = vi.hoisted(() => ({ headers: new Headers() }));
@@ -123,6 +124,15 @@ describe("/api/auth over HTTP (H2)", () => {
       const res = await call(method, path, { role: "admin" }, ownerCookie);
       expect(res.status, `${method} ${path}`).toBe(404);
     }
+  });
+
+  it("the team actions never grant a role above the caller's own", () => {
+    expect(mayGrant("owner", "owner")).toBe(true);
+    expect(mayGrant("admin", "owner")).toBe(false);
+    expect(mayGrant("admin", "admin")).toBe(true);
+    expect(mayGrant("manager", "admin")).toBe(false);
+    expect(mayGrant("manager", "member")).toBe(true);
+    expect(mayGrant("viewer", "member")).toBe(false);
   });
 
   it("still serves the session", async () => {
