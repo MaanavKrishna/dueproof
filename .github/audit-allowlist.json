@@ -1,0 +1,15 @@
+{
+  "about": "Advisories the dependency audit (.github/workflows/audit.yml) accepts, because they were traced to their call sites and are not reachable in Dueproof. Each entry says why, and has a date by which someone must look again; after that date the audit fails until the entry is renewed or removed. Add an entry only with the evidence for its reason.",
+  "npm": [
+    {
+      "id": "GHSA-fc5q-39xc-vjpf",
+      "package": "picomatch",
+      "versions": "4.0.7",
+      "severity": "high",
+      "reason": "ReDoS on attacker-supplied extglob patterns. No fixed release exists. In production paths only through workflow > @workflow/astro > @workflow/builders > tinyglobby, which globs build configuration at build time; no request input ever reaches a pattern, and picomatch is not in the app's server bundle.",
+      "recheck": "2027-02-18"
+    }
+  ],
+  "python": [],
+  "cargo": []
+}

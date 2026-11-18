@@ -1,0 +1,83 @@
+name: audit
+# Known advisories in what ships: the app's production dependencies (pnpm),
+# the engine function's base install (pip-audit over uv.lock) and the desktop
+# app (cargo audit). An advisory that is not reachable is accepted only through
+# .github/audit-allowlist.json, with its reason and a re-check date;
+# .github/scripts/audit-gate.mjs fails on anything else.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # Weekly, Monday morning (UTC), so a new advisory shows up without a change.
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audit-${{ github.ref }}
+  cancel-in-progress: true
+
+# Every action is pinned to a full commit SHA (the version is in the comment).
+
+jobs:
+  npm:
+    name: pnpm audit (production, high and critical)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - name: Audit (reads pnpm-lock.yaml; installs nothing)
+        run: |
+          # pnpm audit --prod --audit-level high exits non-zero for allowlisted
+          # advisories too, so the gate reads its JSON and decides.
+          pnpm audit --prod --audit-level high --json > "$RUNNER_TEMP/pnpm-audit.json" || true
+          node .github/scripts/audit-gate.mjs npm "$RUNNER_TEMP/pnpm-audit.json"
+
+  python:
+    name: pip-audit (engine-fast, from uv.lock)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: services/engine
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: "3.13"
+      - name: requirements.txt is the export of uv.lock
+        run: |
+          uv export --frozen --no-default-groups --no-emit-project -o "$RUNNER_TEMP/requirements.txt" >/dev/null
+          diff <(grep -v '^#' "$RUNNER_TEMP/requirements.txt") <(grep -v '^#' requirements.txt)
+      - name: Audit
+        run: |
+          uvx pip-audit==2.10.1 -r requirements.txt --require-hashes --no-deps --disable-pip \
+            -f json -o "$RUNNER_TEMP/pip-audit.json" || true
+          node ../../.github/scripts/audit-gate.mjs python "$RUNNER_TEMP/pip-audit.json"
+
+  cargo:
+    name: cargo audit (desktop)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: cargo-audit
+        run: cargo install cargo-audit --locked --version 0.23.0
+      - name: Audit
+        run: |
+          cargo audit --file apps/desktop/src-tauri/Cargo.lock --json > "$RUNNER_TEMP/cargo-audit.json" || true
+          node .github/scripts/audit-gate.mjs cargo "$RUNNER_TEMP/cargo-audit.json"
