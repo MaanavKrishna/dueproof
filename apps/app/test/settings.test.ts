@@ -161,6 +161,36 @@ describe("pure helpers", () => {
     expect(safeNext("https://evil.example")).toBe("/today");
     expect(safeNext("/\\evil.example")).toBe("/today");
     expect(safeNext(undefined)).toBe("/today");
+    // Keeps the query and the hash of a same-site path.
+    expect(safeNext("/deadlines?view=week#d1")).toBe("/deadlines?view=week#d1");
+    // L1: anything a URL parser could turn into another origin, or that hides
+    // a second slash or a backslash, falls back.
+    const refused = [
+      "/\t/evil.example/x",
+      "/\n/evil.example/x",
+      "/\r/evil.example",
+      "/\t\\evil.example",
+      "\t//evil.example",
+      " //evil.example",
+      "/ /evil.example",
+      "/%09/evil.example/x",
+      "/%2F/evil.example",
+      "/%2f%2fevil.example",
+      "/%5Cevil.example",
+      "/%5c%5cevil.example",
+      "/\\/evil.example",
+      "\\\\evil.example",
+      "///evil.example",
+      "/./\\evil.example",
+      "/\u0000/evil.example",
+      "/\u007f/evil.example",
+      "/\u2028/evil.example",
+      "javascript:alert(1)",
+      "/foo\\bar",
+      "",
+      "today",
+    ];
+    for (const p of refused) expect(safeNext(p), JSON.stringify(p)).toBe("/today");
   });
 
   it("finds the active nav item by the longest matching path", () => {
