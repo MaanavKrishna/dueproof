@@ -61,7 +61,7 @@ export async function callProvider(
     cacheWriteTokens: 0,
   };
   const served = result?.servedModel ?? req.model;
-  const cost = costForModel(served, usage, req.model);
+  const cost = costForModel(served, usage, req.model, { local: ctx.tier === "local" });
   const run: AiRunRecord = {
     orgId: ctx.orgId,
     feature: req.feature,

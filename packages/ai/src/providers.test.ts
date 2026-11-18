@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { buildPrompts } from "../scripts/build-prompts";
-import { costForModel, costMicroUsd } from "./cost";
+import { costForModel, costMicroUsd, estimateMaxCostMicroUsd } from "./cost";
 import { encryptApiKey, generateMasterKey, loadMasterKey } from "./keys";
-import { PRICES, priceFor } from "./prices";
+import { PRICES, priceFor, UNKNOWN_MODEL_PRICE } from "./prices";
 import { systemPrompt } from "./prompts";
 import { PROMPTS } from "./prompts.generated";
 import { anthropicBody } from "./providers/anthropic";
@@ -148,11 +148,35 @@ describe("cost (prices are data)", () => {
 
   it("maps gateway ids to the same prices and flags unknown models", () => {
     expect(costForModel("anthropic/claude-sonnet-5.5", usage).costMicroUsd).toBe(12_000_000);
-    expect(costForModel("qwen3:32b", usage)).toEqual({ costMicroUsd: 0, unknown: true });
+    // A local model costs nothing.
+    expect(costForModel("qwen3:32b", usage, undefined, { local: true })).toEqual({
+      costMicroUsd: 0,
+      unknown: true,
+    });
     expect(costForModel("claude-unknown", usage, "claude-opus-5-5")).toEqual({
       costMicroUsd: 24_000_000,
       unknown: true,
     });
+  });
+
+  it("charges a model with no price at the highest price in the table, never 0 (M7)", () => {
+    // The highest rows: Opus 5 / 4.8 at $5 in and $25 out.
+    expect(UNKNOWN_MODEL_PRICE).toMatchObject({ input: 5, output: 25, verify: true });
+    for (const p of Object.values(PRICES)) {
+      expect(UNKNOWN_MODEL_PRICE.input).toBeGreaterThanOrEqual(p.input);
+      expect(UNKNOWN_MODEL_PRICE.output).toBeGreaterThanOrEqual(p.output);
+      expect(UNKNOWN_MODEL_PRICE.cacheRead).toBeGreaterThanOrEqual(p.cacheRead);
+      expect(UNKNOWN_MODEL_PRICE.cacheWrite).toBeGreaterThanOrEqual(p.cacheWrite);
+    }
+    expect(costForModel("gpt-5", usage)).toEqual({ costMicroUsd: 30_000_000, unknown: true });
+    // The review's probe: the estimate for an unpriced model was 0, so no budget applied.
+    expect(estimateMaxCostMicroUsd("gpt-5", 100_000, 16_000)).toBeGreaterThan(
+      estimateMaxCostMicroUsd("claude-opus-5-5", 100_000, 16_000),
+    );
+    expect(estimateMaxCostMicroUsd("gpt-5", 100_000, 16_000, { local: true })).toBe(0);
+    expect(estimateMaxCostMicroUsd("claude-sonnet-5-5", 100_000, 16_000, { local: true })).toBe(
+      estimateMaxCostMicroUsd("claude-sonnet-5-5", 100_000, 16_000),
+    );
   });
 
   it("marks every price as verify with a source", () => {

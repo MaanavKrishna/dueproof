@@ -12,6 +12,7 @@
  */
 import type { DocumentRole, engine } from "@dueproof/contracts";
 import { type DateContext, type GradedFinding, reconcile } from "@dueproof/core";
+import type { BudgetLedger } from "./budget";
 import { callProvider } from "./call";
 import { estimateMaxCostMicroUsd } from "./cost";
 import { type GateResult, gradeFindings, type LinkQuote, linkQuotesFor, proofGate } from "./gate";
@@ -83,6 +84,13 @@ export interface AssistDeps {
    * confident) and accept its first usable answer, no retry or escalation.
    */
   forceLevel?: Level;
+  /**
+   * The organisation's budget ledger, shared by every document processed at
+   * the same time (see budget.ts). Without one, the budget is checked against
+   * `policy.usage` as read for this document only, which concurrent documents
+   * can overrun together.
+   */
+  budget?: BudgetLedger;
 }
 
 const INSTRUCTION =
@@ -191,28 +199,40 @@ export async function assistExtraction(
       model,
       sys.text.length + user.length,
       req.maxOutputTokens,
+      { local: policy.mode === "local" },
     );
-    if (!withinBudget(policy, spent, estimate)) {
-      blockedEscalation = reason ?? undefined;
-      stoppedBy = "budget_exceeded";
-      needsReview = true;
-      break;
-    }
     if (level === "opus" && !opusAllowed(policy, aiCalls, opusCalls)) {
       blockedEscalation = reason ?? undefined;
       stoppedBy = "opus_cap";
       needsReview = true;
       break;
     }
+    const reservation = deps.budget
+      ? await deps.budget.reserve(estimate)
+      : withinBudget(policy, spent, estimate)
+        ? { amount: estimate }
+        : null;
+    if (!reservation) {
+      blockedEscalation = reason ?? undefined;
+      stoppedBy = "budget_exceeded";
+      needsReview = true;
+      break;
+    }
 
-    const { result, run } = await callProvider(provider, req, {
-      orgId: policy.orgId,
-      ...(input.documentId ? { documentId: input.documentId } : {}),
-      tier: policy.mode === "local" ? "local" : level,
-      promptVersion: sys.version,
-      escalationReason: reason,
-      ...(deps.now ? { now: deps.now } : {}),
-    });
+    let called: Awaited<ReturnType<typeof callProvider>> | undefined;
+    try {
+      called = await callProvider(provider, req, {
+        orgId: policy.orgId,
+        ...(input.documentId ? { documentId: input.documentId } : {}),
+        tier: policy.mode === "local" ? "local" : level,
+        promptVersion: sys.version,
+        escalationReason: reason,
+        ...(deps.now ? { now: deps.now } : {}),
+      });
+    } finally {
+      await deps.budget?.settle(reservation, called?.run.costMicroUsd ?? 0);
+    }
+    const { result, run } = called;
     runs.push(run);
     aiCalls++;
     if (level === "opus") opusCalls++;

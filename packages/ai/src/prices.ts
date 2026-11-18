@@ -104,3 +104,26 @@ export function canonicalModelId(model: string): string {
 export function priceFor(model: string): ModelPrice | undefined {
   return PRICES[canonicalModelId(model)];
 }
+
+/**
+ * What a call to a model with no price in the table is charged against the
+ * budget: the highest price in the table for each kind of token (long-context
+ * tiers included). Derived from the rows above, not a separate figure, so it
+ * moves when they do. Erring high means a budget still stops spending on an
+ * unpriced model (BYOK on another provider, a gateway alias); erring low, as
+ * the old zero did, meant no budget at all. Local models are free and are
+ * never charged this (see `costForModel`).
+ */
+export const UNKNOWN_MODEL_PRICE: ModelPrice = (() => {
+  const rows = Object.values(PRICES).flatMap((p) => (p.longContext ? [p, p.longContext] : [p]));
+  const max = (k: "input" | "output" | "cacheRead" | "cacheWrite") =>
+    Math.max(...rows.map((r) => r[k]));
+  return {
+    input: max("input"),
+    output: max("output"),
+    cacheRead: max("cacheRead"),
+    cacheWrite: max("cacheWrite"),
+    source: "Highest price in this table, per token kind (models with no price of their own)",
+    verify: true,
+  };
+})();

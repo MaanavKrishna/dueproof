@@ -11,6 +11,7 @@
  */
 import { DocumentRole, type engine } from "@dueproof/contracts";
 import { z } from "zod";
+import type { BudgetLedger } from "./budget";
 import { callProvider } from "./call";
 import { estimateMaxCostMicroUsd } from "./cost";
 import { type AiPolicy, isClientExcluded, type SkipReason, withinBudget } from "./policy";
@@ -24,6 +25,8 @@ import { dataBlock, untrustedBlock } from "./untrusted";
 export interface FeatureDeps {
   provider?: Provider;
   now?: () => number;
+  /** The organisation's budget ledger, shared across concurrent calls (see budget.ts). */
+  budget?: BudgetLedger;
 }
 
 export interface FeatureResult<T> {
@@ -67,31 +70,42 @@ async function runFeature<T>(
       model,
       sys.text.length + call.user.length,
       maxOutputTokens,
+      { local: policy.mode === "local" },
     );
-    if (!withinBudget(policy, spent, estimate))
-      return { value: null, skipped: "budget_exceeded", runs };
-    const { result, run } = await callProvider(
-      provider,
-      {
-        feature: call.feature,
-        level,
-        model,
-        effort: policy.effort[level],
-        maxOutputTokens,
-        system: sys.text,
-        user: call.user,
-        schemaName: call.schemaName,
-        schema: call.schema,
-      },
-      {
-        orgId: policy.orgId,
-        ...(call.documentId ? { documentId: call.documentId } : {}),
-        tier: policy.mode === "local" ? "local" : level,
-        promptVersion: sys.version,
-        escalationReason: reason,
-        ...(deps.now ? { now: deps.now } : {}),
-      },
-    );
+    const reservation = deps.budget
+      ? await deps.budget.reserve(estimate)
+      : withinBudget(policy, spent, estimate)
+        ? { amount: estimate }
+        : null;
+    if (!reservation) return { value: null, skipped: "budget_exceeded", runs };
+    let called: Awaited<ReturnType<typeof callProvider>> | undefined;
+    try {
+      called = await callProvider(
+        provider,
+        {
+          feature: call.feature,
+          level,
+          model,
+          effort: policy.effort[level],
+          maxOutputTokens,
+          system: sys.text,
+          user: call.user,
+          schemaName: call.schemaName,
+          schema: call.schema,
+        },
+        {
+          orgId: policy.orgId,
+          ...(call.documentId ? { documentId: call.documentId } : {}),
+          tier: policy.mode === "local" ? "local" : level,
+          promptVersion: sys.version,
+          escalationReason: reason,
+          ...(deps.now ? { now: deps.now } : {}),
+        },
+      );
+    } finally {
+      await deps.budget?.settle(reservation, called?.run.costMicroUsd ?? 0);
+    }
+    const { result, run } = called;
     runs.push(run);
     spent += run.costMicroUsd;
     let value: T | null = null;
