@@ -82,8 +82,9 @@ password reset, passkeys and two-step verification.
 ## Passwords
 
 At least 10 characters (at most 256), stored as Argon2id hashes. Sign-in is
-limited to 20 attempts per 15 minutes from one address, and sign-up to 3 an
-hour.
+limited to 20 attempts per 15 minutes from one address, and to 5 failed
+attempts per account from one address. Failures from elsewhere never lock
+you out. Sign-up is limited to 3 an hour.
 
 **Forgot your password?** emails a reset link through the install's mail
 settings. The page gives the same answer whether or not the account exists.

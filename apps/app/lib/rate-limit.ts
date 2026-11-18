@@ -32,7 +32,11 @@ const HOUR = 60 * MIN;
 export const DEFAULT_RULES = {
   /** Sign-in attempts per IP. */
   "auth.ip": { limit: 20, windowMs: 15 * MIN },
-  /** Failed sign-ins per account (checked before, counted after a failure). */
+  /**
+   * Failed sign-ins per account from one IP (checked before, counted after a
+   * failure). Keyed by account and IP together (L4), so nobody can lock a
+   * person out from elsewhere; auth.ip still bounds each IP overall.
+   */
   "auth.account": { limit: 5, windowMs: 15 * MIN },
   /** Sign-ups per IP (hosted: 3/h; self-hosted sign-up is invitation-only anyway). */
   "signup.ip": { limit: 3, windowMs: HOUR },
@@ -308,7 +312,7 @@ const SIGN_UP = /\/sign-up\/email$/;
 
 /**
  * Wraps Better Auth's POST handler: per-IP limits on sign-in and sign-up, and
- * at most 5 failed sign-ins per account per 15 minutes (05 §3a).
+ * at most 5 failed sign-ins per account per IP per 15 minutes (05 §3a, L4).
  */
 export async function limitAuth(
   c: Container,
@@ -332,7 +336,8 @@ export async function limitAuth(
         .catch(() => ({}))) as { email?: unknown; username?: unknown };
       const id = typeof body.email === "string" ? body.email : body.username;
       if (typeof id === "string" && id) {
-        account = id.trim().toLowerCase();
+        // Account and IP together: failures from one IP don't lock the account elsewhere.
+        account = `${id.trim().toLowerCase()}|${ip}`;
         await enforce(c, "auth.account", account, { peekOnly: true });
       }
     }

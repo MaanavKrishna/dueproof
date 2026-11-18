@@ -152,7 +152,7 @@ See [Workflow and reminders](workflow-and-reminders.md).
 | `DUEPROOF_LICENCE` | | Hosted only: the Business licence file's contents. On hosted the licence is the operator's alone: owners can't install or remove one in **Settings → System**, and a licence row in the database is ignored. Self-hosted and desktop installs keep the licence in **Settings → System** |
 
 Rate limits that can be overridden, and their defaults: `auth.ip` 20 per
-15 minutes, `auth.account` 5 per 15 minutes, `signup.ip` 3 per hour (20 on
+15 minutes, `auth.account` 5 failed sign-ins per account from one address per 15 minutes, `signup.ip` 3 per hour (20 on
 self-hosted and desktop), `upload.ip` 300, `upload.user` 200 and
 `upload.org` 500 per hour, `search.user` 30 per minute, `export.user` 10 per
 hour, `ai.org` 60 per minute, `api.token` 600 per minute.

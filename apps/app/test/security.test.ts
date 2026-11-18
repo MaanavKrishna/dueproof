@@ -274,28 +274,37 @@ describe("rate limits on Postgres", () => {
     for (let i = 0; i < 5; i++) await enforce(off, "search.user", "u");
   });
 
-  it("locks an account after repeated failed sign-ins, before the password is checked", async () => {
+  it("locks an account on one IP after repeated failed sign-ins, before the password is checked", async () => {
     let calls = 0;
     const handle = async () => {
       calls++;
       return new Response("{}", { status: 401 });
     };
-    const signIn = () =>
+    const signIn = (ip: string, email = "Asha@Harbour.test") =>
       limitAuth(
         c,
         new Request("http://app/api/auth/sign-in/email", {
           method: "POST",
-          headers: { "content-type": "application/json", "x-forwarded-for": "198.51.100.7" },
-          body: JSON.stringify({ email: "Asha@Harbour.test", password: "wrong" }),
+          headers: { "content-type": "application/json", "x-forwarded-for": ip },
+          body: JSON.stringify({ email, password: "wrong" }),
         }),
         handle,
       );
-    expect((await signIn()).status).toBe(401);
-    expect((await signIn()).status).toBe(401);
-    const third = await signIn();
+    expect((await signIn("198.51.100.7")).status).toBe(401);
+    expect((await signIn("198.51.100.7", "asha@harbour.test")).status).toBe(401);
+    const third = await signIn("198.51.100.7");
     expect(third.status).toBe(429);
     expect(Number(third.headers.get("retry-after"))).toBeGreaterThan(0);
     expect(calls).toBe(2);
+
+    // L4: the lockout is per account and IP. The person (or anyone) signing
+    // in from another IP is not locked out by those failures...
+    expect((await signIn("203.0.113.50")).status).toBe(401);
+    expect(calls).toBe(3);
+    // ...and that IP gets its own small allowance for the account.
+    expect((await signIn("203.0.113.50")).status).toBe(401);
+    expect((await signIn("203.0.113.50")).status).toBe(429);
+    expect(calls).toBe(4);
 
     // Other auth routes pass straight through.
     const other = await limitAuth(
