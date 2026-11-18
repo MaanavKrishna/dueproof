@@ -92,6 +92,15 @@ export function commonSecurityHeaders(o: CommonHeaderOptions): Record<string, st
   return h;
 }
 
+/**
+ * Inline, with the page's nonce: hands that nonce to libraries that add a
+ * `<style>` element at run time (the scroll lock under Radix dialogs reads
+ * `__webpack_nonce__`). Without it the CSP blocks their styles, and the page
+ * behind an open dialog still scrolls.
+ */
+export const STYLE_NONCE_SCRIPT =
+  "try{window.__webpack_nonce__=document.currentScript.nonce}catch(e){}";
+
 /** A fresh 128-bit nonce, base64. */
 export function makeNonce(): string {
   const bytes = new Uint8Array(16);
