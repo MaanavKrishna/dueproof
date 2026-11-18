@@ -6,9 +6,34 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
-import { AppShell, Button, UIProvider, useAppShell } from "../index";
+import { AppShell, Button, UIProvider, type UploadItem, UploadTray, useAppShell } from "../index";
 import { NoticeHeader } from "./NoticeHeader/NoticeHeader";
 import { StageStepper } from "./StageStepper/StageStepper";
+
+describe("UploadTray (M1, L3, L4, L5)", () => {
+  const items: UploadItem[] = [
+    { id: "a", name: "asmt10.pdf", size: 2048, stage: "done" },
+    { id: "b", name: "circular.pdf", size: 2048, stage: "reading" },
+    {
+      id: "c",
+      name: "locked.pdf",
+      size: 2048,
+      stage: "needs_password",
+      error: "This PDF needs a password.",
+    },
+    { id: "d", name: "poster.pdf", size: 2048, stage: "needs_review" },
+  ];
+
+  it("counts up, says a password is needed once, and names each Open button", () => {
+    render(<UploadTray items={items} onOpen={() => {}} />);
+    expect(screen.getByText("Reading 4 files · 3 done")).toBeInTheDocument();
+    expect(screen.getAllByText(/needs a password/)).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Open asmt10.pdf" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open poster.pdf" })).toBeInTheDocument();
+    expect(screen.getByText("Read: something to check")).toBeInTheDocument();
+    expect(screen.queryByText("Needs review")).not.toBeInTheDocument();
+  });
+});
 
 const base = {
   authority: "gst" as const,

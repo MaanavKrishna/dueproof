@@ -45,7 +45,7 @@ const statusWords: Record<
   { label: string; tone: "neutral" | "accent" | "warning" | "danger" | "success" }
 > = {
   ready: { label: "Ready", tone: "success" },
-  needs_review: { label: "Needs review", tone: "warning" },
+  needs_review: { label: "Something to check", tone: "warning" },
   needs_password: { label: "Needs password", tone: "warning" },
   failed: { label: "Failed", tone: "danger" },
   quarantined: { label: "Quarantined", tone: "danger" },
