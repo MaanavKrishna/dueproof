@@ -55,7 +55,8 @@ export function stageOf(status: string): UploadStage {
 const FAILURE_WORDS: Record<string, string | undefined> & { quarantined: string } = {
   quarantined: "The file failed the safety checks. An admin can review it.",
   failed: "It couldn't be read. Retry, or download the original and check it.",
-  needs_password: "This PDF needs a password.",
+  // The tray already says "This PDF needs a password"; say what to do about it.
+  needs_password: "Enter its password to read it.",
 };
 
 async function sha256Hex(file: File): Promise<string> {
@@ -146,7 +147,8 @@ export function useUploads(options: UseUploadsOptions = {}) {
       if (!init.ok) return patch(id, { stage: "failed", error: init.message });
       const documentId = init.data.documentId;
       if (init.data.status === "duplicate") {
-        return patch(id, { stage: "duplicate", documentId, detail: "Already in the register" });
+        // The tray's label already says "Already in the register".
+        return patch(id, { stage: "duplicate", documentId });
       }
       patch(id, { documentId, progress: 0.3 });
       const put = await fetch(init.data.upload.url, {
