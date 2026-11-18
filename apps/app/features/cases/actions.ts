@@ -4,7 +4,7 @@
  * runs in withOrg, and is audited. Dates are computed by core; corrections
  * are append-only (the original is kept in finding_edits and the audit).
  */
-import { DateRule, DemandHead, DemandStatus, Id, IsoDate } from "@dueproof/contracts";
+import { DemandHead, DemandStatus, Id, IsoDate } from "@dueproof/contracts";
 import { isDateError, resolveDate } from "@dueproof/core";
 import {
   and,
@@ -28,10 +28,12 @@ import { type Action, type AuthContext, authorize } from "@/lib/authorize";
 import { loadOrgCalendar, type OrgCalendar } from "@/lib/calendar";
 import { computeDemand, INTEREST_RULES } from "@/lib/demands";
 import { badRequest, notFound } from "@/lib/errors";
+import { handCorrection } from "@/lib/findings";
 import { notifyMentions } from "@/lib/notify";
 import { addOrderWindow } from "@/lib/orders";
 import { loadPeople, type Person } from "@/lib/org";
 import { todayIn } from "@/lib/pipeline/status";
+import { applyReceivedDate } from "@/lib/received-date";
 import { approveReply, moveStage, STAGES } from "@/lib/stages";
 
 type CaseRow = typeof cases.$inferSelect;
@@ -172,9 +174,11 @@ const ReceivedInput = z.object({
 });
 
 /**
- * Correct the received date (01 §4: editable, with history). Deadlines that
- * run from receipt are recomputed by core; each change is audited with the
- * date before and after.
+ * Correct (or confirm) the received date (01 §4: editable, with history).
+ * Every open deadline of the document that runs from receipt is recomputed
+ * by core: the notice's deadlines and an order's appeal window, with their
+ * working. Dates corrected by hand stay. Each change is audited with the
+ * date before and after (lib/received-date.ts).
  */
 export async function correctReceivedDate(input: z.input<typeof ReceivedInput>) {
   return runAction(async () => {
@@ -192,56 +196,10 @@ export async function correctReceivedDate(input: z.input<typeof ReceivedInput>) 
         )
         .limit(1);
       if (!doc) throw notFound("That document");
-      if (doc.receivedOn === v.receivedOn) return { recomputed: 0 };
       if (v.receivedOn > todayIn(cal.timezone))
         throw badRequest("The received date can't be in the future.");
-      await tx.update(documents).set({ receivedOn: v.receivedOn }).where(eq(documents.id, doc.id));
-      await audit.write(tx, scope, {
-        actor: ctx.userId,
-        action: "document.received_date",
-        targetType: "document",
-        targetId: doc.id,
-        requestId: ctx.requestId,
-        detail: { from: doc.receivedOn, to: v.receivedOn, reason: v.reason },
-      });
-      const rows = await tx
-        .select({ d: deadlines })
-        .from(deadlines)
-        .innerJoin(findings, eq(findings.id, deadlines.findingId))
-        .where(
-          and(
-            eq(deadlines.orgId, ctx.orgId),
-            eq(findings.documentId, doc.id),
-            eq(deadlines.status, "open"),
-          ),
-        );
-      let recomputed = 0;
-      for (const { d } of rows) {
-        const rule = DateRule.safeParse(d.rule);
-        if (!rule.success || rule.data.type !== "relative" || rule.data.anchor !== "receipt")
-          continue;
-        const r = resolveDate(rule.data, {
-          anchors: { receipt: v.receivedOn, ...(doc.issuedOn ? { issue: doc.issuedOn } : {}) },
-          holidays: cal.holidays,
-          workingDays: cal.workingDays,
-          locale: cal.locale,
-        });
-        if (isDateError(r)) continue;
-        await tx
-          .update(deadlines)
-          .set({ dueOn: r.dueOn, windowEndOn: r.windowEndOn ?? null, basis: r.basis })
-          .where(eq(deadlines.id, d.id));
-        await audit.write(tx, scope, {
-          actor: ctx.userId,
-          action: "deadline.recompute",
-          targetType: "deadline",
-          targetId: d.id,
-          requestId: ctx.requestId,
-          detail: { from: d.dueOn, to: r.dueOn, reason: "Received date corrected" },
-        });
-        recomputed += 1;
-      }
-      return { recomputed };
+      const r = await applyReceivedDate(tx, scope, ctx, doc, v.receivedOn, v.reason, cal);
+      return { recomputed: r.recomputed };
     });
     return out;
   });
@@ -253,7 +211,12 @@ const DueInput = z.object({
   reason: z.string().trim().min(1, "Say why the date changes.").max(500),
 });
 
-/** Correct a due date by hand: append-only edit with a reason, the original kept beside it. */
+/**
+ * Correct a due date by hand: append-only edit with a reason, the original
+ * kept beside it (finding_edits and the audit trail). The date becomes a
+ * fixed rule and the old condonation window is cleared, so a later
+ * received-date correction leaves it alone (lib/findings.ts handCorrection).
+ */
 export async function correctDueDate(input: z.input<typeof DueInput>) {
   return runAction(async () => {
     const v = DueInput.parse(input);
@@ -274,14 +237,9 @@ export async function correctDueDate(input: z.input<typeof DueInput>) {
           note: v.reason,
         });
       }
-      const detail = {
-        ...((d.detail ?? {}) as Record<string, unknown>),
-        originalDueOn: (d.detail as { originalDueOn?: string } | null)?.originalDueOn ?? d.dueOn,
-        correctedBy: ctx.userId,
-      };
       await tx
         .update(deadlines)
-        .set({ dueOn: r.dueOn, basis: `Corrected by hand from ${d.dueOn}: ${v.reason}`, detail })
+        .set(handCorrection(d, r, ctx.userId, `Corrected by hand from ${d.dueOn}: ${v.reason}`))
         .where(eq(deadlines.id, d.id));
       await audit.write(tx, scope, {
         actor: ctx.userId,
@@ -289,7 +247,12 @@ export async function correctDueDate(input: z.input<typeof DueInput>) {
         targetType: "deadline",
         targetId: d.id,
         requestId: ctx.requestId,
-        detail: { from: d.dueOn, to: r.dueOn, reason: v.reason },
+        detail: {
+          from: d.dueOn,
+          to: r.dueOn,
+          reason: v.reason,
+          ...(d.windowEndOn ? { windowCleared: d.windowEndOn } : {}),
+        },
       });
       return { dueOn: r.dueOn };
     });

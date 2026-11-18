@@ -7,7 +7,12 @@
  */
 import "server-only";
 import { DateRule, Id, IsoDate } from "@dueproof/contracts";
-import { type DateContext, isDateError, resolveDate } from "@dueproof/core";
+import {
+  type DateContext,
+  isDateError,
+  type ResolvedDateDetail,
+  resolveDate,
+} from "@dueproof/core";
 import {
   and,
   audit,
@@ -24,7 +29,9 @@ import { z } from "zod";
 import type { AuthContext } from "./authorize";
 import { loadOrgCalendar } from "./calendar";
 import type { DeadlineDetail } from "./deadline-detail";
+import { defaultOwner, ownerDetail } from "./deadline-owner";
 import { badRequest, HttpError, notFound } from "./errors";
+import { findingAnchors, flagAssumed, restsOnAssumedReceipt } from "./received-date";
 
 export interface ReviewOutcome {
   findingId: string;
@@ -86,13 +93,7 @@ async function ensureDeadline(
     .where(and(eq(documents.orgId, ctx.orgId), eq(documents.id, finding.documentId)))
     .limit(1);
   if (!doc) throw notFound("That document");
-  const resolved = resolveDate(rule.data, {
-    ...dateContext,
-    anchors: {
-      ...(doc.receivedOn ? { receipt: doc.receivedOn } : {}),
-      ...(doc.issuedOn ? { issue: doc.issuedOn } : {}),
-    },
-  });
+  const resolved = resolveDate(rule.data, { ...dateContext, anchors: findingAnchors(doc) });
   if (isDateError(resolved)) {
     return {
       note:
@@ -101,15 +102,23 @@ async function ensureDeadline(
           : "Confirmed. The due date couldn't be computed; add it by hand.",
     };
   }
-  const detail: DeadlineDetail = {
-    adjustments: resolved.adjustments,
-    warnings: resolved.warnings,
-    ...(resolved.windowBasis ? { windowBasis: resolved.windowBasis } : {}),
-    ...(resolved.originalDueOn ? { originalDueOn: resolved.originalDueOn } : {}),
-    inputs: resolved.inputs,
-    origin: finding.origin,
-    verification: finding.verification,
-  };
+  // The finding's owner if it has one, else the default (lib/deadline-owner.ts).
+  const auto = finding.ownerUserId
+    ? { userId: finding.ownerUserId, from: null }
+    : await defaultOwner(tx, ctx.orgId, doc);
+  const detail: DeadlineDetail = flagAssumed(
+    {
+      adjustments: resolved.adjustments,
+      warnings: resolved.warnings,
+      ...(resolved.windowBasis ? { windowBasis: resolved.windowBasis } : {}),
+      ...(resolved.originalDueOn ? { originalDueOn: resolved.originalDueOn } : {}),
+      inputs: resolved.inputs,
+      origin: finding.origin,
+      verification: finding.verification,
+      ...ownerDetail(auto),
+    },
+    restsOnAssumedReceipt(doc, resolved.rule),
+  );
   const id = uuidv7();
   await tx.insert(deadlines).values({
     id,
@@ -124,9 +133,36 @@ async function ensureDeadline(
     rule: resolved.rule,
     basis: resolved.basis,
     detail: { ...detail },
-    ownerUserId: finding.ownerUserId,
+    ownerUserId: auto.userId,
   });
   return { deadlineId: id, dueOn: resolved.dueOn };
+}
+
+/**
+ * The new state of a deadline whose date a person corrected (M4). The date
+ * becomes a fixed rule, so a later received-date correction can't move it;
+ * the condonation window that came with the old relative rule is cleared,
+ * with its basis and the "received date assumed" flag; the date before the
+ * first correction is kept as `originalDueOn`.
+ */
+export function handCorrection(
+  d: typeof deadlines.$inferSelect,
+  r: ResolvedDateDetail,
+  userId: string,
+  basis: string,
+) {
+  const old = (d.detail ?? {}) as DeadlineDetail & Record<string, unknown>;
+  const { windowBasis: _w, receivedOnAssumed: _r, ...keep } = old;
+  const detail: Record<string, unknown> = {
+    ...keep,
+    adjustments: r.adjustments,
+    warnings: r.warnings,
+    inputs: r.inputs,
+    originalDueOn: old.originalDueOn ?? d.dueOn,
+    correctedBy: userId,
+    correctedAt: new Date().toISOString(),
+  };
+  return { dueOn: r.dueOn, windowEndOn: null, rule: r.rule, basis, detail };
 }
 
 async function calendarContext(ctx: AuthContext): Promise<Omit<DateContext, "anchors">> {
@@ -284,7 +320,7 @@ export async function editFinding(
     if (dueChanged) {
       // A corrected date replaces the computed one on an existing deadline; the old value is in finding_edits.
       const [existing] = await tx
-        .select({ id: deadlines.id, dueOn: deadlines.dueOn })
+        .select()
         .from(deadlines)
         .where(and(eq(deadlines.orgId, ctx.orgId), eq(deadlines.findingId, f.id)))
         .limit(1);
@@ -293,8 +329,16 @@ export async function editFinding(
         if (!isDateError(r)) {
           await tx
             .update(deadlines)
-            .set({ dueOn: r.dueOn, rule: r.rule, basis: `Corrected by hand: ${e.note}` })
+            .set(handCorrection(existing, r, ctx.userId, `Corrected by hand: ${e.note}`))
             .where(eq(deadlines.id, existing.id));
+          await audit.write(tx, scope, {
+            actor: ctx.userId,
+            action: "deadline.correct",
+            targetType: "deadline",
+            targetId: existing.id,
+            requestId: ctx.requestId,
+            detail: { from: existing.dueOn, to: r.dueOn, reason: e.note, findingId: f.id },
+          });
           outcome = { deadlineId: existing.id, dueOn: r.dueOn };
         }
       } else outcome = await ensureDeadline(tx, ctx, updated, dates);

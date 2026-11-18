@@ -193,7 +193,11 @@ export function CaseView({
       issuingOffice={data.issuingOffice}
       {...(data.amountMinor ? { amount: data.amountMinor } : {})}
       {...(data.sections.length ? { sections: data.sections } : {})}
-      received={data.notice?.received || "Needs receipt date"}
+      received={
+        data.notice?.received
+          ? `${data.notice.received}${data.notice.receivedAssumed ? " (assumed: confirm)" : ""}`
+          : "Needs receipt date"
+      }
       receivedCorrected={data.receivedHistory.length > 0}
       {...(data.can.editDeadlines && data.notice
         ? { onEditReceived: () => setReceivedOpen(true) }
@@ -328,7 +332,11 @@ export function CaseView({
             duty={showOriginal ? f.original : f.duty}
             {...(f.deadline ? { due: { state: f.deadline.state, date: f.deadline.date } } : {})}
             {...(f.deadline
-              ? { basis: f.deadline.basis }
+              ? {
+                  basis: f.deadline.receivedAssumed
+                    ? `${f.deadline.basis} · Received date assumed: confirm`
+                    : f.deadline.basis,
+                }
               : f.amountMinor
                 ? { basis: <Amount minor={f.amountMinor} /> }
                 : {})}

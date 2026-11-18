@@ -9,6 +9,8 @@ import { and, deadlines, documents, eq, type OrgTx, uuidv7 } from "@dueproof/db"
 import type { AuthContext } from "./authorize";
 import type { OrgCalendar } from "./calendar";
 import type { DeadlineDetail } from "./deadline-detail";
+import { defaultOwner, ownerDetail } from "./deadline-owner";
+import { flagAssumed, orderAnchors, restsOnAssumedReceipt } from "./received-date";
 
 /** Which appeal lies from an order, by the kind of notice the case is about. */
 export function appealWindowKey(noticeType: string | null, docType: string | null): string | null {
@@ -60,25 +62,31 @@ export async function addOrderWindow(
   )
     return { added: false, reason: "The appeal window is already on the case." };
   const r = resolveOrderWindow(inOrderWindows, key, {
-    anchors: {
-      ...(doc.receivedOn ? { service: doc.receivedOn, receipt: doc.receivedOn } : {}),
-      ...(doc.issuedOn ? { order: doc.issuedOn, issue: doc.issuedOn } : {}),
-    },
+    anchors: orderAnchors(doc),
     holidays: cal.holidays,
     workingDays: cal.workingDays,
     locale: cal.locale,
   });
   if (isDateError(r))
     return { added: false, reason: "The appeal window needs the date the order was served." };
-  const detail: DeadlineDetail & { windowKey: string; documentId: string } = {
-    adjustments: r.adjustments,
-    warnings: r.warnings,
-    ...(r.windowBasis ? { windowBasis: r.windowBasis } : {}),
-    ...(r.originalDueOn ? { originalDueOn: r.originalDueOn } : {}),
-    inputs: r.inputs,
-    windowKey: key,
-    documentId,
-  };
+  const owner = await defaultOwner(tx, ctx.orgId, {
+    caseId: caseRow.id,
+    clientId: caseRow.clientId,
+    uploadedBy: doc.uploadedBy,
+  });
+  const detail: DeadlineDetail & { windowKey: string; documentId: string } = flagAssumed(
+    {
+      adjustments: r.adjustments,
+      warnings: r.warnings,
+      ...(r.windowBasis ? { windowBasis: r.windowBasis } : {}),
+      ...(r.originalDueOn ? { originalDueOn: r.originalDueOn } : {}),
+      inputs: r.inputs,
+      windowKey: key,
+      documentId,
+      ...ownerDetail(owner),
+    },
+    restsOnAssumedReceipt(doc, r.rule),
+  );
   const id = uuidv7();
   await tx.insert(deadlines).values({
     id,
@@ -92,7 +100,7 @@ export async function addOrderWindow(
     rule: r.rule,
     basis: r.basis,
     detail: { ...detail },
-    ownerUserId: caseRow.ownerUserId,
+    ownerUserId: owner.userId,
   });
   return { added: true, deadlineId: id, dueOn: r.dueOn, windowEndOn: r.windowEndOn ?? null };
 }

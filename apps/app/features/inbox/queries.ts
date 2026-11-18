@@ -21,16 +21,22 @@ import {
   inArray,
   isNull,
   ne,
+  sql,
   withOrg,
 } from "@dueproof/db";
 import { formatMoney } from "@dueproof/i18n";
 import type { AuthContext } from "@/lib/authorize";
 import { clientScope, type DueState, dueState, fmtDate, fmtInstant, loadClock } from "@/lib/org";
+import { countsFromReceipt } from "@/lib/received-date";
 import { reviewReasons, reviewReasonText } from "@/lib/review";
 
 export interface ReviewItem {
   id: string;
-  kind: "finding" | "nothing_found";
+  /**
+   * `received_date`: the document's received date was assumed (the upload
+   * day) and deadlines run from it; a person confirms or sets the date.
+   */
+  kind: "finding" | "nothing_found" | "received_date";
   documentId: string;
   documentName: string;
   client: string | null;
@@ -46,6 +52,8 @@ export interface ReviewItem {
   amountMinor: number | null;
   /** Both readings, when the rules and AI disagree (shown side by side). */
   conflict: { field: string; rule: string; ai: string } | null;
+  /** For `received_date`: the assumed date. */
+  received?: { iso: string; date: string };
 }
 
 export interface FileItem {
@@ -55,6 +63,8 @@ export interface FileItem {
   docType: string | null;
   status: string;
   received: string;
+  /** Nobody gave the received date: the upload day stands in. */
+  receivedAssumed: boolean;
   client: { id: string; name: string } | null;
   suggestedCase: { id: string; title: string; reference: string | null } | null;
   role: string;
@@ -69,6 +79,8 @@ export interface ProcessingItem {
 }
 
 export interface InboxData {
+  /** The organisation's today (ISO), for date fields. */
+  today: string;
   processing: ProcessingItem[];
   review: ReviewItem[];
   toFile: FileItem[];
@@ -226,6 +238,87 @@ export async function loadInbox(ctx: AuthContext, now: Date = new Date()): Promi
       });
     }
 
+    // Documents whose received date was assumed and has deadlines (or proposed ones) counting from it.
+    const assumed = await tx
+      .select({
+        id: documents.id,
+        filename: documents.filename,
+        title: documents.title,
+        caseId: documents.caseId,
+        receivedOn: documents.receivedOn,
+        client: clients.name,
+      })
+      .from(documents)
+      .leftJoin(clients, eq(clients.id, documents.clientId))
+      .where(
+        and(
+          eq(documents.orgId, ctx.orgId),
+          clientScope(ctx, documents.clientId),
+          eq(documents.receivedOnAssumed, true),
+          inArray(documents.status, [...SETTLED]),
+        ),
+      )
+      .orderBy(desc(documents.createdAt))
+      .limit(50);
+    if (assumed.length) {
+      const ids = assumed.map((d) => d.id);
+      const rules = await tx
+        .select({ documentId: findings.documentId, dueRule: findings.dueRule, dl: deadlines.rule })
+        .from(findings)
+        .leftJoin(
+          deadlines,
+          and(eq(deadlines.findingId, findings.id), eq(deadlines.status, "open")),
+        )
+        .where(
+          and(
+            eq(findings.orgId, ctx.orgId),
+            inArray(findings.documentId, ids),
+            eq(findings.status, "open"),
+          ),
+        );
+      const windows = await tx
+        .select({
+          documentId: sql<string>`${deadlines.detail}->>'documentId'`,
+          rule: deadlines.rule,
+        })
+        .from(deadlines)
+        .where(
+          and(
+            eq(deadlines.orgId, ctx.orgId),
+            eq(deadlines.source, "order"),
+            eq(deadlines.status, "open"),
+            inArray(sql<string>`${deadlines.detail}->>'documentId'`, ids),
+          ),
+        );
+      const depends = new Set([
+        ...rules.filter((r) => countsFromReceipt(r.dl ?? r.dueRule)).map((r) => r.documentId),
+        ...windows.filter((w) => countsFromReceipt(w.rule)).map((w) => w.documentId),
+      ]);
+      for (const d of assumed) {
+        if (!d.receivedOn || !depends.has(d.id)) continue;
+        const date = fmtDate(d.receivedOn, clock.locale);
+        review.push({
+          id: `received:${d.id}`,
+          kind: "received_date",
+          documentId: d.id,
+          documentName: d.title ?? d.filename,
+          client: d.client,
+          caseId: d.caseId,
+          duty: "Received date assumed: confirm",
+          quote: null,
+          origin: "rule",
+          grade: "unlocated",
+          page: 1,
+          reason: `Nobody gave the date this arrived, so the upload day (${date}) was used. Deadlines that run from receipt count from it: confirm it, or set the real date.`,
+          due: null,
+          basis: null,
+          amountMinor: null,
+          conflict: null,
+          received: { iso: d.receivedOn, date },
+        });
+      }
+    }
+
     // Documents read to the end with nothing found: a person adds the deadline by hand.
     const empties = await tx
       .select({
@@ -279,6 +372,7 @@ export async function loadInbox(ctx: AuthContext, now: Date = new Date()): Promi
         docType: documents.docType,
         status: documents.status,
         receivedOn: documents.receivedOn,
+        receivedOnAssumed: documents.receivedOnAssumed,
         role: documents.role,
         clientId: documents.clientId,
         client: clients.name,
@@ -325,6 +419,7 @@ export async function loadInbox(ctx: AuthContext, now: Date = new Date()): Promi
       .limit(1000);
 
     return {
+      today: clock.today,
       processing: recentDocs.map((d) => ({
         id: d.id,
         documentId: d.id,
@@ -343,6 +438,7 @@ export async function loadInbox(ctx: AuthContext, now: Date = new Date()): Promi
           status: d.status,
           role: d.role,
           received: fmtDate(d.receivedOn, clock.locale),
+          receivedAssumed: d.receivedOnAssumed,
           client: d.clientId && d.client ? { id: d.clientId, name: d.client } : null,
           suggestedCase: s ? { id: s.id, title: s.title, reference: s.reference } : null,
         };
