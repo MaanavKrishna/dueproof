@@ -23,15 +23,19 @@
 FROM python:3.13-slim AS build
 ARG INSTALL_TRANSLATION=1
 ARG INSTALL_TESSERACT=1
+# Keep equal to pyproject.toml and uv.lock (see the comment below).
+ARG TORCH_VERSION=2.15.0
 COPY --from=ghcr.io/astral-sh/uv:0.11 /uv /usr/local/bin/uv
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PROJECT_ENVIRONMENT=/opt/engine
 WORKDIR /src
 COPY pyproject.toml uv.lock ./
-# torch from PyTorch's CPU index first, so the heavy group does not pull the
-# CUDA build (gigabytes the engine never uses).
+# torch from PyTorch's CPU index first, pinned to the locked version, so the
+# heavy group does not pull the CUDA build (gigabytes the engine never uses).
+# Unpinned, a new torch release would be installed here and then swapped by
+# `uv sync` for the locked version from PyPI, which is the CUDA build.
 RUN uv venv /opt/engine \
  && if [ "$INSTALL_TRANSLATION" = "1" ]; then \
-      uv pip install --python /opt/engine/bin/python torch --index-url https://download.pytorch.org/whl/cpu \
+      uv pip install --python /opt/engine/bin/python "torch==${TORCH_VERSION}" --index-url https://download.pytorch.org/whl/cpu \
       && uv sync --frozen --no-install-project --no-default-groups --group heavy --inexact; \
     elif [ "$INSTALL_TESSERACT" = "1" ]; then \
       uv sync --frozen --no-install-project --no-default-groups --group tesseract; \

@@ -47,9 +47,18 @@ heavy = [
     "huggingface-hub",
     "indictranstoolkit==1.1.1",
     "sentencepiece>=0.2.0",
-    # Install the CPU build (see Dockerfile): the CUDA one is gigabytes the engine does not need.
-    "torch>=2.7",
-    # <5: IndicTransToolkit needs transformers.tokenization_utils.PreTrainedTokenizerBase
+    # The CPU build only, installed from PyTorch's CPU index before `uv sync`
+    # (see Dockerfile): the CUDA build is gigabytes, and NVIDIA's proprietary
+    # libraries, that the engine never uses. Keep this equal to the version in
+    # uv.lock and in the CPU installs.
+    "torch==2.15.0",
+    # <5: IndicTransToolkit needs transformers.tokenization_utils.PreTrainedTokenizerBase.
+    # 4.57.6 has advisories with no 4.x fix (PYSEC-2025-217, PYSEC-2026-2288,
+    # -2289, -2290, -3929, -4174). None is reachable here: no Trainer, no
+    # conversion scripts, no save_pretrained, no LightGlue; the model folder is
+    # local, each file in it is checked against a pinned SHA-256 before loading,
+    # loading is local_files_only and HF_HUB_OFFLINE=1. The way out is
+    # transformers>=5.10, once IndicTransToolkit supports 5.x.
     "transformers==4.57.6",
 ]
 dev = [
@@ -60,6 +69,19 @@ dev = [
 
 [tool.uv]
 default-groups = ["dev"]
+
+# TODO: lock torch to PyTorch's CPU index, so `uv lock` and `uv sync` can
+# never pick the CUDA build. Needs a `uv lock` run where
+# download.pytorch.org is reachable; until then every install puts
+# torch==2.15.0 from the CPU index in place first (Dockerfile, CI, Sandbox).
+#
+# [[tool.uv.index]]
+# name = "pytorch-cpu"
+# url = "https://download.pytorch.org/whl/cpu"
+# explicit = true
+#
+# [tool.uv.sources]
+# torch = { index = "pytorch-cpu" }
 
 [tool.setuptools.dynamic]
 version = { attr = "dueproof_engine.__version__" }
