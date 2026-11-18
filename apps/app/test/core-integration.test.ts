@@ -164,11 +164,13 @@ describe("pipeline deadline policy", () => {
         ["q0", "rule", "exact", "verified", "auto"],
         ["q1", "rule", "unlocated", "needs_review", "after_review"],
         ["q2", "rule+ai", "exact", "verified", "none"],
-        ["ai1", "ai", "approximate", "verified", "after_review"],
+        // Approximately located and AI-only: it needs a person (house rule 3).
+        ["ai1", "ai", "approximate", "needs_review", "after_review"],
         ["ai2", "ai", "unlocated", "unverified", "never"],
       ],
     );
-    expect(reconciled.aiFirstNUsed).toBe(1);
+    // Weak (approximate) AI findings no longer count towards the first-N trust window.
+    expect(reconciled.aiFirstNUsed).toBe(0);
 
     const dates = await resolveDatesStage(c, ref, reconciled, analysis.issuedOn);
     expect(dates.map((d) => d.id)).toEqual(["q0"]);

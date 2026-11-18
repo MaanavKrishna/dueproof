@@ -349,19 +349,17 @@ describe("BYOK on a notice the rules aren't confident about", () => {
     ]);
   });
 
-  it("keeps both readings when rules and AI disagree on a date", () => {
+  it("drops an AI date its quote does not state, and keeps the rules' date", () => {
+    // The quote says 30 September 2026; the model's 30 October is not written
+    // there, so the AI check removes it (house rule 2) and there is nothing to
+    // conflict with. The rules' date stands on its own exact evidence.
     const f = detail.findings.find((x) => x.quote === RULE_DEADLINE);
-    expect(f).toMatchObject({ origin: "rule+ai", verification: "exact" });
+    expect(f).toMatchObject({ origin: "rule+ai", verification: "exact", conflict: null });
     expect(f?.dueRule).toEqual({ type: "fixed", date: "2026-09-30" });
-    expect(f?.conflict).toMatchObject({
-      source: "ai",
-      reasons: ["conflict_due"],
-      conflicts: [{ field: "due", ruleDueOn: "2026-09-30", aiDueOn: "2026-10-30" }],
-      ai: { dueRule: { type: "fixed", date: "2026-10-30" }, page: 1, grade: "exact" },
-    });
     expect(f?.aiRunId).toBeTruthy();
-    // A conflict waits for a person: no deadline yet.
-    expect(detail.deadlines.find((d) => d.findingId === f?.id)).toBeUndefined();
+    expect(detail.deadlines.find((d) => d.findingId === f?.id)).toMatchObject({
+      dueOn: "2026-09-30",
+    });
   });
 
   it("an AI-only located finding has its proof but needs review before it is a deadline", () => {
@@ -380,7 +378,8 @@ describe("BYOK on a notice the rules aren't confident about", () => {
 
   it("sends the document to review", () => {
     expect(detail.document.status).toBe("needs_review");
-    expect(detail.deadlines).toHaveLength(0);
+    // Only the rules' located date; nothing from the model alone.
+    expect(detail.deadlines).toHaveLength(1);
   });
 
   it("counts this month's usage for Settings → AI", async () => {
