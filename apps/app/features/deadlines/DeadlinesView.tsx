@@ -48,7 +48,7 @@ import { DeadlineActions } from "./DeadlineActions";
 import { DeadlineDetailDialog } from "./DeadlineDetailDialog";
 import styles from "./deadlines.module.css";
 import { FeedMenu } from "./FeedMenu";
-import { applyFilters, groupByWeek, UNFILED } from "./group";
+import { applyFilters, groupByWeek, PAST_WHEN_ADDED, UNFILED } from "./group";
 import { SOURCE_LABEL, TYPE_LABEL } from "./labels";
 import type { DeadlinesPageData } from "./queries";
 
@@ -167,7 +167,8 @@ export function DeadlinesView({
   );
   // Deadlines from unfiled documents aren't counted as due (H2).
   const open = data.rows.filter((r) => r.status === "open" && !r.unfiled);
-  const overdue = open.filter((r) => r.state === "overdue").length;
+  const overdue = open.filter((r) => r.state === "overdue" && !r.pastWhenAdded).length;
+  const pastWhenAdded = open.filter((r) => r.state === "overdue" && r.pastWhenAdded).length;
 
   function syncUrl(nextFilters: FilterValue, nextView: View) {
     const q = new URLSearchParams();
@@ -187,7 +188,7 @@ export function DeadlinesView({
   return (
     <ListPageTemplate
       title="Deadlines"
-      subtitle={`${open.length.toLocaleString("en-IN")} open · ${overdue.toLocaleString("en-IN")} overdue · times in ${data.timezone === "Asia/Kolkata" ? "IST" : data.timezone}`}
+      subtitle={`${open.length.toLocaleString("en-IN")} open · ${overdue.toLocaleString("en-IN")} overdue${pastWhenAdded ? ` · ${pastWhenAdded.toLocaleString("en-IN")} already past when added` : ""} · times in ${data.timezone === "Asia/Kolkata" ? "IST" : data.timezone}`}
       scrollPage
       actions={
         <>
@@ -383,7 +384,12 @@ function DeadlineList({
                 footer:
                   "Read from documents not yet filed in a case. They aren't counted as due until someone files the document. If it isn't a notice, set it aside in the Inbox.",
               }
-            : {})}
+            : g.id === PAST_WHEN_ADDED
+              ? {
+                  footer:
+                    "These periods were already due when the registration was added. Mark the ones already filed as done; the rest are overdue.",
+                }
+              : {})}
         >
           {g.rows.map((r) => (
             <ListRow

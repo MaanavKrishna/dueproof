@@ -31,7 +31,7 @@ import {
   withOrg,
 } from "@dueproof/db";
 import type { AuthContext } from "@/lib/authorize";
-import { isUnfiled } from "@/lib/deadline-rows";
+import { isPastWhenAdded, isUnfiled } from "@/lib/deadline-rows";
 import {
   clientScope,
   type DueState,
@@ -61,6 +61,8 @@ export interface TodayRow {
   hearing: boolean;
   /** Read from a document not filed in a case: shown apart, never counted as due (H2). */
   unfiled: boolean;
+  /** A statutory period already due when it was added to the calendar (M5). */
+  pastWhenAdded: boolean;
 }
 
 export interface TodayData {
@@ -80,6 +82,8 @@ export interface TodayData {
    * scan never inflates "Overdue".
    */
   notFiled: TodayRow[];
+  /** Statutory periods already past when the registration was added: shown apart (M5). */
+  pastWhenAdded: TodayRow[];
   review: {
     count: number;
     items: {
@@ -175,6 +179,7 @@ export async function loadToday(
         documentId: findings.documentId,
         kind: findings.kind,
         client: clients.name,
+        createdAt: deadlines.createdAt,
       })
       .from(deadlines)
       .leftJoin(cases, eq(cases.id, deadlines.caseId))
@@ -209,6 +214,7 @@ export async function loadToday(
         basis: r.basis,
         hearing: r.kind === "hearing",
         unfiled: isUnfiled(r),
+        pastWhenAdded: isPastWhenAdded(r) && r.dueOn < today,
       };
     });
 
@@ -374,7 +380,8 @@ export async function loadToday(
       today,
       todayLabel: fmtDate(today, clock.locale),
       firstName: (me?.name ?? "").split(/\s+/)[0] ?? "",
-      overdue: filed.filter((r) => r.state === "overdue" && !r.hearing),
+      overdue: filed.filter((r) => r.state === "overdue" && !r.hearing && !r.pastWhenAdded),
+      pastWhenAdded: filed.filter((r) => r.pastWhenAdded),
       dueToday: filed.filter((r) => r.state === "today" && !r.hearing),
       thisWeek: filed.filter((r) => r.state === "week" && !r.hearing),
       hearings: filed.filter((r) => r.hearing && r.dueOn >= today && r.dueOn <= weekEnd),

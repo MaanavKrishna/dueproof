@@ -171,6 +171,7 @@ export function TodayView({ data, summary }: { data: TodayData; summary: string 
     !data.thisWeek.length &&
     !data.hearings.length &&
     !data.notFiled.length &&
+    !data.pastWhenAdded.length &&
     !data.review.count &&
     !data.recent.length;
 
@@ -292,6 +293,17 @@ export function TodayView({ data, summary }: { data: TodayData; summary: string 
             onProof={openProof}
             href="/deadlines?kind=hearing"
           />
+          {data.pastWhenAdded.length ? (
+            <Bucket
+              title="Already past when added"
+              icon={<CalendarStatutoryIcon />}
+              rows={data.pastWhenAdded}
+              empty=""
+              note="These periods were already due when the registration was added. Mark the ones already filed as done; the rest are overdue."
+              onProof={openProof}
+              href="/deadlines"
+            />
+          ) : null}
           {data.notFiled.length ? (
             <Bucket
               title="Not filed yet"

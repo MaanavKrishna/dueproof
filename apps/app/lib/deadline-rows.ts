@@ -55,6 +55,12 @@ export interface DeadlineRow {
    * files the document (H2): nobody has accepted it as a notice.
    */
   unfiled: boolean;
+  /**
+   * A statutory period that was already due when it was added to the
+   * calendar (a registration added today brings last quarter's returns).
+   * Grouped apart, with an explanation, instead of swelling "Overdue" (M5).
+   */
+  pastWhenAdded: boolean;
   completedAt: string | null;
   /** Hidden from the open list until this date. */
   snoozedUntil: string | null;
@@ -116,6 +122,11 @@ export function isUnfiled(d: {
   return (
     d.findingId !== null && d.caseId === null && (d.source === "notice" || d.source === "order")
   );
+}
+
+/** A statutory item whose due date had passed on the day it was added (see DeadlineRow). */
+export function isPastWhenAdded(d: { source: string; dueOn: string; createdAt: Date }): boolean {
+  return d.source === "statutory" && d.dueOn < d.createdAt.toISOString().slice(0, 10);
 }
 
 type Condition = Parameters<typeof and>[number];
@@ -196,6 +207,7 @@ export async function queryDeadlines(
       findingId: d.findingId,
       documentId,
       unfiled: isUnfiled(d),
+      pastWhenAdded: isPastWhenAdded(d),
       completedAt: d.completedAt ? d.completedAt.toISOString() : null,
       snoozedUntil,
       ackNumber: detail.ackNumber ?? null,

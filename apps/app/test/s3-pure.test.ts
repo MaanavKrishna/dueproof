@@ -24,7 +24,7 @@ import {
 import { validSubscription } from "../features/push/validate";
 import { renderDigest } from "../features/reminders/digest";
 import { csvCell, rupees, toCsv } from "../lib/csv";
-import type { DeadlineRow } from "../lib/deadline-rows";
+import { type DeadlineRow, isPastWhenAdded } from "../lib/deadline-rows";
 import { parseEnv } from "../lib/env";
 import { vapidKeys } from "../lib/push";
 
@@ -127,6 +127,7 @@ function row(p: Partial<DeadlineRow> & { id: string; dueOn: string }): DeadlineR
     findingId: null,
     documentId: null,
     unfiled: false,
+    pastWhenAdded: false,
     completedAt: null,
     snoozedUntil: null,
     ackNumber: null,
@@ -177,6 +178,43 @@ describe("deadline list", () => {
       ["Overdue", ["late"]],
       ["Not filed yet", ["invoice"]],
     ]);
+  });
+
+  it("groups statutory periods already past when added apart from Overdue (M5)", () => {
+    const groups = groupByWeek(
+      [
+        row({ id: "late", dueOn: "2026-11-10" }),
+        row({ id: "q2", dueOn: "2026-10-31", pastWhenAdded: true }),
+        row({ id: "next", dueOn: "2026-11-24" }),
+      ],
+      today,
+    );
+    expect(groups.map((g) => [g.label, g.rows.map((r) => r.id)])).toEqual([
+      ["Overdue", ["late"]],
+      ["Already past when added", ["q2"]],
+      ["Next week", ["next"]],
+    ]);
+    expect(
+      isPastWhenAdded({
+        source: "statutory",
+        dueOn: "2026-10-31",
+        createdAt: new Date("2026-11-18T10:00:00Z"),
+      }),
+    ).toBe(true);
+    expect(
+      isPastWhenAdded({
+        source: "statutory",
+        dueOn: "2026-11-20",
+        createdAt: new Date("2026-11-18T10:00:00Z"),
+      }),
+    ).toBe(false);
+    expect(
+      isPastWhenAdded({
+        source: "notice",
+        dueOn: "2026-10-31",
+        createdAt: new Date("2026-11-18T10:00:00Z"),
+      }),
+    ).toBe(false);
   });
 
   it("filters by client, person, source and status, with snoozed items apart", () => {

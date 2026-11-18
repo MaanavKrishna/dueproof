@@ -59,6 +59,8 @@ export function weekRange(monday: string): string {
 
 /** The group for deadlines read from documents not yet filed in a case. */
 export const UNFILED = "unfiled";
+/** The group for statutory periods already past when they were added (M5). */
+export const PAST_WHEN_ADDED = "past-when-added";
 
 export function groupByWeek(rows: DeadlineRow[], today: string): WeekGroup[] {
   const thisWeek = mondayOf(today);
@@ -70,11 +72,24 @@ export function groupByWeek(rows: DeadlineRow[], today: string): WeekGroup[] {
   for (const r of sorted) {
     // Read from a document nobody has filed: not counted as due until it is (H2).
     const unfiled = r.status === "open" && r.unfiled;
-    const overdue = !unfiled && r.status === "open" && r.dueOn < today;
-    const id = unfiled ? UNFILED : overdue ? "overdue" : mondayOf(r.dueOn);
+    const late = !unfiled && r.status === "open" && r.dueOn < today;
+    const before = late && r.pastWhenAdded;
+    const overdue = late && !before;
+    const id = unfiled
+      ? UNFILED
+      : before
+        ? PAST_WHEN_ADDED
+        : overdue
+          ? "overdue"
+          : mondayOf(r.dueOn);
     let g = groups.get(id);
-    if (unfiled && !g) {
-      g = { id, label: "Not filed yet", range: null, rows: [] };
+    if ((unfiled || before) && !g) {
+      g = {
+        id,
+        label: unfiled ? "Not filed yet" : "Already past when added",
+        range: null,
+        rows: [],
+      };
       groups.set(id, g);
     }
     if (!g) {
@@ -92,6 +107,7 @@ export function groupByWeek(rows: DeadlineRow[], today: string): WeekGroup[] {
     }
     g.rows.push(r);
   }
-  const rank = (id: string) => (id === "overdue" ? 0 : id === UNFILED ? 2 : 1);
+  const rank = (id: string) =>
+    id === "overdue" ? 0 : id === PAST_WHEN_ADDED ? 1 : id === UNFILED ? 3 : 2;
   return [...groups.values()].sort((a, b) => rank(a.id) - rank(b.id) || a.id.localeCompare(b.id));
 }
