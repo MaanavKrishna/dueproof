@@ -18,7 +18,7 @@ export default async function SystemSettingsPage() {
     );
   const [s, licence] = await Promise.all([
     getSystemFor(access.ctx),
-    licenceStatus(access.ctx.container.database),
+    licenceStatus(access.ctx.container),
   ]);
   const { database, engine } = s.health.checks;
   return (

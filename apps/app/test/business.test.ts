@@ -128,7 +128,7 @@ describe("the free build (no ee/)", () => {
     as(owner);
     expect(await licenceStatus(database)).toEqual(NO_LICENCE);
     expect(await whiteLabelReports(container)).toBe(false);
-    expect(await ssoSignInAvailable(database)).toBe(false);
+    expect(await ssoSignInAvailable(container)).toBe(false);
     const ctx = await authorize("team.manage");
     expect(await ssoSettingsFor(ctx)).toMatchObject({ available: false, licensed: false });
     expect(await installLicence(fixture("business.TEST.dueproof-licence"))).toMatchObject({
@@ -141,7 +141,9 @@ describe("the free build (no ee/)", () => {
 
   it("keeps REPORT_WHITE_LABEL as a development override", async () => {
     setEeForTests(null);
-    expect(await whiteLabelReports({ database, env: { REPORT_WHITE_LABEL: true } })).toBe(true);
+    expect(
+      await whiteLabelReports({ database, env: { ...container.env, REPORT_WHITE_LABEL: true } }),
+    ).toBe(true);
   });
 });
 
@@ -251,7 +253,7 @@ describe.skipIf(EE === null)("with ee/ and a Business licence", () => {
     const view = await ssoSettingsFor(ctx);
     expect(view).toMatchObject({ available: true, licensed: true, providers: [] });
     expect(view.serviceProvider?.acsUrl).toBe(`${APP}/api/auth/sso/saml2/sp/acs/saml-${ctx.orgId}`);
-    expect(await ssoSignInAvailable(database)).toBe(false);
+    expect(await ssoSignInAvailable(container)).toBe(false);
     expect(await saveSso({ domains: "gmail.com", metadataXml: "<x/>" })).toMatchObject({
       ok: false,
       error: "bad_request",
@@ -270,5 +272,45 @@ describe.skipIf(EE === null)("with ee/ and a Business licence", () => {
     expect(res.status).toBe(403);
     expect(await removeLicence()).toMatchObject({ ok: true, data: { state: "none" } });
     expect((await licenceStatus(database)).state).toBe("none");
+  });
+});
+
+describe("hosted: the licence is the operator's (M5)", () => {
+  const hostedEnv = (licence?: string) => ({
+    ...container.env,
+    DUEPROOF_EDITION: "hosted" as const,
+    DUEPROOF_LICENCE: licence,
+  });
+  afterEach(() => setContainer(container));
+
+  it("no tenant owner can install or remove the install-wide licence", async () => {
+    // A self-hosted owner installed one (the shared row exists).
+    as(owner);
+    expect(await installLicence(fixture("business.TEST.dueproof-licence"))).toMatchObject({
+      ok: true,
+    });
+    setContainer({ ...container, env: hostedEnv() });
+    as(owner);
+    expect(await removeLicence()).toMatchObject({ ok: false, error: "forbidden" });
+    expect(await installLicence(fixture("sso-only.TEST.dueproof-licence"))).toMatchObject({
+      ok: false,
+      error: "forbidden",
+    });
+    // The row is still there for self-hosted, untouched.
+    setContainer(container);
+    expect((await licenceStatus(container)).state).toBe("valid");
+  });
+
+  it("reads only DUEPROOF_LICENCE on hosted, never the shared row", async () => {
+    expect((await licenceStatus({ database, env: hostedEnv() })).state).toBe("none");
+    const fromEnv = await licenceStatus({
+      database,
+      env: hostedEnv(fixture("sso-only.TEST.dueproof-licence")),
+    });
+    expect(fromEnv.active).toEqual(["sso"]);
+    // A bad file from the operator switches features off rather than failing.
+    expect((await licenceStatus({ database, env: hostedEnv("garbage") })).state).toBe("none");
+    as(owner);
+    expect(await removeLicence()).toMatchObject({ ok: true });
   });
 });

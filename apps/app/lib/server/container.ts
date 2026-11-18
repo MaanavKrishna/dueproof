@@ -177,7 +177,7 @@ export function businessAuth(env: Env, database: Database) {
   return {
     plugins: sso.authPlugins({
       appUrl: env.APP_URL,
-      isLicensed: () => hasFeature(database, "sso"),
+      isLicensed: () => hasFeature({ database, env }, "sso"),
       onJoin: (e) =>
         withOrg(database, e.orgId, (tx, ctx) =>
           audit.write(tx, ctx, {

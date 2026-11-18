@@ -141,6 +141,7 @@ See [Workflow and reminders](workflow-and-reminders.md).
 | `BACKUP_STATUS_FILE` | | Self-hosted: the backup container's `last.json`, mounted read-only, so **Settings → System** can show the last backup |
 | `REPORT_WHITE_LABEL` | `0` | Reports without "Prepared with Dueproof". For development; the Business licence's white-label feature normally does this |
 | `DUEPROOF_EE` | | Build time: `off` builds the free edition even when `ee/` is present |
+| `DUEPROOF_LICENCE` | | Hosted only: the Business licence file's contents. On hosted the licence is the operator's alone: owners can't install or remove one in **Settings → System**, and a licence row in the database is ignored. Self-hosted and desktop installs keep the licence in **Settings → System** |
 
 Rate limits that can be overridden, and their defaults: `auth.ip` 20 per
 15 minutes, `auth.account` 5 per 15 minutes, `signup.ip` 3 per hour (20 on

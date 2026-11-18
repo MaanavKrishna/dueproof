@@ -7,6 +7,11 @@
  * so it's read outside withOrg, like the auth tables in server/directory.ts).
  * Callers authorise first; installing and removing write audit entries
  * naming the licence id, never the file.
+ *
+ * On hosted the install is shared by every organisation, so the licence is
+ * the operator's alone (M5): it comes from DUEPROOF_LICENCE, the table row
+ * is ignored, and no tenant owner can install or remove one. Self-hosted
+ * and desktop installs keep it owner-managed in Settings → System.
  */
 import "server-only";
 import { type Database, desc, eq, schema } from "@dueproof/db";
@@ -21,7 +26,8 @@ import {
 } from "@dueproof/plugins";
 import type { AuthContext } from "./authorize";
 import { loadEe } from "./ee";
-import { badRequest } from "./errors";
+import type { Env } from "./env";
+import { badRequest, forbidden } from "./errors";
 import { writeAudit } from "./settings";
 
 const ROW_ID = "current";
@@ -59,12 +65,36 @@ export function licenceStore(database: Database): LicenceStore {
   };
 }
 
+export type LicenceEnv = Pick<Env, "DUEPROOF_EDITION" | "DUEPROOF_LICENCE">;
+/** Where the licence is read: the app's container (database and env), or a bare database. */
+export type LicenceSource = Database | { database: Database; env: LicenceEnv };
+
+function sourceOf(source: LicenceSource): { database: Database; env: LicenceEnv | null } {
+  if (typeof source === "object" && source && "env" in source && "database" in source)
+    return { database: source.database, env: source.env };
+  return { database: source as Database, env: null };
+}
+
+/** Hosted: only the operator sets the licence, through DUEPROOF_LICENCE (M5). */
+export function licenceIsOperatorManaged(env: Pick<Env, "DUEPROOF_EDITION">): boolean {
+  return env.DUEPROOF_EDITION === "hosted";
+}
+
 /** The licence state now. NO_LICENCE without ee/; never throws. */
-export async function licenceStatus(database: Database, now = new Date()): Promise<LicenceStatus> {
+export async function licenceStatus(
+  source: LicenceSource,
+  now = new Date(),
+): Promise<LicenceStatus> {
   const ee = loadEe();
   if (!ee) return NO_LICENCE;
+  const { database, env } = sourceOf(source);
   try {
     const store = licenceStore(database);
+    if (env && licenceIsOperatorManaged(env)) {
+      if (!env.DUEPROOF_LICENCE) return NO_LICENCE;
+      const stored = ee.licence.parseFile(env.DUEPROOF_LICENCE);
+      return ee.licence.evaluate(stored, { now, latestSeenAt: await store.latestSeenAt() });
+    }
     const [stored, latestSeenAt] = await Promise.all([store.read(), store.latestSeenAt()]);
     return ee.licence.evaluate(stored, { now, latestSeenAt });
   } catch (e) {
@@ -73,8 +103,18 @@ export async function licenceStatus(database: Database, now = new Date()): Promi
   }
 }
 
-export async function hasFeature(database: Database, feature: BusinessFeature): Promise<boolean> {
-  return featureActive(await licenceStatus(database), feature);
+export async function hasFeature(
+  source: LicenceSource,
+  feature: BusinessFeature,
+): Promise<boolean> {
+  return featureActive(await licenceStatus(source), feature);
+}
+
+function refuseOnHosted(ctx: AuthContext): void {
+  if (licenceIsOperatorManaged(ctx.container.env))
+    throw forbidden(
+      "On the hosted service the Business licence is managed by Dueproof, not in Settings.",
+    );
 }
 
 /** For Settings → System. */
@@ -86,6 +126,7 @@ export interface LicenceView {
 }
 
 export async function installLicenceFor(ctx: AuthContext, text: string): Promise<LicenceStatus> {
+  refuseOnHosted(ctx);
   const ee = loadEe();
   if (!ee) throw badRequest("This build has no Business features. Use the Business image.");
   let stored: ReturnType<typeof ee.licence.parseFile>;
@@ -113,8 +154,10 @@ export async function installLicenceFor(ctx: AuthContext, text: string): Promise
 }
 
 export async function removeLicenceFor(ctx: AuthContext): Promise<LicenceStatus> {
+  refuseOnHosted(ctx);
+  if (!loadEe()) throw badRequest("This build has no Business features.");
   const store = licenceStore(ctx.container.database);
-  const before = await licenceStatus(ctx.container.database);
+  const before = await licenceStatus(ctx.container);
   await store.remove();
   await writeAudit(ctx, "licence.remove", { licenceId: before.licence?.licenceId ?? null });
   return NO_LICENCE;
@@ -127,10 +170,10 @@ export async function removeLicenceFor(ctx: AuthContext): Promise<LicenceStatus>
  */
 export async function whiteLabelReports(container: {
   database: Database;
-  env: { REPORT_WHITE_LABEL: boolean };
+  env: LicenceEnv & { REPORT_WHITE_LABEL: boolean };
 }): Promise<boolean> {
   if (container.env.REPORT_WHITE_LABEL) return true;
   const whiteLabel = loadEe()?.whiteLabel;
   if (!whiteLabel) return false;
-  return whiteLabel.enabled(await licenceStatus(container.database));
+  return whiteLabel.enabled(await licenceStatus(container));
 }

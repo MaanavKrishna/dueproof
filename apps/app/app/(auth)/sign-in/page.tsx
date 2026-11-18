@@ -19,7 +19,8 @@ export default async function SignInPage({
   const { next, sso } = await searchParams;
   const target = safeNext(next);
   if (await getViewer()) redirect(target);
-  const { database } = await getContainer();
+  const container = await getContainer();
+  const { database } = container;
   const firstRun = await isFirstRun(database);
   // A brand-new install has nobody to sign in as: start setup instead.
   if (firstRun) redirect("/sign-up");
@@ -27,7 +28,7 @@ export default async function SignInPage({
     <SignInForm
       next={target}
       firstRun={firstRun}
-      sso={await ssoSignInAvailable(database)}
+      sso={await ssoSignInAvailable(container)}
       ssoError={sso === "failed"}
     />
   );
