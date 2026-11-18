@@ -110,33 +110,44 @@ export function AppShell({
     onSidebarCollapsedChange,
   );
   const isMobile = useMediaQuery("(width < 40rem)");
+  // Narrow (a tablet, 200% zoom) or short screens: the sidebar folds to its
+  // icon rail, the shell's own collapsed state, so the content keeps the
+  // room (M12). The person's saved choice is untouched; the toggle still
+  // opens it for now.
+  const cramped = useMediaQuery("(width < 60rem), (height < 32rem)");
+  const [autoCollapsed, setAutoCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
     if (!isMobile) setDrawerOpen(false);
   }, [isMobile]);
+  useEffect(() => {
+    setAutoCollapsed(cramped && !isMobile);
+  }, [cramped, isMobile]);
 
+  const shownCollapsed = collapsed || autoCollapsed;
   const toggleSidebar = useCallback(() => {
     if (isMobile) setDrawerOpen((o) => !o);
+    else if (autoCollapsed) setAutoCollapsed(false);
     else setCollapsed(!collapsed);
-  }, [isMobile, collapsed, setCollapsed]);
+  }, [isMobile, autoCollapsed, collapsed, setCollapsed]);
   const closeMobileSidebar = useCallback(() => setDrawerOpen(false), []);
 
   const ctx = useMemo(
     () => ({
-      sidebarCollapsed: !isMobile && collapsed,
+      sidebarCollapsed: !isMobile && shownCollapsed,
       isMobile,
       toggleSidebar,
       closeMobileSidebar,
     }),
-    [isMobile, collapsed, toggleSidebar, closeMobileSidebar],
+    [isMobile, shownCollapsed, toggleSidebar, closeMobileSidebar],
   );
 
   return (
     <AppShellContext.Provider value={ctx}>
       <div
         className={cx(styles.shell, className)}
-        data-sidebar={collapsed ? "collapsed" : "expanded"}
+        data-sidebar={shownCollapsed ? "collapsed" : "expanded"}
         data-drawer={drawerOpen ? "open" : "closed"}
         data-mobile-nav={mobileNav ? "" : undefined}
         {...rest}
