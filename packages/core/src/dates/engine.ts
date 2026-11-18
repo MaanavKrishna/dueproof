@@ -56,7 +56,57 @@ function err(error: DateError["error"], message: string, anchor?: Anchor): DateE
   return anchor ? { error, message, anchor } : { error, message };
 }
 
+/**
+ * The longest period the engine will count: about ten years. Not a statutory
+ * value (no notice or statute in scope sets a longer one) but a sanity bound,
+ * so that a malformed or hostile rule is an error, not a crash or a date in
+ * the year 12026.
+ */
+export const MAX_PERIOD: Readonly<Record<"days" | "working_days" | "months", number>> = {
+  days: 3_660,
+  working_days: 3_660,
+  months: 120,
+};
+
+/** Why a period is unusable, or null when it is a whole number in 1..MAX_PERIOD[unit]. */
+export function periodProblem(amount: unknown, unit: unknown): string | null {
+  if (unit !== "days" && unit !== "working_days" && unit !== "months")
+    return `Unknown unit: ${String(unit)}`;
+  if (typeof amount !== "number" || !Number.isInteger(amount) || amount <= 0)
+    return `The period must be a whole number above zero, got ${String(amount)}`;
+  if (amount > MAX_PERIOD[unit])
+    return `The period is too long to be real: ${amount} ${unitWords(amount, unit)} (at most ${MAX_PERIOD[unit]})`;
+  return null;
+}
+
+/** Why a working week is unusable, or null. Weekdays are 1 = Mon … 7 = Sun. */
+function workingDaysProblem(days: unknown): string | null {
+  if (!Array.isArray(days)) return "The working days are not a list";
+  for (const d of days)
+    if (typeof d !== "number" || !Number.isInteger(d) || d < 1 || d > 7)
+      return `Not a weekday (1 = Monday … 7 = Sunday): ${String(d)}`;
+  return null;
+}
+
+/**
+ * Turn a rule into a date. Never throws: bad input of any kind (a period out
+ * of range, an invalid working week, a malformed rule) comes back as a
+ * `DateError`, so one bad value cannot fail a whole workflow step.
+ */
 export function resolveDate(rule: DateRule, ctx: DateContext): ResolvedDateDetail | DateError {
+  try {
+    const wd = workingDaysProblem(ctx.workingDays);
+    if (wd) return err("invalid_rule", wd);
+    return resolveUnchecked(rule, ctx);
+  } catch (e) {
+    // The calendar's arithmetic guards throw RangeError; anything else means the
+    // input had the wrong shape. Either way the rule cannot be worked out.
+    const why = e instanceof Error ? e.message : String(e);
+    return err("invalid_rule", `This rule cannot be worked out: ${why}`);
+  }
+}
+
+function resolveUnchecked(rule: DateRule, ctx: DateContext): ResolvedDateDetail | DateError {
   const locale = ctx.locale ?? "en-IN";
   const cal: WorkingCalendar = { workingDays: ctx.workingDays, holidays: ctx.holidays };
   const fmt = (d: IsoDate) => formatDate(d, { locale });
@@ -96,12 +146,8 @@ export function resolveDate(rule: DateRule, ctx: DateContext): ResolvedDateDetai
           rule.anchor,
         );
       }
-      if (!Number.isInteger(rule.amount) || rule.amount <= 0) {
-        return err(
-          "invalid_rule",
-          `The period must be a whole number above zero, got ${rule.amount}`,
-        );
-      }
+      const bad = periodProblem(rule.amount, rule.unit);
+      if (bad) return err("invalid_rule", bad);
       let last: IsoDate;
       if (rule.unit === "days") {
         last = addDays(anchorDate, rule.amount);
@@ -139,12 +185,9 @@ export function resolveDate(rule: DateRule, ctx: DateContext): ResolvedDateDetai
 
       if (rule.condonable) {
         const c = rule.condonable;
-        if (!Number.isInteger(c.amount) || c.amount <= 0) {
-          return err(
-            "invalid_rule",
-            `The condonable period must be a whole number above zero, got ${c.amount}`,
-          );
-        }
+        const badC =
+          c.unit === "days" || c.unit === "months" ? periodProblem(c.amount, c.unit) : null;
+        if (badC) return err("invalid_rule", `The condonable period: ${badC}`);
         let windowEnd: IsoDate;
         if (c.unit === "days") {
           windowEnd = addDays(last, c.amount);
