@@ -44,6 +44,7 @@ import {
   StageStepper,
   StatusPill,
   Timeline,
+  useMediaQuery,
   useToast,
   Workings,
 } from "@dueproof/ui";
@@ -108,7 +109,13 @@ export function CaseView({
 }) {
   const router = useRouter();
   const { toast } = useToast();
-  const [inspectorOpen, setInspectorOpen] = useState(true);
+  // The page sits beside the case only when there is room (80rem, where
+  // SplitView stops overlaying). Narrower, on a phone or at 200% zoom, it
+  // would cover the case, so it starts closed and opens on demand (H4).
+  // Closed on the server too, so a phone never paints it first.
+  const roomy = useMediaQuery("(width >= 80rem)");
+  const [inspectorChoice, setInspectorOpen] = useState<boolean | null>(null);
+  const inspectorOpen = inspectorChoice ?? roomy;
   const [activeFinding, setActiveFinding] = useState<string | null>(
     initial.findingId ?? data.findings.find((f) => f.deadline)?.id ?? data.findings[0]?.id ?? null,
   );
