@@ -150,4 +150,6 @@ Each is sent once per person and item.
 **Deadlines → Subscribe (iCal)** makes a private link for **My deadlines**
 or **All deadlines**. Add it to Google Calendar, Outlook or Apple Calendar
 as a subscription. It holds titles and dates only. **Turn off my feed
-links** stops every link you made.
+links** stops every link you made. A link also stops working a year after
+it was made: subscribe again for a new one. To replace a link you think
+was shared, turn off your feed links, then subscribe again.

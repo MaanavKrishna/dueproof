@@ -5,7 +5,9 @@
  * A token is `base64url(payload).base64url(hmac)`, payload
  * `v1|orgId|userId|scope|issuedAtMs`, signed with a key derived from
  * AUTH_SECRET. Revoking writes a `calendar.feed_revoked` audit row; tokens
- * issued before the latest revocation are refused. Pure apart from the key.
+ * issued before the latest revocation are refused. A token also expires a
+ * year after it was issued (I2): subscribe again for a new one, which is
+ * also how a link is rotated. Pure apart from the key.
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
 
@@ -31,7 +33,16 @@ export function signFeedToken(secret: string, t: FeedToken): string {
   return `${payload}.${mac}`;
 }
 
-export function verifyFeedToken(secret: string, token: string): FeedToken | null {
+/** A feed link works for a year (I2). */
+export const FEED_TOKEN_MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000;
+/** Clock skew allowed for a token issued "in the future". */
+const FEED_TOKEN_SKEW_MS = 5 * 60 * 1000;
+
+export function verifyFeedToken(
+  secret: string,
+  token: string,
+  now: number = Date.now(),
+): FeedToken | null {
   const [payload, mac, extra] = token.split(".");
   if (!payload || !mac || extra !== undefined) return null;
   const want = createHmac("sha256", key(secret)).update(payload).digest();
@@ -48,6 +59,7 @@ export function verifyFeedToken(secret: string, token: string): FeedToken | null
   if (scope !== "me" && scope !== "org") return null;
   const issuedAt = Number(issued);
   if (!orgId || !userId || !Number.isInteger(issuedAt)) return null;
+  if (issuedAt > now + FEED_TOKEN_SKEW_MS || now - issuedAt > FEED_TOKEN_MAX_AGE_MS) return null;
   return { orgId, userId, scope, issuedAt };
 }
 
@@ -60,12 +72,16 @@ export interface FeedEvent {
   url?: string;
 }
 
-/** RFC 5545 text escaping. */
-function esc(s: string): string {
-  return s
-    .replace(/\\/g, "\\\\")
-    .replace(/\n/g, "\\n")
-    .replace(/([,;])/g, "\\$1");
+/** RFC 5545 text escaping. Any line break (CRLF, LF or a lone CR) becomes \\n; other control characters are dropped (I2). */
+export function esc(s: string): string {
+  return (
+    s
+      .replace(/\\/g, "\\\\")
+      .replace(/\r\n|\r|\n/g, "\\n")
+      // biome-ignore lint/suspicious/noControlCharactersInRegex: removing control characters is the point
+      .replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, "")
+      .replace(/([,;])/g, "\\$1")
+  );
 }
 
 /** Fold lines longer than 75 octets (RFC 5545 §3.1). */
