@@ -149,7 +149,7 @@ function measure(): Measure {
     const s = getComputedStyle(el);
     return s.visibility !== "hidden" && s.display !== "none" && s.opacity !== "0";
   };
-  const describe = (el: Element) =>
+  const label = (el: Element) =>
     `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}.${[...el.classList].join(".")} "${(el.textContent ?? "").trim().slice(0, 40)}"`;
   /** Inside a frame that scrolls or clips on purpose (a wide table, an ellipsis, a visually hidden label). */
   const framed = (el: Element) => {
@@ -164,7 +164,7 @@ function measure(): Measure {
   for (const el of document.querySelectorAll("body *")) {
     if (!visible(el) || el.closest("[aria-hidden='true'], [inert]")) continue;
     const r = el.getBoundingClientRect();
-    if ((r.right > vw + 1 || r.left < -1) && !framed(el)) clipped.push(describe(el));
+    if ((r.right > vw + 1 || r.left < -1) && !framed(el)) clipped.push(label(el));
   }
 
   let column: Measure["column"] = null;
