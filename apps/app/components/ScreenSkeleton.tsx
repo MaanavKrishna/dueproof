@@ -1,5 +1,5 @@
 "use client";
-import { ListPageTemplate, Skeleton, SkeletonText } from "@dueproof/ui";
+import { Grid, ListPageTemplate, Skeleton, SkeletonText } from "@dueproof/ui";
 import styles from "./screen.module.css";
 
 const KEYS = ["a", "b", "c", "d", "e", "f"];
@@ -9,14 +9,14 @@ export function ScreenSkeleton({ title, cards = 4 }: { title: string; cards?: nu
   return (
     <ListPageTemplate title={title} subtitle="Loading…" scrollPage>
       <div className={styles.content} aria-busy="true">
-        <div className={styles.grid}>
+        <Grid min="panel" maxColumns={4} align="start">
           {KEYS.slice(0, cards).map((k) => (
             <div key={k} className={styles.stackTight}>
               <Skeleton shape="text" width="40%" />
               <SkeletonText lines={4} />
             </div>
           ))}
-        </div>
+        </Grid>
       </div>
     </ListPageTemplate>
   );

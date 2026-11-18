@@ -18,6 +18,7 @@ import {
   DueChip,
   EmptyState,
   ExposureSummary,
+  Grid,
   IconButton,
   Link,
   ListPageTemplate,
@@ -182,7 +183,7 @@ export function TodayView({ data, summary }: { data: TodayData; summary: string 
         ) : undefined
       }
       summary={
-        <div className={styles.stats}>
+        <>
           <StatCard
             label="Overdue"
             icon={OverdueIcon}
@@ -226,7 +227,7 @@ export function TodayView({ data, summary }: { data: TodayData; summary: string 
               href="/reports/exposure"
             />
           ) : null}
-        </div>
+        </>
       }
     >
       <div className={styles.content}>
@@ -244,7 +245,7 @@ export function TodayView({ data, summary }: { data: TodayData; summary: string 
             }
           />
         ) : null}
-        <div className={styles.grid}>
+        <Grid min="panel" maxColumns={4}>
           <Bucket
             title="Overdue"
             icon={<OverdueIcon />}
@@ -407,7 +408,7 @@ export function TodayView({ data, summary }: { data: TodayData; summary: string 
               )}
             </Card>
           ) : null}
-        </div>
+        </Grid>
         {data.exposure?.top.length ? (
           <ExposureSummary
             title="Exposure: five largest clients"
