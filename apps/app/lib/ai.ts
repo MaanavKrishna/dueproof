@@ -18,6 +18,7 @@ import {
 } from "@dueproof/ai";
 import { aiRuns, aiSettings, and, type Database, eq, gte, sql, withOrg } from "@dueproof/db";
 import type { Env } from "./env";
+import { enforce, RateLimitedError } from "./rate-limit";
 
 export type StoredAiSettings = AiSettingsRow & { keyLast4: string | null };
 
@@ -84,6 +85,42 @@ export interface LoadedPolicy {
   settings: StoredAiSettings;
 }
 
+/**
+ * Hosted: may this organisation use the AI plan, which spends Dueproof's own
+ * key? Only when the operator lists it in AI_PLAN_ORGS (M4). Billing doesn't
+ * exist yet, so this is the entitlement: off for every new organisation,
+ * and tenants can't change it.
+ */
+export function planEntitled(
+  env: Pick<Env, "DUEPROOF_EDITION" | "AI_PLAN_ORGS">,
+  orgId: string,
+): boolean {
+  if (env.DUEPROOF_EDITION !== "hosted") return false;
+  const orgs = (env.AI_PLAN_ORGS ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return orgs.includes(orgId);
+}
+
+/**
+ * The `ai.org` rate limit (L5, M4), counted once per document the AI step
+ * reads. False when the organisation is over it: the step is skipped and
+ * the document goes to review.
+ */
+export async function claimAiCall(
+  c: { env: Env; database: Database },
+  orgId: string,
+): Promise<boolean> {
+  try {
+    await enforce(c, "ai.org", orgId);
+    return true;
+  } catch (e) {
+    if (e instanceof RateLimitedError) return false;
+    throw e;
+  }
+}
+
 /** Settings + usage → policy. The plan's Claude API key (or the optional gateway key) is used on the hosted edition only. */
 export async function loadAiPolicy(
   c: { env: Env; database: Database },
@@ -96,12 +133,20 @@ export async function loadAiPolicy(
       ? { aiCallsThisMonth: 0, opusCallsThisMonth: 0, spentMicroUsdThisMonth: 0 }
       : await monthlyAiUsage(c.database, orgId, now);
   const master = masterKey(c.env);
-  const hosted = c.env.DUEPROOF_EDITION === "hosted";
   // The plan calls the Claude API directly with Dueproof's key; the gateway
-  // is only an optional alternative.
-  const anthropicKey = hosted ? c.env.ANTHROPIC_API_KEY : undefined;
-  const gatewayKey = hosted ? c.env.AI_GATEWAY_API_KEY : undefined;
-  const policy = policyFromSettings(settings, {
+  // is only an optional alternative. Checked again here, not only when the
+  // settings were saved (M4): the organisation must still be entitled and
+  // have a budget, which never exceeds the operator's cap.
+  const budget = settings.monthlyBudgetMinor;
+  const plan =
+    settings.mode === "plan" && planEntitled(c.env, orgId) && budget !== null && budget > 0;
+  const anthropicKey = plan ? c.env.ANTHROPIC_API_KEY : undefined;
+  const gatewayKey = plan ? c.env.AI_GATEWAY_API_KEY : undefined;
+  const effective =
+    plan && budget !== null
+      ? { ...settings, monthlyBudgetMinor: Math.min(budget, c.env.AI_PLAN_MONTHLY_CAP_MINOR) }
+      : settings;
+  const policy = policyFromSettings(effective, {
     usage,
     ...(master ? { master } : {}),
     ...(anthropicKey ? { anthropicKey } : {}),

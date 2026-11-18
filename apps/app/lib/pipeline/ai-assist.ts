@@ -17,7 +17,7 @@ import "server-only";
 import { assistExtraction, type Level } from "@dueproof/ai";
 import { aiRuns, uuidv7, withOrg } from "@dueproof/db";
 import type { AnalyzeResponse, LinkResponse } from "@dueproof/engine-client";
-import { aiAvailableFor, loadAiPolicy } from "../ai";
+import { aiAvailableFor, claimAiCall, loadAiPolicy } from "../ai";
 import type { Container } from "../server/container";
 import {
   gradeRuleFindings,
@@ -81,6 +81,9 @@ export async function aiAssistStage(
 ): Promise<AiAssistResult> {
   const { policy } = await loadAiPolicy(c, ref.orgId);
   if (policy.mode === "off") return OFF;
+  // The ai.org rate limit (L5): over it, no model call; the document goes to review.
+  if (!(await claimAiCall(c, ref.orgId)))
+    return { ...OFF, status: "skipped", reason: "rate_limited", needsReview: true };
 
   await setStatus(c.database, ref.orgId, ref.documentId, "ai_assist", "started");
   const doc = await loadDocument(c, ref);

@@ -112,9 +112,17 @@ provider) and **Dueproof AI plan** (Claude; hosted only).
 | `AI_KEY_MASTER` | | 32 random bytes, base64 (`openssl rand -base64 32`). Encrypts each organisation's own key. Unset: **Your own key** can't save a key. Keep it out of database backups |
 | `ANTHROPIC_API_KEY` | | Hosted only: the key the Dueproof AI plan uses to call the Claude API |
 | `AI_GATEWAY_API_KEY` | | Hosted only, optional: the plan through Vercel AI Gateway instead, used when `ANTHROPIC_API_KEY` is unset |
+| `AI_PLAN_ORGS` | | Hosted only: the organisations (ids, comma separated) allowed to use the AI plan, which spends Dueproof's own key. Empty: none. Owners can't change it |
+| `AI_PLAN_MONTHLY_CAP_MINOR` | `5000` | Hosted only: the largest monthly budget an organisation may set for the AI plan, in US cents. The plan always needs a budget |
 
 On the self-hosted Compose setup, put `AI_KEY_MASTER` in `.env`. Without it
 only **Off** and **Local model** work.
+
+A provider address for **Your own key** must use https and be a public
+internet address; private and internal addresses are refused. Only
+**Local model** (self-hosted and desktop) may name a machine on your own
+network, over http or https. Changing the provider or its address forgets
+the stored key: enter it again.
 
 ### Reminders and email
 

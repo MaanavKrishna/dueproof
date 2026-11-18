@@ -169,7 +169,7 @@ type Holder = {
 };
 const g = globalThis as Holder;
 
-function storeFor(c: Container): RateLimitStore {
+function storeFor(c: Pick<Container, "database">): RateLimitStore {
   g[STORES] ??= new WeakMap();
   let s = g[STORES].get(c.database);
   if (!s) {
@@ -224,9 +224,12 @@ export interface EnforceOptions {
   peekOnly?: boolean;
 }
 
+/** What enforcing needs from the container. */
+export type LimitContainer = Pick<Container, "env" | "database">;
+
 /** Count a hit against `rule` for `subject`; throws RateLimitedError (429) over the limit. */
 export async function enforce(
-  c: Container,
+  c: LimitContainer,
   ruleName: RuleName,
   subject: string,
   options: EnforceOptions = {},
@@ -252,7 +255,12 @@ export async function enforce(
 }
 
 /** Count a hit without enforcing (e.g. a failed sign-in, checked by the next attempt). */
-export async function record(c: Container, ruleName: RuleName, subject: string, now = Date.now()) {
+export async function record(
+  c: LimitContainer,
+  ruleName: RuleName,
+  subject: string,
+  now = Date.now(),
+) {
   if (!c.env.RATE_LIMIT_ENABLED) return;
   const rule = rulesFor(c.env)[ruleName];
   await storeFor(c).hit(keyFor(ruleName, subject), windowOf(rule, now).start, rule.windowMs);

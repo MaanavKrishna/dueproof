@@ -33,6 +33,8 @@ import { unsafeRawDb } from "@dueproof/db/internal";
 import { handleLocalStorageRequest, LocalDiskStorage } from "@dueproof/storage";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { clearAiKey, getAiSettings, saveAiSettings, setAiKey } from "../app/actions/ai-settings";
+import { claimAiCall, loadAiPolicy, planEntitled } from "../lib/ai";
+import { setProviderLookupForTests } from "../lib/ai-settings";
 import { type AuthContext, authorize } from "../lib/authorize";
 import { getDocumentDetail } from "../lib/documents";
 import { parseEnv } from "../lib/env";
@@ -424,7 +426,9 @@ describe("BYOK on a notice the rules aren't confident about", () => {
 describe("Plan mode", () => {
   it("accepts an agreeing reading: the deadline is the date engine's, origin rule+ai", async () => {
     const owner = await signUp("plan@harbour.test");
-    expect((await saveAiSettings({ mode: "plan" })).ok).toBe(true);
+    // The operator turned the plan on for this organisation (M4).
+    container.env = { ...container.env, AI_PLAN_ORGS: owner.orgId };
+    expect((await saveAiSettings({ mode: "plan", monthlyBudgetMinor: 2_000 })).ok).toBe(true);
     const provider = useProvider(
       createFakeProvider({
         script: () => ({
@@ -480,3 +484,162 @@ async function signInCookie(email: string): Promise<string> {
 async function signInAs(email: string) {
   request.headers = new Headers({ cookie: await signInCookie(email), origin: APP });
 }
+
+describe("the AI plan needs the operator's entitlement and a budget (M4)", () => {
+  it("is off for a new organisation, and tenants can't turn it on", async () => {
+    const owner = await signUp("newcomer@harbour.test");
+    expect(planEntitled(container.env, owner.orgId)).toBe(false);
+    expect(await saveAiSettings({ mode: "plan", monthlyBudgetMinor: 1_000 })).toMatchObject({
+      ok: false,
+      error: "forbidden",
+    });
+    const view = await getAiSettings();
+    expect(view.ok && view.data.planAvailable).toBe(false);
+    // Even a row written some other way gets no Dueproof key.
+    await unsafeRawDb(database)
+      .insert(aiSettings)
+      .values({ orgId: owner.orgId, mode: "plan", monthlyBudgetMinor: 1_000 })
+      .onConflictDoUpdate({ target: aiSettings.orgId, set: { mode: "plan" } });
+    expect((await loadAiPolicy(container, owner.orgId)).policy.provider).toBeNull();
+  });
+
+  it("always needs a monthly budget, within the operator's cap", async () => {
+    const owner = await signUp("budget@harbour.test");
+    container.env = { ...container.env, AI_PLAN_ORGS: `other-org, ${owner.orgId}` };
+    expect(planEntitled(container.env, owner.orgId)).toBe(true);
+    for (const monthlyBudgetMinor of [null, 0]) {
+      expect(await saveAiSettings({ mode: "plan", monthlyBudgetMinor })).toMatchObject({
+        ok: false,
+        error: "ai_budget",
+      });
+    }
+    expect(
+      await saveAiSettings({
+        mode: "plan",
+        monthlyBudgetMinor: container.env.AI_PLAN_MONTHLY_CAP_MINOR + 1,
+      }),
+    ).toMatchObject({ ok: false, error: "ai_budget" });
+    expect((await saveAiSettings({ mode: "plan", monthlyBudgetMinor: 1_000 })).ok).toBe(true);
+    expect((await loadAiPolicy(container, owner.orgId)).policy.provider).not.toBeNull();
+    // The operator withdraws it: the key stops at once, whatever is saved.
+    container.env = { ...container.env, AI_PLAN_ORGS: "other-org" };
+    expect((await loadAiPolicy(container, owner.orgId)).policy.provider).toBeNull();
+  });
+
+  it("enforces the ai.org rate limit", async () => {
+    const saved = container.env;
+    container.env = { ...saved, RATE_LIMIT_ENABLED: true, RATE_LIMITS: "ai.org=2/1m" };
+    try {
+      const org = `limit-${uuidv7()}`;
+      expect(await claimAiCall(container, org)).toBe(true);
+      expect(await claimAiCall(container, org)).toBe(true);
+      expect(await claimAiCall(container, org)).toBe(false);
+      expect(await claimAiCall(container, `limit-${uuidv7()}`)).toBe(true);
+    } finally {
+      container.env = saved;
+    }
+  });
+});
+
+describe("BYOK provider addresses (L3)", () => {
+  afterAll(() => setProviderLookupForTests(undefined));
+
+  it("forgets the stored key when the provider or its address changes", async () => {
+    const owner = await signUp("rotate@harbour.test");
+    setProviderLookupForTests(async () => ["8.8.8.8"]);
+    expect(
+      (
+        await saveAiSettings({
+          mode: "byok",
+          provider: "openai",
+          baseUrl: "https://api.openai.com/v1",
+        })
+      ).ok,
+    ).toBe(true);
+    expect((await setAiKey(KEY)).ok).toBe(true);
+    // Same provider and address: the key stays.
+    const same = await saveAiSettings({
+      mode: "byok",
+      provider: "openai",
+      baseUrl: "https://api.openai.com/v1",
+      redactPii: true,
+    });
+    expect(same.ok && same.data.keyLast4).toBe("WXYZ");
+    // A new address: the key is gone, and the change is audited.
+    const moved = await saveAiSettings({
+      mode: "byok",
+      provider: "openai",
+      baseUrl: "https://collector.example.com/v1",
+    });
+    expect(moved.ok && moved.data.keyLast4).toBeNull();
+    const [row] = await unsafeRawDb(database)
+      .select()
+      .from(aiSettings)
+      .where(eq(aiSettings.orgId, owner.orgId));
+    expect(row?.encryptedKey).toBeNull();
+    const trail = await unsafeRawDb(database)
+      .select()
+      .from(schema.audit)
+      .where(eq(schema.audit.orgId, owner.orgId));
+    expect(trail.some((a) => a.action === "ai.key_cleared")).toBe(true);
+    // A new provider does the same.
+    expect((await setAiKey(KEY)).ok).toBe(true);
+    const other = await saveAiSettings({ mode: "byok", provider: "anthropic" });
+    expect(other.ok && other.data.keyLast4).toBeNull();
+  });
+
+  it("refuses private, internal and non-https addresses", async () => {
+    await signUp("ssrf@harbour.test");
+    setProviderLookupForTests(async (host) =>
+      host === "internal.example.com" ? ["10.1.2.3"] : ["8.8.8.8"],
+    );
+    for (const baseUrl of [
+      "https://10.0.0.5/v1",
+      "https://127.0.0.1/v1",
+      "https://169.254.169.254/latest",
+      "https://172.20.1.1/v1",
+      "https://100.64.0.1/v1",
+      "https://0.0.0.0/v1",
+      "https://[::1]/v1",
+      "https://[fd00::1]/v1",
+      "https://[::ffff:10.0.0.1]/v1",
+      "https://localhost/v1",
+      "https://internal.example.com/v1",
+      "http://8.8.8.8/v1",
+    ]) {
+      expect(
+        await saveAiSettings({ mode: "byok", provider: "openai", baseUrl }),
+        baseUrl,
+      ).toMatchObject({ ok: false, error: "ai_base_url" });
+    }
+    setProviderLookupForTests(async () => {
+      throw new Error("ENOTFOUND");
+    });
+    expect(
+      await saveAiSettings({ mode: "byok", provider: "openai", baseUrl: "https://nowhere.test" }),
+    ).toMatchObject({ ok: false, error: "ai_base_url" });
+  });
+
+  it("lets Local model name the local network, on self-hosted only", async () => {
+    await signUp("ollama@harbour.test");
+    const saved = container.env;
+    container.env = { ...saved, DUEPROOF_EDITION: "self-hosted" };
+    try {
+      expect(
+        (
+          await saveAiSettings({
+            mode: "local",
+            provider: "ollama",
+            baseUrl: "http://10.0.0.5:11434",
+          })
+        ).ok,
+      ).toBe(true);
+      // Your own key on self-hosted still needs a public https address.
+      expect(
+        await saveAiSettings({ mode: "byok", provider: "openai", baseUrl: "https://10.0.0.5/v1" }),
+      ).toMatchObject({ ok: false, error: "ai_base_url" });
+    } finally {
+      container.env = saved;
+    }
+  });
+});
