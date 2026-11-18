@@ -133,16 +133,24 @@ Then, in **Settings → Team & access → Single sign-on**:
 1. Give your identity provider the **ACS (reply) URL** and the **Entity ID
    (audience)** shown there, and have it send the email address as the
    NameID.
-2. Enter the **IdP metadata URL**, or paste the **IdP metadata XML**.
+2. Enter the **IdP metadata URL**, or paste the **IdP metadata XML**. The
+   URL is fetched once, from the server, over https, and only from a
+   public address; if it can't be fetched, paste the XML instead.
 3. Enter your **Email domains**.
+4. On the hosted service (or any install with open sign-up), prove you own
+   each domain: saving tells you a DNS TXT record to add, named
+   `_dueproof-sso.<your domain>`, with a value tied to your organisation.
+   Add it, then save again. A self-hosted or desktop install with one
+   organisation doesn't need this.
 
 It is written for SAML providers such as Microsoft Entra ID, Google
 Workspace and Okta.
 
 - One identity provider per organisation.
 - Someone signing in through it for the first time gets an account only if
-  their address is on one of those domains. They join with the provider's
-  default role.
+  their address is on one of *its* domains: another organisation's
+  identity provider can't create accounts on your domain. They join with
+  the provider's default role.
 - People who already have a password account keep using it: v0.1 doesn't
   link an identity provider to an existing account.
 - **Owners keep their password**, so turning SSO off, or a lapsed licence,

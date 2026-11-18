@@ -1,9 +1,11 @@
 /**
  * Settings → Team → Single sign-on: the form an admin fills in, checked
  * before anything is registered. The IdP metadata comes as a URL (fetched
- * once, now, over https, size-capped) or as pasted XML. From it we take the
- * IdP's entity ID, its single sign-on URL and its signing certificates.
+ * once, now, over https, size-capped, to a public address only, with one
+ * plain error whatever went wrong: S2) or as pasted XML. From it we take
+ * the IdP's entity ID, its single sign-on URL and its signing certificates.
  */
+import { createHash } from "node:crypto";
 import {
   SSO_ROLES,
   type SsoConfig,
@@ -13,6 +15,7 @@ import {
 } from "@dueproof/plugins";
 import { XMLParser } from "fast-xml-parser";
 import { z } from "zod";
+import { isPublicHost, type Lookup } from "./net";
 
 export const MAX_METADATA_BYTES = 100 * 1024;
 const FETCH_TIMEOUT_MS = 10_000;
@@ -157,7 +160,34 @@ export function readIdpMetadata(xml: string): {
   return { entityId, entryPoint, certificates: [...new Set(certificates)] };
 }
 
-async function fetchMetadata(url: string, fetchImpl: typeof fetch): Promise<string> {
+/** One answer for every fetch failure (S2): it mustn't tell internal hosts apart. */
+const COULD_NOT_FETCH =
+  "Couldn't get metadata from that URL. Check it's the IdP's public metadata URL, or paste the XML instead.";
+
+/** The body, read up to the cap and no further. */
+async function readCapped(res: Response): Promise<string> {
+  const reader = res.body?.getReader();
+  if (!reader) return "";
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > MAX_METADATA_BYTES) {
+      await reader.cancel().catch(() => {});
+      throw new SsoConfigError("That metadata is larger than 100 KB.");
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+async function fetchMetadata(
+  url: string,
+  fetchImpl: typeof fetch,
+  lookup: Lookup | undefined,
+): Promise<string> {
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -166,32 +196,32 @@ async function fetchMetadata(url: string, fetchImpl: typeof fetch): Promise<stri
   }
   if (parsed.protocol !== "https:")
     throw new SsoConfigError("The metadata URL must start with https://.");
-  let res: Response;
+  if (parsed.username || parsed.password) throw new SsoConfigError(COULD_NOT_FETCH);
+  // Public addresses only: never the server's own network or a metadata service.
+  if (!(await isPublicHost(parsed.hostname, lookup))) throw new SsoConfigError(COULD_NOT_FETCH);
+  // One deadline for the whole exchange, body included.
+  const signal = AbortSignal.timeout(FETCH_TIMEOUT_MS);
   try {
-    res = await fetchImpl(parsed, {
+    const res = await fetchImpl(parsed, {
       redirect: "error",
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      signal,
       headers: { accept: "application/samlmetadata+xml, application/xml, text/xml" },
     });
-  } catch {
-    throw new SsoConfigError(
-      "Couldn't fetch the metadata URL from this server. Paste the XML instead.",
-    );
+    if (!res.ok) throw new SsoConfigError(COULD_NOT_FETCH);
+    const length = Number(res.headers.get("content-length") ?? 0);
+    if (length > MAX_METADATA_BYTES)
+      throw new SsoConfigError("That metadata is larger than 100 KB.");
+    return await readCapped(res);
+  } catch (e) {
+    if (e instanceof SsoConfigError) throw e;
+    throw new SsoConfigError(COULD_NOT_FETCH);
   }
-  if (!res.ok)
-    throw new SsoConfigError(`The metadata URL answered ${res.status}. Paste the XML instead.`);
-  const length = Number(res.headers.get("content-length") ?? 0);
-  if (length > MAX_METADATA_BYTES) throw new SsoConfigError("That metadata is larger than 100 KB.");
-  const body = await res.text();
-  if (Buffer.byteLength(body, "utf8") > MAX_METADATA_BYTES)
-    throw new SsoConfigError("That metadata is larger than 100 KB.");
-  return body;
 }
 
 /** Validates the Settings form into a config ready to register. */
 export async function parseSsoConfig(
   input: unknown,
-  options: { fetch?: typeof fetch } = {},
+  options: { fetch?: typeof fetch; lookup?: Lookup } = {},
 ): Promise<SsoConfig> {
   const parsed = SsoForm.safeParse(input);
   if (!parsed.success)
@@ -202,7 +232,7 @@ export async function parseSsoConfig(
   if (!xml) {
     if (!form.metadataUrl)
       throw new SsoConfigError("Give the IdP's metadata URL, or paste its metadata XML.");
-    xml = await fetchMetadata(form.metadataUrl, options.fetch ?? fetch);
+    xml = await fetchMetadata(form.metadataUrl, options.fetch ?? fetch, options.lookup);
   }
   const meta = readIdpMetadata(xml);
   return {
@@ -213,6 +243,17 @@ export async function parseSsoConfig(
     metadataXml: xml,
     certificates: meta.certificates,
   };
+}
+
+/**
+ * Proof of domain ownership (S1): before an identity provider may create
+ * accounts for a domain, the domain must publish this TXT record. The value
+ * is tied to the organisation, so only whoever controls the domain's DNS can
+ * hand the domain to an organisation.
+ */
+export function domainProofRecord(orgId: string, domain: string): { name: string; value: string } {
+  const digest = createHash("sha256").update(`dueproof-sso:${orgId}`).digest("hex").slice(0, 32);
+  return { name: `_dueproof-sso.${domain}`, value: `dueproof-sso-verification=${digest}` };
 }
 
 /** One SAML provider per organisation; its id is derived from the organisation's. */

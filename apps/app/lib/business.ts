@@ -68,7 +68,13 @@ export async function saveSsoFor(
   const { auth, database, env } = ctx.container;
   try {
     const config = await sso.parseConfig(input);
-    const saved = await sso.save(auth, database, headers, ctx.orgId, config, env.APP_URL);
+    // S1: on an install shared by organisations (hosted, or open sign-up),
+    // each domain must publish the organisation's TXT proof. A
+    // single-organisation install has nobody to take a domain from.
+    const shared = env.DUEPROOF_EDITION === "hosted" || env.AUTH_SIGNUP === "open";
+    const saved = await sso.save(auth, database, headers, ctx.orgId, config, env.APP_URL, {
+      requireDomainProof: shared,
+    });
     await writeAudit(
       ctx,
       "sso.configure",

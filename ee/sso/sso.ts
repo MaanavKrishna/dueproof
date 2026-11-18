@@ -8,9 +8,14 @@
  * - Every SSO endpoint refuses while the licence doesn't include SSO. Owners
  *   keep their password sign-in, so switching SSO off locks nobody out
  *   (08 §5).
+ * - A provider's domains must be proved (S1): each publishes a TXT record
+ *   tied to the organisation (`domainProofRecord`), checked when the
+ *   provider is saved. Single-organisation installs (self-hosted, desktop)
+ *   may skip the check; the app decides.
  * - Someone signing in through the IdP for the first time may create an
- *   account only if their email is on one of the provider's domains; they
- *   join the provider's organisation with its default role.
+ *   account only if their email is on one of *that* provider's domains (the
+ *   provider in the request, not any provider); they join the provider's
+ *   organisation with its default role.
  * - Someone who already has a password account keeps using it: the plugin
  *   links an IdP identity to an existing account only when the email is
  *   verified, which v0.1 doesn't do.
@@ -19,6 +24,7 @@
  * way packages/auth and apps/app/lib/server/directory.ts read auth tables:
  * filtered by the organisation the caller was authorised for.
  */
+import { resolveTxt as dnsResolveTxt } from "node:dns/promises";
 import { sso } from "@better-auth/sso";
 import { type Database, eq, ssoProvider } from "@dueproof/db";
 import { unsafeRawDb } from "@dueproof/db/internal";
@@ -33,7 +39,7 @@ import {
 } from "@dueproof/plugins";
 import type { BetterAuthPlugin } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
-import { parseSsoConfig, providerIdFor, spUrls } from "./config";
+import { domainProofRecord, parseSsoConfig, providerIdFor, spUrls } from "./config";
 
 /** SSO endpoints a browser or an IdP may call. Everything else under /sso/ is server-only. */
 const PUBLIC_PATHS = [
@@ -159,18 +165,58 @@ export async function removeProvider(
   return true;
 }
 
+/**
+ * Whether an identity provider may create this account: only on an SSO
+ * endpoint, and only for an address on the domains of the provider that
+ * made the assertion (`params.providerId`, from the endpoint's path), whose
+ * domains were proved when it was saved (S1). Another organisation's
+ * provider can't create accounts on your domain.
+ */
 export async function allowsSignUp(
   database: unknown,
   email: string,
   path: string | undefined,
+  params?: Record<string, string | undefined>,
 ): Promise<boolean> {
   if (!isSsoPath(path)) return false;
+  const providerId = params?.providerId;
+  if (!providerId) return false;
   const domain = email.split("@").pop()?.toLowerCase();
   if (!domain) return false;
   const rows = await raw(database)
     .select({ domain: ssoProvider.domain, orgId: ssoProvider.organizationId })
-    .from(ssoProvider);
+    .from(ssoProvider)
+    .where(eq(ssoProvider.providerId, providerId));
   return rows.some((r) => r.orgId && splitDomains(r.domain).includes(domain));
+}
+
+export type ResolveTxt = (name: string) => Promise<string[][]>;
+
+export interface SaveOptions {
+  /** Require each domain's TXT proof (S1). Default true; single-organisation installs may skip it. */
+  requireDomainProof?: boolean;
+  /** For tests: DNS TXT lookups. */
+  resolveTxt?: ResolveTxt;
+}
+
+/** The domains that don't (yet) publish this organisation's proof record. */
+export async function unprovedDomains(
+  orgId: string,
+  domains: string[],
+  resolveTxt: ResolveTxt = dnsResolveTxt,
+): Promise<string[]> {
+  const missing: string[] = [];
+  for (const domain of domains) {
+    const { name, value } = domainProofRecord(orgId, domain);
+    let records: string[][] = [];
+    try {
+      records = await resolveTxt(name);
+    } catch {
+      records = [];
+    }
+    if (!records.some((parts) => parts.join("").trim() === value)) missing.push(domain);
+  }
+  return missing;
 }
 
 export async function anyConfigured(database: unknown): Promise<boolean> {
@@ -204,7 +250,20 @@ export async function saveProvider(
   orgId: string,
   config: SsoConfig,
   appUrl: string,
+  options: SaveOptions = {},
 ): Promise<SsoProviderView> {
+  if (options.requireDomainProof ?? true) {
+    const missing = await unprovedDomains(orgId, config.domains, options.resolveTxt);
+    if (missing.length > 0) {
+      const lines = missing.map((d) => {
+        const r = domainProofRecord(orgId, d);
+        return `${r.name} TXT "${r.value}"`;
+      });
+      throw new SsoConfigError(
+        `Prove you own ${missing.join(", ")} first: add ${missing.length === 1 ? "this DNS record" : "these DNS records"}, then save again. ${lines.join("; ")}`,
+      );
+    }
+  }
   const clash = await domainsTaken(database, orgId, config.domains);
   if (clash.length > 0)
     throw new SsoConfigError(
@@ -254,6 +313,7 @@ export const ssoExtension: SsoExtension = {
     const providerId = providerIdFor(orgId);
     return { providerId, ...spUrls(appUrl, providerId) };
   },
+  domainProof: (orgId, domain) => domainProofRecord(orgId, domain),
   list: listProviders,
   save: saveProvider,
   remove: removeProvider,

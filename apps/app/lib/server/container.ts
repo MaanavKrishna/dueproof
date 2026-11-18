@@ -189,8 +189,11 @@ export function businessAuth(env: Env, database: Database) {
           }),
         ).then(() => undefined),
     }) as NonNullable<Parameters<typeof createAuth>[0]["plugins"]>,
-    externalSignUp: (email: string, path: string | undefined) =>
-      sso.allowsSignUp(database, email, path),
+    externalSignUp: (
+      email: string,
+      path: string | undefined,
+      params?: Record<string, string | undefined>,
+    ) => sso.allowsSignUp(database, email, path, params),
   };
 }
 

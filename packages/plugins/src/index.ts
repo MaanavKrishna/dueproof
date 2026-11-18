@@ -197,10 +197,15 @@ export interface SsoExtension {
   authPlugins(runtime: SsoRuntime): readonly unknown[];
   /**
    * Whether this email may sign up without an invitation because an IdP
-   * vouches for it: only on an SSO endpoint (`path`) and only for a
-   * configured domain.
+   * vouches for it: only on an SSO endpoint (`path`), and only for a domain
+   * of the provider making the assertion (`params.providerId`).
    */
-  allowsSignUp(database: unknown, email: string, path: string | undefined): Promise<boolean>;
+  allowsSignUp(
+    database: unknown,
+    email: string,
+    path: string | undefined,
+    params?: Record<string, string | undefined>,
+  ): Promise<boolean>;
   /**
    * Validates the form (metadata URL or XML, domains, default role). Fetches
    * the metadata URL only when one is given, https only, size-capped.
@@ -211,6 +216,8 @@ export interface SsoExtension {
     appUrl: string,
     orgId: string,
   ): Pick<SsoProviderView, "providerId" | "acsUrl" | "spEntityId">;
+  /** The DNS TXT record that proves an organisation owns a domain. */
+  domainProof(orgId: string, domain: string): { name: string; value: string };
   list(database: unknown, orgId: string, appUrl: string): Promise<SsoProviderView[]>;
   /**
    * Registers the organisation's provider (replacing any earlier one) through
@@ -223,6 +230,8 @@ export interface SsoExtension {
     orgId: string,
     config: SsoConfig,
     appUrl: string,
+    /** requireDomainProof defaults to true (S1). */
+    options?: { requireDomainProof?: boolean },
   ): Promise<SsoProviderView>;
   remove(database: unknown, orgId: string, providerId: string): Promise<boolean>;
   /** Whether any organisation on this install has SSO set up (sign-in page). */
