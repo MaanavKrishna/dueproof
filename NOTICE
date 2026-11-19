@@ -12,6 +12,8 @@ ee/LICENSE (draft, pending legal review); they may be used only with a valid
 Dueproof Business licence. The rest of the product does not depend on ee/.
 ee/ uses @better-auth/sso and samlify (MIT) for SAML single sign-on.
 
+Full licence texts referred to below are in LICENSES/.
+
 It bundles third-party work under its own licences:
 
 services/engine/dueproof_engine/pipeline/indictrans2/
@@ -19,14 +21,85 @@ services/engine/dueproof_engine/pipeline/indictrans2/
     https://huggingface.co/ai4bharat/indictrans2-indic-en-dist-200M at revision
     eb9e49d81077cfc5311e82ff36d8c1fc11557b5d.
     Copyright 2023 The IndicTrans2 Authors and AI4Bharat team.
-    Licensed under the Apache License, Version 2.0 (headers retained in each file).
-    The model weights are not included; they are licence-gated and fetched
-    separately (see services/engine/README.md).
+    Licensed under the Apache License, Version 2.0 (headers retained in each
+    file; full text in LICENSES/Apache-2.0.txt).
+
+IndicTrans2 model weights (ai4bharat/indictrans2-indic-en-dist-200M)
+    Not included in this repository or its images; fetched separately by
+    `python -m dueproof_engine.tools.model` (see services/engine/README.md),
+    or baked into a Vercel Sandbox snapshot from a tarball the operator hosts.
+    Copyright AI4Bharat. Licensed under the MIT License, per the model card.
+    VERIFY: this is from memory; huggingface.co could not be reached to check
+    the model card. Confirm the licence before redistributing the weights.
 
 PaddleOCR detection and recognition models (ONNX), fetched at build time by
 services/engine/scripts/fetch_ocr_models.py from the rapidocr wheel.
     Copyright PaddlePaddle Authors. Licensed under the Apache License, Version 2.0.
     See services/engine/NOTICE and the copied MODEL_LICENSES.md.
 
-Dependencies installed by pip/uv and pnpm keep their own licences; none is copyleft.
 PDF reading uses PDFium through pypdfium2 (Apache-2.0 / BSD-3-Clause).
+
+Fonts (served by the app and the website; SIL Open Font License 1.1, full
+text in LICENSES/OFL-1.1.txt), each version 5.3.0 from Fontsource:
+    Inter (@fontsource-variable/inter)
+        Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter)
+    Noto Naskh Arabic (@fontsource/noto-naskh-arabic)
+        Copyright 2022 The Noto Project Authors (https://github.com/notofonts/arabic)
+    Noto Sans Bengali (@fontsource/noto-sans-bengali)
+        Copyright 2025 The Noto Project Authors (https://github.com/notofonts/bengali)
+    Noto Sans Devanagari (@fontsource/noto-sans-devanagari)
+        Copyright 2022 The Noto Project Authors (https://github.com/notofonts/devanagari)
+    Noto Sans Gujarati (@fontsource/noto-sans-gujarati)
+        Copyright 2022 The Noto Project Authors (https://github.com/notofonts/gujarati)
+    Noto Sans Gurmukhi (@fontsource/noto-sans-gurmukhi)
+        Copyright 2022 The Noto Project Authors (https://github.com/notofonts/gurmukhi)
+    Noto Sans Kannada (@fontsource/noto-sans-kannada)
+        Copyright 2022 The Noto Project Authors (https://github.com/notofonts/kannada)
+    Noto Sans Malayalam (@fontsource/noto-sans-malayalam)
+        Copyright 2022 The Noto Project Authors (https://github.com/notofonts/malayalam)
+    Noto Sans Meetei Mayek (@fontsource/noto-sans-meetei-mayek)
+        Copyright 2022 The Noto Project Authors (https://github.com/notofonts/meetei-mayek)
+    Noto Sans Ol Chiki (@fontsource/noto-sans-ol-chiki)
+        Copyright 2022 The Noto Project Authors (https://github.com/notofonts/ol-chiki)
+    Noto Sans Oriya (@fontsource/noto-sans-oriya)
+        Copyright 2022 The Noto Project Authors (https://github.com/notofonts/oriya)
+    Noto Sans Tamil (@fontsource/noto-sans-tamil)
+        Copyright 2022 The Noto Project Authors (https://github.com/notofonts/tamil)
+    Noto Sans Telugu (@fontsource/noto-sans-telugu)
+        Copyright 2022 The Noto Project Authors (https://github.com/notofonts/telugu)
+
+Dependencies installed by pip/uv, pnpm and cargo keep their own licences.
+None is under a strong copyleft licence (GPL, AGPL, SSPL). Most are MIT, BSD,
+ISC or Apache-2.0. These weak-copyleft components ship, unmodified:
+
+LGPL (each is a separate shared library, which a user may replace)
+    FFmpeg (LGPL-2.1-or-later) and libquadmath (LGPL-2.1-or-later), inside
+        the opencv-python-headless 5.0.0.93 wheel, in the engine image when it
+        is built with Tesseract (the default). Dueproof never calls FFmpeg.
+        The wheel also carries libgfortran (GPL-3.0 with the GCC Runtime
+        Library Exception). Source: FFmpeg at https://ffmpeg.org/releases/,
+        with the build scripts that produced the wheel at
+        https://github.com/opencv/opencv-python; libquadmath and libgfortran
+        with GCC at https://gcc.gnu.org/.
+    WebKitGTK (LGPL-2.1 and BSD-2-Clause) and GTK 3 (LGPL-2.1-or-later), with
+        the GLib and other GNOME libraries they depend on, bundled in the
+        desktop AppImage (the .deb uses the system's copies). They are the
+        Ubuntu 22.04 packages the release was built on; source with
+        `apt-get source webkit2gtk gtk+3.0` on Ubuntu 22.04, or from
+        https://launchpad.net/ubuntu/+source/webkit2gtk and
+        https://launchpad.net/ubuntu/+source/gtk+3.0 (the jammy versions).
+    VERIFY: whether the LGPL needs a written offer of source alongside the
+    links above, for the AppImage and the engine image.
+    libvips (LGPL-3.0, through sharp) is no longer in the app's standalone
+    output or Docker image: the app does not use next/image.
+
+MPL-2.0 (source of each at the address given; full text at
+https://mozilla.org/MPL/2.0/)
+    web-push 3.6.7, in the app's server bundle:
+        https://github.com/web-push-libs/web-push
+    certifi, in the engine: https://github.com/certifi/python-certifi
+    tqdm (MPL-2.0 and MIT), in engine-heavy: https://github.com/tqdm/tqdm
+    The cssparser (0.37.0, 0.38.0), cssparser-macros (0.7.1), selectors
+        (0.38.0, 0.41.0), dtoa-short (0.3.5) and option-ext (0.2.0) crates,
+        linked into the desktop app: https://crates.io/ (each crate's page
+        links its repository).
