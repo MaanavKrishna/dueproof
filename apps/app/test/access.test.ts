@@ -14,7 +14,7 @@ import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createAuth } from "@dueproof/auth";
+import { createAuth, inviteToken } from "@dueproof/auth";
 import {
   cases,
   clients,
@@ -92,9 +92,17 @@ const as = (h: Headers) => {
 };
 const ctxOf = (who: keyof typeof people) => authorize("case.view", { headers: people[who] });
 
-async function signUp(email: string, name: string): Promise<Headers> {
+async function signUp(email: string, name: string, invitationId?: string): Promise<Headers> {
   const res = await container.auth.api.signUpEmail({
-    body: { email, name, password: "a-long-test-password" },
+    body: {
+      email,
+      name,
+      password: "a-long-test-password",
+      // An invitation's link carries its token (H1).
+      ...(invitationId
+        ? { inviteToken: inviteToken(container.env.AUTH_SECRET, invitationId) }
+        : {}),
+    },
     returnHeaders: true,
   });
   const cookie = (res.headers.get("set-cookie") ?? "").split(";")[0] ?? "";
@@ -102,10 +110,11 @@ async function signUp(email: string, name: string): Promise<Headers> {
 }
 
 async function invite(email: string, name: string, role: string): Promise<Headers> {
+  const id = uuidv7();
   await unsafeRawDb(database)
     .insert(invitation)
     .values({
-      id: uuidv7(),
+      id,
       organizationId: ctxOwner.orgId,
       email,
       role,
@@ -113,7 +122,7 @@ async function invite(email: string, name: string, role: string): Promise<Header
       expiresAt: new Date(Date.now() + 86_400_000),
       inviterId: ctxOwner.userId,
     });
-  return signUp(email, name);
+  return signUp(email, name, id);
 }
 
 /** Upload bytes as `ctx` through init → signed PUT → complete. */
