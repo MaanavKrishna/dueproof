@@ -20,7 +20,9 @@ import base64
 import hashlib
 import hmac
 import json
+import math
 import os
+import re
 import time
 
 AUDIENCE = "engine"
@@ -41,8 +43,17 @@ def _b64e(raw: bytes) -> str:
     return base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
 
 
+_B64URL = re.compile(r"[A-Za-z0-9_-]+")
+
+
 def _b64d(text: str) -> bytes:
-    return base64.urlsafe_b64decode(text + "=" * (-len(text) % 4))
+    """Strict base64url without padding: one spelling per value, nothing skipped."""
+    if not _B64URL.fullmatch(text) or len(text) % 4 == 1:
+        raise ValueError("not base64url")
+    raw = base64.urlsafe_b64decode(text + "=" * (-len(text) % 4))
+    if _b64e(raw) != text:                       # non-zero trailing bits: another spelling
+        raise ValueError("not canonical base64url")
+    return raw
 
 
 def disabled() -> bool:
@@ -71,7 +82,7 @@ def verify_token(token: str, key: bytes, now: float | None = None) -> dict:
     say what was wrong, never what the token contained."""
     now = time.time() if now is None else now
     parts = token.split(".")
-    if len(parts) != 3 or not all(parts):
+    if len(parts) != 3 or not all(parts) or not token.isascii():
         raise AuthError("malformed token")
     head_b64, body_b64, sig_b64 = parts
     try:
@@ -94,7 +105,7 @@ def verify_token(token: str, key: bytes, now: float | None = None) -> dict:
     if aud != AUDIENCE and not (isinstance(aud, list) and AUDIENCE in aud):
         raise AuthError("wrong audience")
     exp = claims.get("exp")
-    if not isinstance(exp, (int, float)) or isinstance(exp, bool):
+    if not isinstance(exp, (int, float)) or isinstance(exp, bool) or not math.isfinite(exp):
         raise AuthError("no expiry")
     if exp < now - LEEWAY:
         raise AuthError("expired")

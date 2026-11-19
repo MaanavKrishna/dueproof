@@ -547,6 +547,29 @@ describe("web push and the daily job", () => {
     expect(ok(await unsubscribePush(sub.endpoint)).removed).toBe(1);
   });
 
+  it("never posts to a stored endpoint outside the push services (L2)", async () => {
+    // A row stored before the allowlist, pointing at the server's own network.
+    await withOrg(database, owner.orgId, (tx) =>
+      tx.insert(pushSubscriptions).values({
+        id: uuidv7(),
+        orgId: owner.orgId,
+        userId: owner.userId,
+        endpoint: "https://10.0.0.5/internal",
+        keys: sub.keys,
+      }),
+    );
+    const called: string[] = [];
+    setPushTransport(async (s) => {
+      called.push(s.endpoint);
+      return 201;
+    });
+    expect(
+      await sendPushToUser(container, owner.orgId, owner.userId, { title: "x", url: "/" }),
+    ).toMatchObject({ sent: 0, removed: 1 });
+    expect(called).toEqual([]);
+    setPushTransport(async () => 201);
+  });
+
   it("notifies, escalates and sends the morning digest once a day", async () => {
     as(ownerCookie);
     const lateId = ok(

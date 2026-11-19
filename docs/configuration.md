@@ -145,7 +145,7 @@ See [Workflow and reminders](workflow-and-reminders.md).
 |---|---|---|
 | `RATE_LIMIT_ENABLED` | `1` | Rate limits, counted in Postgres so they hold across instances |
 | `RATE_LIMITS` | | Overrides, for example `upload.user=100/1h,search.user=60/1m` |
-| `METRICS_TOKEN` | | Secret. Lets another machine read `/api/metrics` with `Authorization: Bearer <token>`. Unset: local requests only |
+| `METRICS_TOKEN` | | Secret. Turns on `/api/metrics`, read with `Authorization: Bearer <token>`. Unset: off in production, local requests only in development |
 | `BACKUP_STATUS_FILE` | | Self-hosted: the backup container's `last.json`, mounted read-only, so **Settings → System** can show the last backup |
 | `REPORT_WHITE_LABEL` | `0` | Reports without "Prepared with Dueproof". For development; the Business licence's white-label feature normally does this |
 | `DUEPROOF_EE` | | Build time: `off` builds the free edition even when `ee/` is present |
@@ -164,7 +164,9 @@ The engine needs very little. Compose sets these for you.
 | Variable | Default | What it does |
 |---|---|---|
 | `ENGINE_SHARED_SECRET` | **required** | The same secret as the app's |
-| `DUEPROOF_ALLOWED_HOSTS` | | Hosts the engine may fetch from and upload to (globs allowed). Compose: `app`. Hosted: `*.r2.cloudflarestorage.com` |
+| `DUEPROOF_ALLOWED_HOSTS` | | Hosts the engine may fetch from and upload to (globs allowed). Required: empty refuses every host. Compose: `app`. Hosted R2: the bucket's exact hosts, `<bucket>.<account-id>.r2.cloudflarestorage.com,<account-id>.r2.cloudflarestorage.com` (see `infra/vercel/README.md`) |
+| `DUEPROOF_ALLOW_ANY_HOST` | | Development only: `1` lets an engine with no allowlist reach any host. `ENGINE_AUTH=none` does the same |
+| `DUEPROOF_BODY_TIMEOUT` | `30` | Seconds an API request body may take to arrive (408 after) |
 | `DUEPROOF_LANGUAGES` | `all` in the image (`hi` otherwise) | Which language claims a script that several share, for example `mr,ta`. See [Languages](languages.md) |
 | `DUEPROOF_PROFILE` | `notices_in` | The engine's default rule set. The app asks for `notices_in` on every notice in v0.1 |
 | `DUEPROOF_MODELS` | `models` (`/models` in the image) | The folder the model paths below default into |

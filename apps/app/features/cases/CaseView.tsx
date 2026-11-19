@@ -848,6 +848,9 @@ export function CaseView({
                 : {}),
               ...(ownerName && data.stage === "drafting" ? { drafting: ownerName } : {}),
               ...(data.approvedBy ? { approval: `Approved · ${data.approvedBy}` } : {}),
+              ...(data.approvalSkipped
+                ? { approval: `Not approved · filed by ${data.approvalSkipped.by}` }
+                : {}),
               ...(data.filingRef ? { filed: `ARN ${data.filingRef}` } : {}),
             }}
             {...(data.can.move ? { onStageSelect: (s: string) => setStageTo(s) } : {})}

@@ -412,4 +412,17 @@ describe("health and metrics", () => {
     const bad = new Request("http://x", { headers: { authorization: "Bearer nope" } });
     expect(metricsAllowed(bad, withToken)).toBe(false);
   });
+
+  it("in production, metrics need the token: forwarding headers prove nothing (I1)", () => {
+    const prod = { ...c.env, NODE_ENV: "production" as const };
+    const spoofedLoopback = new Request("http://app:3000/api/metrics", {
+      headers: { "x-forwarded-for": "127.0.0.1" },
+    });
+    expect(metricsAllowed(spoofedLoopback, prod)).toBe(false);
+    expect(metricsAllowed(new Request("http://app:3000/api/metrics"), prod)).toBe(false);
+    const token = "m".repeat(40);
+    const withToken = { ...prod, METRICS_TOKEN: token };
+    const good = new Request("http://x", { headers: { authorization: `Bearer ${token}` } });
+    expect(metricsAllowed(good, withToken)).toBe(true);
+  });
 });

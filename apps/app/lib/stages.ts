@@ -5,7 +5,10 @@
  *
  * - Partner approval: moving to "approval" asks for it; approving needs
  *   "may approve replies" and is never by the person who asked (core's
- *   policy, `reply.approve` with `requestedBy`).
+ *   policy, `reply.approve` with `requestedBy`). Filing without an approval
+ *   is allowed on purpose (a partner may be away on the last day), but only
+ *   with a reason and `reply.skip_approval` (managers and above). It is
+ *   audited as `case.approval_skipped` and shown on the case.
  * - Filed on portal: needs the acknowledgement or ARN number and an
  *   uploaded acknowledgement in the thread. Dueproof never files anything.
  */
@@ -103,6 +106,18 @@ export async function moveStage(
       "The reply isn't approved yet. Approve it, or give a reason to go on without.",
       "not_approved",
     );
+  // Filing a reply nobody approved, from any stage, is skipping partner approval.
+  const skipsApproval = to === "filed" && !c.approvedByUserId;
+  if (skipsApproval) {
+    if (!reason)
+      throw new HttpError(
+        409,
+        "The reply isn't approved yet. Approve it, or give a reason to file without.",
+        "not_approved",
+      );
+    if (!can(ctx, "reply.skip_approval", c.clientId ? { clientId: c.clientId } : {}))
+      throw forbidden("Only a manager or a partner can file a reply nobody approved.");
+  }
   if (to === "filed") {
     const ref = change.filingRef?.trim();
     if (!ref) throw badRequest("Enter the acknowledgement or ARN number.", "filing_ref_required");
@@ -141,8 +156,19 @@ export async function moveStage(
       to,
       reason: reason ?? null,
       ...(to === "filed" ? { filingRef: set.filingRef } : {}),
+      ...(skipsApproval ? { approvalSkipped: true } : {}),
     },
   });
+  if (skipsApproval) {
+    await audit.write(tx, scope, {
+      actor: ctx.userId,
+      action: "case.approval_skipped",
+      targetType: "case",
+      targetId: c.id,
+      requestId: ctx.requestId,
+      detail: { from, to, reason: reason ?? null },
+    });
+  }
   return { from, to };
 }
 

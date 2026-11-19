@@ -161,6 +161,8 @@ export interface CaseData {
   owner: { id: string; name: string } | null;
   approvedBy: string | null;
   approvalRequestedBy: { id: string; name: string } | null;
+  /** Filed without partner approval: who decided, and why (audited as case.approval_skipped). */
+  approvalSkipped: { by: string; reason: string } | null;
   filingRef: string | null;
   filedOn: string | null;
   notice: CaseDocument | null;
@@ -207,6 +209,7 @@ const ACTION_WORDS: Record<string, string> = {
   "case.assign": "changed the owner",
   "case.stage": "moved the stage",
   "case.approve": "approved the reply",
+  "case.approval_skipped": "filed without partner approval",
   "case.document.link": "added a document to the thread",
   "document.upload.init": "uploaded a document",
   "document.upload.complete": "finished an upload",
@@ -424,8 +427,12 @@ export async function loadCase(
     const skipped = new Set<Stage>();
     const receivedHistory: CaseData["receivedHistory"] = [];
     const activity: CaseActivity[] = [];
+    let approvalSkipped: CaseData["approvalSkipped"] = null;
     for (const a of auditRows) {
       const detail = (a.detail ?? {}) as Record<string, unknown>;
+      if (a.action === "case.approval_skipped")
+        approvalSkipped = { by: nameOf(a.actor), reason: String(detail.reason ?? "") };
+      if (a.action === "case.approve") approvalSkipped = null;
       if (a.action === "case.stage") {
         const to = detail.to as Stage;
         stageDetails[to] = fmtDate(a.at.toISOString().slice(0, 10), clock.locale).replace(
@@ -597,6 +604,7 @@ export async function loadCase(
       owner: c.ownerUserId ? { id: c.ownerUserId, name: nameOf(c.ownerUserId) } : null,
       approvedBy: c.approvedByUserId ? nameOf(c.approvedByUserId) : null,
       approvalRequestedBy: requester ? { id: requester, name: nameOf(requester) } : null,
+      approvalSkipped: c.approvedByUserId ? null : approvalSkipped,
       filingRef: c.filingRef,
       filedOn: c.filedOn ? fmtDate(c.filedOn, clock.locale) : null,
       notice: notice ? toDoc(notice) : null,

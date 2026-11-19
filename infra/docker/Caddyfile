@@ -17,9 +17,12 @@
 	}
 
 	# Operator endpoints and the Workflow DevKit's internal queue route are
-	# not for the internet (03 §12; the queue route has no authentication of
-	# its own, see @workflow/world-postgres). The worker reaches the app on
-	# localhost, so nothing legitimate goes through here.
+	# not for the internet (03 §12). The Postgres World's queue route has no
+	# authentication of its own (it declares queue auth "skip"): what protects
+	# it is this block from the internet, and, inside, that only the app's
+	# own worker (on localhost) should call it. The engine shares the internal
+	# network with the app, so a compromised engine could still reach
+	# app:3000; see docs/deployment.md. Nothing legitimate goes through here.
 	@internal {
 		path /api/metrics /api/metrics/* /api/health /api/health/*
 		path /.well-known/workflow/v1/flow /.well-known/workflow/v1/flow/*
