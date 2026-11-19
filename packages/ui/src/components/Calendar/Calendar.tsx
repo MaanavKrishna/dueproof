@@ -372,12 +372,12 @@ function EventChip({
   const kind = kindInfo[event.kind ?? "notice"];
   const KIcon = kind.icon;
   const rung = dueLadder[event.state];
+  // The visible text ("11:00 Hearing") leads the name, so speech input matches it (WCAG 2.5.3).
   const name = [
-    event.title,
+    event.time ? `${event.time} ${event.title}` : event.title,
     event.client ?? null,
     kind.word,
     rung.label,
-    event.time ? `at ${event.time}` : null,
     event.note ?? null,
   ]
     .filter(Boolean)

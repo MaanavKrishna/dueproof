@@ -260,7 +260,7 @@ describe("Calendar", () => {
       "GSTR-3B (Oct), Statutory filing, This week",
     );
     await user.tab();
-    expect(document.activeElement).toHaveAccessibleName(/Hearing, Hearing, This week, at 11:30/);
+    expect(document.activeElement).toHaveAccessibleName(/^11:30 Hearing, Hearing, This week/);
     await user.keyboard("{Enter}");
     expect(onEventSelect).toHaveBeenCalledWith(events[3]);
 
