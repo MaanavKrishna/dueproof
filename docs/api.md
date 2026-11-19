@@ -62,7 +62,7 @@ Auth's own client.
 | | | |
 |---|---|---|
 | `GET` | `/api/health` | Database and engine reachability and timings, version, edition. 200 (`ok` or `degraded`) or 503 (`down`). Self-hosted: refused by Caddy, so call it from the server |
-| `GET` | `/api/metrics` | Prometheus text. From the server itself, or with `Authorization: Bearer <METRICS_TOKEN>` |
+| `GET` | `/api/metrics` | Prometheus text. `Authorization: Bearer <METRICS_TOKEN>`; off in production without the token |
 | `GET` | `/api/cron/daily` | The daily reminder run, with `Authorization: Bearer <CRON_SECRET>`. 404 when `CRON_SECRET` is unset. See [Workflow and reminders](workflow-and-reminders.md#the-daily-run) |
 | `GET`, `PUT` | `/api/storage/local` | Signed file links when files are on the server's disk. The link's token is the authorisation |
 

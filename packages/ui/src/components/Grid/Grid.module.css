@@ -1,0 +1,47 @@
+/*
+ * A wrapping row of items (packages/ui README, "Layout"). Every item starts
+ * at the larger of its narrowest column and an equal share of the row at
+ * --dp-grid-max columns, then grows: a full row is exactly that many equal
+ * columns, and a short last row shares out the leftover space instead of
+ * leaving a gap. One hairline below the share absorbs sub-pixel rounding, so
+ * a full row never wraps early.
+ */
+.grid {
+  --dp-grid-gap: var(--dp-layout-gap-grid);
+  --dp-grid-min: var(--dp-layout-column-panel);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: var(--dp-grid-gap);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.grid > * {
+  flex: 1 1
+    max(
+      min(100%, var(--dp-grid-min)),
+      (100% - (var(--dp-grid-max) - 1) * var(--dp-grid-gap)) /
+      var(--dp-grid-max) -
+      var(--dp-border-hairline)
+    );
+  min-width: 0;
+}
+
+.stat {
+  --dp-grid-min: var(--dp-layout-column-stat);
+}
+
+.card {
+  --dp-grid-min: var(--dp-layout-column-card);
+}
+
+.panel {
+  --dp-grid-min: var(--dp-layout-column-panel);
+}
+
+.start {
+  align-items: flex-start;
+}

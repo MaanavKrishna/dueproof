@@ -81,11 +81,23 @@ on a real account.
    | Name | Value |
    |---|---|
    | `ENGINE_SHARED_SECRET` | the shared engine secret |
-   | `DUEPROOF_ALLOWED_HOSTS` | `*.r2.cloudflarestorage.com` (the engine fetches and PUTs only there) |
+   | `DUEPROOF_ALLOWED_HOSTS` | your bucket's exact hosts, for example `dueproof-prod.<account-id>.r2.cloudflarestorage.com,<account-id>.r2.cloudflarestorage.com` |
 
    **Nothing else**: no database URL, no storage keys, no AI key (05 §4).
-3. Deploy. `GET https://<engine-fast-url>/health` should list
-   `text_layer` and `paddleocr` as `true`.
+
+   `DUEPROOF_ALLOWED_HOSTS` is required: with it empty the engine refuses
+   every host. Use your account's exact host, not the
+   `*.r2.cloudflarestorage.com` wildcard, which matches every R2 account.
+   The app signs URLs in the virtual-hosted form,
+   `https://<bucket>.<account-id>.r2.cloudflarestorage.com/…`; the second
+   entry covers the path-style form (`https://<account-id>.r2.cloudflarestorage.com/<bucket>/…`)
+   if `S3_FORCE_PATH_STYLE` is ever turned on. `<account-id>` is the one in
+   the S3 endpoint from step 1.3. For Preview, list the preview bucket's host
+   the same way. A custom domain on the bucket is not used for signed URLs.
+3. Deploy. `GET https://<engine-fast-url>/health` answers `{"status":"ok"}`
+   to anyone. With a valid engine token it also lists the rungs: the app's
+   `/api/health` shows them, and should list `text_layer` and `paddleocr` as
+   `true`. `/openapi.json` also needs the token; there is no `/docs`.
 4. Settings → Functions: region **Mumbai (bom1)** (also set in `vercel.json`).
 5. Deployment Protection can stay on for Preview; Production must be
    reachable by the app (the app authenticates every call with a 5-minute

@@ -164,7 +164,7 @@ The sign-in page shows **Continue with SSO** only when SSO is set up.
 Every page and every API route checks who you are and what your role allows
 before it does anything, and every database query runs inside your
 organisation. The exceptions hold no data or use their own secret:
-`/api/health`, `/api/metrics` (local or `METRICS_TOKEN`), `/api/cron/daily`
+`/api/health`, `/api/metrics` (`METRICS_TOKEN`), `/api/cron/daily`
 (`CRON_SECRET`), calendar feeds (a signed link you can revoke) and the
 storage links (signed, under 5 minutes).
 

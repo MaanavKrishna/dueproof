@@ -131,7 +131,11 @@ for (const label of ["first launch", "second launch"]) {
           ],
           {
             cwd: join(rt, "engine"),
-            env: { ...baseEnv(), ENGINE_SHARED_SECRET: launchSecret },
+            env: {
+              ...baseEnv(),
+              ENGINE_SHARED_SECRET: launchSecret,
+              DUEPROOF_ALLOWED_HOSTS: "127.0.0.1",
+            },
             stdio: "ignore",
           },
         ),

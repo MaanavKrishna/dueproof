@@ -7,10 +7,6 @@
 import "server-only";
 import type { Role } from "@dueproof/contracts";
 import { dueBucket } from "@dueproof/core";
-import { inArray, isNull, or } from "@dueproof/db";
-
-type Column = Parameters<typeof isNull>[0];
-
 import { formatDate } from "@dueproof/i18n";
 import type { AuthContext } from "./authorize";
 import { loadOrgCalendar, type OrgCalendar } from "./calendar";
@@ -75,23 +71,5 @@ export function adminsOf(people: Person[]): string[] {
   return people.filter((p) => p.role === "owner" || p.role === "admin").map((p) => p.name);
 }
 
-/**
- * Client-level access (Settings → Team): a member limited to some clients
- * sees those clients' work, and work not tied to any client yet (an inbox
- * upload), as core's policy allows. Undefined = no limit.
- */
-export function clientScope(
-  ctx: Pick<AuthContext, "clientIds">,
-  column: Column,
-): ReturnType<typeof or> {
-  if (!ctx.clientIds) return undefined;
-  if (!ctx.clientIds.length) return isNull(column);
-  return or(isNull(column), inArray(column, [...ctx.clientIds]));
-}
-
-export function clientAllowed(
-  ctx: Pick<AuthContext, "clientIds">,
-  clientId: string | null,
-): boolean {
-  return !ctx.clientIds || clientId === null || ctx.clientIds.includes(clientId);
-}
+/** Client-level access lives in one module; re-exported for the screens that import it from here. */
+export { clientAllowed, clientScope } from "./client-access";

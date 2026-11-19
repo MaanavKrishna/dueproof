@@ -9,7 +9,9 @@ os.environ.pop("DUEPROOF_LANGUAGES", None)
 os.environ.setdefault("DUEPROOF_TRANSLATE", "0")
 os.environ["ENGINE_SHARED_SECRET"] = "test-secret-" + "s" * 32
 os.environ.pop("ENGINE_AUTH", None)
-os.environ.pop("DUEPROOF_ALLOWED_HOSTS", None)
+# The local stand-in for signed-URL storage (tests/storage_server.py) listens here.
+os.environ["DUEPROOF_ALLOWED_HOSTS"] = "127.0.0.1,localhost"
+os.environ.pop("DUEPROOF_ALLOW_ANY_HOST", None)
 os.environ.setdefault("DUEPROOF_LOG_LEVEL", "CRITICAL")
 # No wall-clock limit on Tesseract here: on a busy shared runner a page can
 # take minutes, and a timed-out page reads as empty. tests/test_ocr_timeout.py

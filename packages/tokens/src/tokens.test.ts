@@ -82,3 +82,29 @@ describe("themes and brands", () => {
     }
   });
 });
+
+describe("layout", () => {
+  const css = buildCss();
+  const px = (name: string) => {
+    const m = css.match(new RegExp(`--dp-layout-${name}:\\s*(\\d+)px`));
+    if (!m?.[1]) throw new Error(`--dp-layout-${name} is missing`);
+    return Number(m[1]);
+  };
+  it("defines page widths from narrow to wide", () => {
+    expect(px("page-narrow")).toBeLessThan(px("page-readable"));
+    expect(px("page-readable")).toBeLessThan(px("page-wide"));
+    expect(vars.layout.page.wide).toBe("var(--dp-layout-page-wide)");
+  });
+  it("keeps a readable page wide enough for the settings navigation beside a form", () => {
+    expect(px("page-readable")).toBeGreaterThan(px("content"));
+  });
+  it("widens the gutter with the screen", () => {
+    expect(px("gutter-compact")).toBeLessThan(px("gutter-regular"));
+    expect(px("gutter-regular")).toBeLessThan(px("gutter-roomy"));
+  });
+  it("keeps the grid columns in order", () => {
+    expect(px("column-stat")).toBeLessThan(px("column-card"));
+    expect(px("column-card")).toBeLessThan(px("column-panel"));
+    expect(px("gap-grid")).toBeLessThanOrEqual(px("gap-section"));
+  });
+});

@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
 import { SplitView } from "../components/AppShell/SplitView";
+import { Grid } from "../components/Grid/Grid";
 import { Toolbar } from "../components/Toolbar/Toolbar";
 import { cx } from "../utils/cx";
+import type { PageWidth } from "./page";
 import styles from "./templates.module.css";
 
 export interface ListPageTemplateProps {
@@ -16,7 +18,7 @@ export interface ListPageTemplateProps {
   toolbarLeading?: ReactNode;
   /** A page-level banner (offline, permission, processing). */
   banner?: ReactNode;
-  /** Stat cards or a summary above the list. */
+  /** Stat cards above the list. They sit in a row that fills the width (a stat Grid). */
   summary?: ReactNode;
   /** A <FilterBar>, and view switches (list · calendar · timeline). */
   filterBar?: ReactNode;
@@ -30,6 +32,8 @@ export interface ListPageTemplateProps {
   inspectorActions?: ReactNode;
   /** Let the list scroll the page instead of filling it (for short lists and calendars). */
   scrollPage?: boolean;
+  /** How wide the content may go (see PageWidth). Default "full": lists and dashboards use the space. */
+  width?: PageWidth;
   className?: string;
 }
 
@@ -54,6 +58,7 @@ export function ListPageTemplate({
   onInspectorOpenChange,
   inspectorActions,
   scrollPage = false,
+  width = "full",
   className,
 }: ListPageTemplateProps) {
   return (
@@ -65,7 +70,10 @@ export function ListPageTemplate({
       {...(onInspectorOpenChange ? { onInspectorOpenChange } : {})}
       inspectorActions={inspectorActions}
     >
-      <div className={cx(styles.list, scrollPage && styles.listScroll)}>
+      <div
+        className={cx(styles.column, styles.list, scrollPage && styles.listScroll)}
+        data-width={width}
+      >
         <Toolbar
           title={title}
           subtitle={subtitle}
@@ -74,7 +82,13 @@ export function ListPageTemplate({
           leading={toolbarLeading}
         />
         {banner ? <div className={styles.banner}>{banner}</div> : null}
-        {summary ? <div className={styles.summary}>{summary}</div> : null}
+        {summary ? (
+          <div className={styles.summary}>
+            <Grid min="stat" maxColumns={4}>
+              {summary}
+            </Grid>
+          </div>
+        ) : null}
         {filterBar ? <div className={styles.filters}>{filterBar}</div> : null}
         <div className={styles.listBody}>{children}</div>
       </div>

@@ -7,6 +7,7 @@ export { handleLocalStorageRequest, type LocalDiskOptions, LocalDiskStorage } fr
 export { MemoryStorage } from "./memory";
 export * from "./port";
 export { type S3Options, S3Storage } from "./s3";
+export { incomingKey, type SealExpectation, type SealOutcome, sealUpload } from "./seal";
 export { createVercelBlobStorage, type VercelBlobOptions } from "./vercel-blob";
 
 export type StorageConfig =

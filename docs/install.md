@@ -120,9 +120,11 @@ Rebuild with `docker compose build engine && docker compose up -d engine`.
 ## Monitoring
 
 - Logs: `docker compose logs -f app engine` (JSON lines, never document text).
-- Metrics: `GET /api/metrics` in Prometheus format, from the server itself, or
-  from another machine with `Authorization: Bearer <METRICS_TOKEN>` if you set
-  one (you then need to publish the app port or add a Caddy route for it).
+- Metrics: `GET /api/metrics` in Prometheus format, with
+  `Authorization: Bearer <METRICS_TOKEN>`. Set `METRICS_TOKEN` to turn it on:
+  in production it is off without one (the app can't tell a local request
+  from one with a forged `X-Forwarded-For`). To scrape from another machine,
+  publish the app port or add a Caddy route for it.
 - Backups: `infra/docker/backups/last.json` says when the last one ran and
   whether it verified.
 

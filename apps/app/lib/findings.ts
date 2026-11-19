@@ -28,6 +28,7 @@ import {
 import { z } from "zod";
 import type { AuthContext } from "./authorize";
 import { loadOrgCalendar } from "./calendar";
+import { requireClient } from "./client-access";
 import type { DeadlineDetail } from "./deadline-detail";
 import { defaultOwner, ownerDetail } from "./deadline-owner";
 import { badRequest, HttpError, notFound } from "./errors";
@@ -41,14 +42,20 @@ export interface ReviewOutcome {
   note?: string;
 }
 
-async function loadFinding(tx: OrgTx, orgId: string, findingId: string) {
+/** Load a finding for review, limited to the caller's clients (its document's client). */
+async function loadFinding(tx: OrgTx, ctx: AuthContext, findingId: string) {
   const [row] = await tx
-    .select()
+    .select({ f: findings, clientId: documents.clientId })
     .from(findings)
-    .where(and(eq(findings.orgId, orgId), eq(findings.id, findingId)))
+    .innerJoin(
+      documents,
+      and(eq(documents.orgId, findings.orgId), eq(documents.id, findings.documentId)),
+    )
+    .where(and(eq(findings.orgId, ctx.orgId), eq(findings.id, findingId)))
     .limit(1);
   if (!row) throw notFound("That finding");
-  return row;
+  requireClient(ctx, "finding.review", row.clientId, "That finding");
+  return row.f;
 }
 
 async function writeEdit(
@@ -174,7 +181,7 @@ export async function confirmFinding(ctx: AuthContext, rawId: string): Promise<R
   const findingId = Id.parse(rawId);
   const dates = await calendarContext(ctx);
   return withOrg(ctx.container.database, ctx.orgId, async (tx, scope) => {
-    const f = await loadFinding(tx, ctx.orgId, findingId);
+    const f = await loadFinding(tx, ctx, findingId);
     if (f.status === "dismissed")
       throw new HttpError(409, "This finding was dismissed. Restore it first.", "wrong_state");
     await writeEdit(
@@ -213,7 +220,7 @@ export async function dismissFinding(
 ): Promise<ReviewOutcome> {
   const { findingId, reason } = DismissInput.parse(input);
   return withOrg(ctx.container.database, ctx.orgId, async (tx, scope) => {
-    const f = await loadFinding(tx, ctx.orgId, findingId);
+    const f = await loadFinding(tx, ctx, findingId);
     await writeEdit(tx, ctx, f.id, "status", f.status, "dismissed", reason ?? null);
     await tx
       .update(findings)
@@ -240,7 +247,7 @@ export async function dismissFinding(
 export async function restoreFinding(ctx: AuthContext, rawId: string): Promise<ReviewOutcome> {
   const findingId = Id.parse(rawId);
   return withOrg(ctx.container.database, ctx.orgId, async (tx, scope) => {
-    const f = await loadFinding(tx, ctx.orgId, findingId);
+    const f = await loadFinding(tx, ctx, findingId);
     if (f.status !== "dismissed") return { findingId };
     await writeEdit(tx, ctx, f.id, "status", "dismissed", "open", "Undone");
     await tx
@@ -281,7 +288,7 @@ export async function editFinding(
     throw badRequest("Change something, or confirm it as it is.");
   const dates = await calendarContext(ctx);
   return withOrg(ctx.container.database, ctx.orgId, async (tx, scope) => {
-    const f = await loadFinding(tx, ctx.orgId, e.findingId);
+    const f = await loadFinding(tx, ctx, e.findingId);
     const set: Partial<typeof findings.$inferInsert> = { confirmedBy: ctx.userId };
     const changed: string[] = [];
     if (e.text !== undefined && e.text !== (f.textEn ?? f.text)) {

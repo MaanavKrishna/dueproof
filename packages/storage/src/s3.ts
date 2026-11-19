@@ -1,8 +1,17 @@
 /**
  * S3-compatible storage: Cloudflare R2 on hosted (03 §1), MinIO in local dev.
  * Signed URLs are SigV4 presigned, at most five minutes.
+ *
+ * Upload PUTs sign Content-Type and Content-Length (`X-Amz-SignedHeaders`
+ * lists both), so the store refuses a body of any other size or type: the
+ * browser sets Content-Length from the file it sends, and a different
+ * length breaks the signature. R2 has no presigned POST (no
+ * content-length-range policy), so a signed header is how the size is
+ * bound there. The upload is then copied to a key no URL was signed for
+ * (`sealUpload`), so a second PUT on the same URL changes nothing checked.
  */
 import {
+  CopyObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
@@ -94,6 +103,31 @@ export class S3Storage implements StoragePort {
     }
   }
 
+  async getStream(key: string): Promise<AsyncIterable<Uint8Array> | null> {
+    assertKey(key);
+    try {
+      const res = await this.#client.send(new GetObjectCommand({ Bucket: this.#bucket, Key: key }));
+      if (!res.Body) return (async function* () {})();
+      return res.Body as unknown as AsyncIterable<Uint8Array>;
+    } catch (e) {
+      if (isNotFound(e)) return null;
+      throw e;
+    }
+  }
+
+  async copy(from: string, to: string): Promise<void> {
+    assertKey(from);
+    assertKey(to);
+    // Keys are limited to [A-Za-z0-9._=-] segments (assertKey), so the source needs no escaping.
+    await this.#client.send(
+      new CopyObjectCommand({
+        Bucket: this.#bucket,
+        Key: to,
+        CopySource: `${this.#bucket}/${from}`,
+      }),
+    );
+  }
+
   async delete(key: string): Promise<void> {
     assertKey(key);
     await this.#client.send(new DeleteObjectCommand({ Bucket: this.#bucket, Key: key }));
@@ -106,11 +140,15 @@ export class S3Storage implements StoragePort {
       Bucket: this.#bucket,
       Key: key,
       ...(options.contentType ? { ContentType: options.contentType } : {}),
+      ...(options.size !== undefined ? { ContentLength: options.size } : {}),
     });
+    const signable = new Set<string>();
+    if (options.contentType) signable.add("content-type");
+    if (options.size !== undefined) signable.add("content-length");
     const url = await getSignedUrl(this.#client, command, {
       expiresIn,
       signingDate: new Date(this.#now()),
-      ...(options.contentType ? { signableHeaders: new Set(["content-type"]) } : {}),
+      ...(signable.size ? { signableHeaders: signable } : {}),
     });
     return {
       url,

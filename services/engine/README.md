@@ -14,6 +14,7 @@ cd services/engine
 uv sync                                   # dev env: engine-fast + tesseract rung + test tools
 uv run python scripts/fetch_ocr_models.py # PaddleOCR models into models/ppocr (pinned SHA-256)
 export ENGINE_SHARED_SECRET=$(openssl rand -hex 32)
+export DUEPROOF_ALLOWED_HOSTS=localhost,127.0.0.1   # where the app's signed URLs point
 uv run uvicorn dueproof_engine.app:app --port 8000
 ```
 
@@ -26,8 +27,10 @@ cleanly when those are absent.
 All `POST /v1/*` need `Authorization: Bearer <token>`: an HS256 JWT,
 `{"aud": "engine", "exp": <unix seconds>}`, signed with `ENGINE_SHARED_SECRET`
 (≥ 32 bytes), expiring within 15 minutes (`ENGINE_TOKEN_MAX_LIFETIME`).
-`dueproof_engine/api/auth.py` has `make_token` as the reference. `GET /health`
-is open and reports which rungs and translation are available.
+`dueproof_engine/api/auth.py` has `make_token` as the reference. The token is
+checked before the request body is read. `GET /health` is open and answers
+`{"status": "ok"}`; with a valid token it also reports the version, rungs and
+translation. `/openapi.json` needs a token; there is no `/docs` or `/redoc`.
 
 | Endpoint | Does |
 |---|---|
@@ -47,9 +50,18 @@ Limits (environment): `DUEPROOF_MAX_SOURCE_BYTES` (80 MB, enforced while
 streaming), `DUEPROOF_MAX_PAGES` (300), `DUEPROOF_MAX_PAGE_PIXELS` (40 MP
 render cap), `DUEPROOF_MAX_IMAGE_PIXELS` (120 MP, checked from the header
 before decoding; also Pillow's `MAX_IMAGE_PIXELS`), `DUEPROOF_FETCH_TIMEOUT` /
-`DUEPROOF_PUT_TIMEOUT` (30 s), `DUEPROOF_MAX_BODY_BYTES` (20 MB),
-`DUEPROOF_ALLOWED_HOSTS` (optional storage host allowlist, globs allowed).
-Only http(s), no redirects.
+`DUEPROOF_PUT_TIMEOUT` (30 s), `DUEPROOF_MAX_BODY_BYTES` (20 MB, counted
+while the body streams in, so a chunked request is held to it too),
+`DUEPROOF_ALLOWED_HOSTS` (storage host allowlist, globs allowed; required:
+empty refuses every host unless `DUEPROOF_ALLOW_ANY_HOST=1` or
+`ENGINE_AUTH=none` for local development). Only http(s), no redirects.
+A host matched by a glob must resolve to public addresses only (no
+loopback, private, link-local, CGNAT or IPv6 ULA), and the connection goes to
+the address that was checked (no DNS rebinding); an exact entry such as `app`
+may be internal. Storage bodies are read raw (`Accept-Encoding: identity`;
+any other Content-Encoding is refused), and the fetch and PUT timeouts bound
+the whole request. API requests with a `Content-Encoding` get 415, and the
+body must arrive within `DUEPROOF_BODY_TIMEOUT` (30 s) or gets 408.
 
 ## The OCR ladder (03 §6a)
 

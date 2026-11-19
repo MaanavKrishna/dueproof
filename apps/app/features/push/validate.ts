@@ -1,5 +1,6 @@
 /** Checks a browser push subscription before it is stored. Pure. */
 import { badRequest } from "@/lib/errors";
+import { isPushServiceEndpoint } from "@/lib/push";
 
 export interface PushSubscriptionInput {
   endpoint: string;
@@ -8,7 +9,7 @@ export interface PushSubscriptionInput {
 
 const B64URL = /^[A-Za-z0-9_-]+={0,2}$/;
 
-/** A push service endpoint: https, a real host, not our own origin or a private address. */
+/** A push service endpoint: https, on a known push service's host (lib/push's allowlist). */
 export function validSubscription(input: unknown): PushSubscriptionInput {
   const s = input as Partial<PushSubscriptionInput> | null;
   if (!s || typeof s.endpoint !== "string" || s.endpoint.length > 1000)
@@ -20,8 +21,7 @@ export function validSubscription(input: unknown): PushSubscriptionInput {
     throw badRequest("That isn't a push subscription.");
   }
   if (url.protocol !== "https:") throw badRequest("Push endpoints must use https.");
-  if (/^(localhost|127\.|10\.|192\.168\.|169\.254\.|\[?::1\]?$)/.test(url.hostname))
-    throw badRequest("That push endpoint isn't allowed.");
+  if (!isPushServiceEndpoint(url.toString())) throw badRequest("That push endpoint isn't allowed.");
   const p256dh = s.keys?.p256dh;
   const auth = s.keys?.auth;
   if (
