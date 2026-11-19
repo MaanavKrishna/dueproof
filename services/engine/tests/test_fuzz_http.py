@@ -6,7 +6,6 @@
    413 once the streamed body passes the cap.
 (The tall-page WebP finding is handled with the image limits, elsewhere.)
 """
-import os
 import unittest
 
 from fastapi.testclient import TestClient
