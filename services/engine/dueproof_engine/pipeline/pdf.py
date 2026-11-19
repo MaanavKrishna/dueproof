@@ -12,7 +12,9 @@ with coordinates normalised 0-1 from the page's top-left, as displayed.
 PDFium is not thread-safe, not even across different documents: two ingest
 workers rendering at once crash the process inside its glyph cache. Every
 call into it goes through LOCK; callers that touch documents or pages
-directly (len, indexing, close) hold it too.
+directly (len, indexing, close) hold it too. The engine itself calls this
+module only from inside a sandboxed child process (sandbox.py), one per
+document, so the lock never makes one request wait for another.
 """
 from __future__ import annotations
 
@@ -26,12 +28,13 @@ import numpy as np
 import pypdfium2 as pdfium
 import pypdfium2.raw as raw
 
-from dueproof_engine.config import MAX_PAGE_PIXELS
+from dueproof_engine.config import MAX_PAGE_CHARS, MAX_PAGE_PIXELS
 
 # Grouping thresholds, in units of the current text height.
 WORD_GAP = 0.6       # a horizontal gap wider than this splits a word (table cells)
 LINE_OVERLAP = 0.3   # a glyph overlapping the word vertically by less than this is on a new line
 BLOCK_GAP = 0.85     # space between lines larger than this starts a new block
+MAX_RENDER_SIDE = 16383   # WebP's limit, and far past any real page at any DPI the engine uses
 
 LOCK = threading.RLock()
 
@@ -77,12 +80,16 @@ def page_size(page: pdfium.PdfPage) -> tuple[float, float]:
 @_locked
 def render(page: pdfium.PdfPage, dpi: int) -> np.ndarray:
     """The page as a BGR image. An A0 drawing at 300 DPI is a gigabyte of
-    pixels, so the area is capped and the DPI lowered to fit."""
+    pixels, so the area is capped and the DPI lowered to fit; so is the
+    longest side (a 200 x 9000 pt receipt would otherwise pass WebP's limit)."""
     w, h = page_size(page)
     area = (w / 72 * dpi) * (h / 72 * dpi)
     if area > MAX_PAGE_PIXELS:
         dpi = max(1, int(dpi * math.sqrt(MAX_PAGE_PIXELS / area)))
-    img = page.render(scale=dpi / 72).to_numpy()            # PDFium renders BGR(x)
+    scale = dpi / 72
+    if max(w, h) * scale > MAX_RENDER_SIDE:
+        scale = MAX_RENDER_SIDE / max(w, h)
+    img = page.render(scale=scale).to_numpy()               # PDFium renders BGR(x)
     return np.ascontiguousarray(img[:, :, :3])
 
 # /Rotate turns the displayed page clockwise. Boxes are grouped into words and
@@ -108,12 +115,32 @@ def _display_box(page, size, l, b, r, t) -> tuple[float, float, float, float]:
         ys.append(dy.value / (H * _SCALE))
     return min(xs), min(ys), max(xs), max(ys)
 
+def _chars(tp, n: int):
+    """(index, character) over a text page. PDFium hands out UTF-16 code
+    units, so a character outside the Basic Multilingual Plane (an emoji, a
+    mathematical letter, CJK Extension B) arrives as a surrogate pair: join
+    it, at the first half's index, and drop a half that has no partner."""
+    get = raw.FPDFText_GetUnicode
+    i = 0
+    while i < n:
+        code = get(tp.raw, i)
+        if 0xD800 <= code <= 0xDBFF and i + 1 < n and 0xDC00 <= (low := get(tp.raw, i + 1)) <= 0xDFFF:
+            yield i, chr(0x10000 + ((code - 0xD800) << 10) + (low - 0xDC00))
+            i += 2
+            continue
+        if not 0xD800 <= code <= 0xDFFF:
+            yield i, chr(code)
+        i += 1
+
 @_locked
 def words(page: pdfium.PdfPage) -> list[dict]:
-    """The text layer as words with boxes, line ids and block ids."""
+    """The text layer as words with boxes, line ids and block ids. A page
+    with more than MAX_PAGE_CHARS characters is refused before any is read."""
     tp = page.get_textpage()
     try:
         n = tp.count_chars()
+        if n > MAX_PAGE_CHARS:
+            raise ReadError("too_large", f"A page has {n} characters of text; the limit is {MAX_PAGE_CHARS}")
         size = page.get_size()                          # as displayed
         rot = page.get_rotation() if page.get_rotation() in _CW else 0
         upright = _CW[(360 - rot) % 360]                 # display -> as authored
@@ -128,8 +155,7 @@ def words(page: pdfium.PdfPage) -> list[dict]:
                 out.append(cur)
             cur = None
 
-        for i in range(n):
-            ch = chr(raw.FPDFText_GetUnicode(tp.raw, i))
+        for i, ch in _chars(tp, n):
             if ch in "\r\n":                    # PDFium marks every line end
                 close()
                 new_line = True
