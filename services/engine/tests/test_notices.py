@@ -40,6 +40,39 @@ class Amounts(unittest.TestCase):
                 self.assertAlmostEqual(self.amount(line), want)
 
 
+    def test_scales_and_spaced_digit_groups(self):
+        for line, want in (("You are to pay the demand of Rs. 1.5 Cr. within 30 days", 15000000),
+                           ("Tax payable Rs 2 crs", 20000000), ("Tax payable Rs. 3 lac", 300000),
+                           ("Demand payable Rs. 12 Lakhs", 1200000), ("demand payable Rs.4 52 300", 452300),
+                           ("Tax payable Rupees 4,52,300 only", 452300), ("Tax payable: 4,52,300/-", 452300)):
+            with self.subTest(line=line):
+                self.assertAlmostEqual(self.amount(line), want)
+
+    def test_turnover_and_refund_are_not_the_demand(self):
+        self.assertEqual(self.amount("The total turnover declared was Rs. 5,00,00,000 and the tax short "
+                                     "paid is Rs. 45,000 which is payable with interest."), 45000)
+        self.assertEqual(self.amount("Tax due Rs. 1,00,000", "Refund due to you of Rs. 9,00,000 was adjusted."),
+                         100000)
+        self.assertEqual(self.amount("Tax of Rs. 45,000 on a taxable value of Rs. 2,50,000 is payable."), 45000)
+        self.assertIsNone(self.amount("Your turnover of Rs. 5,00,00,000 was verified."))
+
+    def test_a_total_wins_over_its_parts(self):
+        from dueproof_engine.pipeline.analyze import demand
+        d = demand(["Tax Rs. 1,00,000; Interest Rs. 18,000; Penalty Rs. 10,000; Total demand Rs. 1,28,000."])
+        self.assertEqual((d["value"], d["doubtful"]), (128000, False))
+
+    def test_several_amounts_and_no_total_are_doubtful(self):
+        from dueproof_engine.pipeline.analyze import demand
+        d = demand(["Tax Rs. 1,00,000, interest Rs. 18,000 and penalty Rs. 10,000 are payable."])
+        self.assertTrue(d["doubtful"])
+        d = demand(["You are directed to pay the tax of Rs. 4,52,300 with interest.",
+                    "Failure to reply will attract a penalty of Rs. 2.5 lakh."])   # a threat, not a demand
+        self.assertEqual((d["value"], d["doubtful"]), (452300, False))
+
+    def test_a_figure_cut_short_is_dropped(self):
+        self.assertIsNone(self.amount("Tax payable Rs. 4,52 300 7"))
+
+
 class Details(unittest.TestCase):
     def test_reference_authority_and_sections(self):
         d = notice_details(["OFFICE OF THE ASSISTANT COMMISSIONER OF STATE TAX\n"
@@ -173,6 +206,70 @@ class Rules(unittest.TestCase):
         self.assertIsNone(resolve_rule(rel(30, "days"), date(2026, 10, 1), None))    # receipt unknown
         self.assertIsNone(resolve_rule(rel(7, "working_days"), None, date(2026, 10, 24)))
         self.assertIsNone(resolve_rule(rel(3, "months", "order"), date(2026, 10, 1), date(2026, 10, 2)))
+
+
+HEAD = ("OFFICE OF THE ASSISTANT COMMISSIONER OF STATE TAX\n"
+        "FORM GST DRC-01 Show cause notice under section 73 of the Goods and Services Tax Act\n"
+        "Reference No: ZD271026001234X Date: 24.10.2026\n"
+        "GSTIN: 27AAAPA1234A1Z5 Subject: Show cause notice under section 73 for tax short paid\n")
+
+
+def served(text: str, received: str = "2026-11-02"):
+    """`text` through the engine's /v1/analyze and /v1/link, as one page."""
+    from dueproof_engine.api import models as m, service
+    words = [m.Word(text=w, rect=(10 + i * 12, 10 + n * 12, 20 + i * 12, 20 + n * 12), line=n)
+             for n, line in enumerate(text.split("\n")) for i, w in enumerate(line.split())]
+    page = m.PageText(page=1, width=595, height=842, rotation=0, text=text, words=words,
+                      engine="text_layer", confidence=0.99, languages=["en"])
+    got = service.analyze(m.AnalyzeRequest(pages=[page], receivedOn=received, profile="notices_in"))
+    links = service.link(m.LinkRequest(pages=[page], quotes=[
+        m.LinkQuote(id=str(i), text=f.quote, pageHint=f.pageHint) for i, f in enumerate(got.findings)]))
+    return got, links.matches
+
+
+class EndToEnd(unittest.TestCase):
+    """The reviewer's notices (C1, C2), through the service as the app calls it."""
+    def duty(self, sentence):
+        got, matches = served(HEAD + sentence)
+        f, = [f for f in got.findings if f.kind in ("deadline", "hearing", "obligation")
+              and f.quote == sentence]
+        return got, f
+
+    def test_a_relative_period_beats_the_notice_date(self):
+        got, f = self.duty("You are hereby directed to furnish your reply within 30 days from the date "
+                           "of this notice dated 24.10.2026 failing which the case will be decided ex parte.")
+        self.assertEqual(f.dueRule.model_dump(exclude_none=True),
+                         {"type": "relative", "anchor": "issue", "amount": 30, "unit": "days"})
+        self.assertEqual(f.engineDueOn, "2026-11-23")
+
+    def test_the_new_hearing_date_not_the_old_one(self):
+        got, f = self.duty("The personal hearing earlier fixed on 25.11.2026 is preponed and you are "
+                           "directed to appear in person for hearing on 10.11.2026 at 11 AM.")
+        self.assertEqual(f.dueRule.model_dump(), {"type": "fixed", "date": "2026-11-10"})
+
+    def test_a_doubtful_sentence_goes_to_a_person(self):
+        got, f = self.duty("You are requested to furnish the reply within 45 days or by 20.12.2026, "
+                           "whichever is earlier, failing which penalty will be levied.")
+        self.assertEqual((f.kind, f.dueRule), ("obligation", None))
+        self.assertLess(f.confidence, 0.6)                 # under the app's review bar
+        self.assertFalse(got.confident)
+
+    def test_the_demand_not_the_turnover(self):
+        got, _ = served(HEAD + "The total turnover declared was Rs. 5,00,00,000 and the tax short paid "
+                               "is Rs. 45,000 which is payable with interest within 30 days of receipt.")
+        amount, = [f for f in got.findings if f.kind == "amount"]
+        self.assertEqual(amount.amountMinor, 45000 * 100)
+        got, _ = served(HEAD + "You are required to pay the demand of Rs. 1.5 Cr. within 30 (thirty) days "
+                               "of service of this notice failing which recovery proceedings will follow.")
+        amount, = [f for f in got.findings if f.kind == "amount"]
+        self.assertEqual(amount.amountMinor, 15000000 * 100)
+
+    def test_a_doubtful_amount_is_below_the_review_bar(self):
+        got, _ = served(HEAD + "Tax Rs. 1,00,000, interest Rs. 18,000 and penalty Rs. 10,000 are payable "
+                               "within 30 days of receipt of this notice.")
+        amount, = [f for f in got.findings if f.kind == "amount"]
+        self.assertLess(amount.confidence, 0.6)
+        self.assertFalse(got.confident)
 
 
 if __name__ == "__main__":

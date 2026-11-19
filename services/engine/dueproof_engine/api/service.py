@@ -139,6 +139,10 @@ def translate(req: m.TranslateRequest) -> m.TranslateResponse:
 # analyze
 # How sure the rules are, by what they found. Rule confidence, not OCR's.
 CONF_DATED, CONF_DUTY, CONF_SUMMARY, CONF_DETAIL = 0.9, 0.75, 0.6, 0.85
+# A sentence whose date, or a demand whose amount, the rules could not pick
+# without guessing: below the app's review bar (CONFIDENCE_BAR, 0.6), so a
+# person reads it before anything is filed from it.
+CONF_DOUBT = 0.5
 CONFIDENT_TYPE_SCORE = 6.0    # two masthead keyword hits: the notice type is known
 
 
@@ -186,8 +190,9 @@ def analyze(req: m.AnalyzeRequest) -> m.AnalyzeResponse:
     for f in found["obligations"]:
         rule = f.get("due_rule")
         kind = "hearing" if f.get("tag") == "hearing" else "deadline" if rule else "obligation"
+        conf = CONF_DOUBT if f.get("due_doubtful") else CONF_DATED if rule else CONF_DUTY
         findings.append(m.EngineFinding(
-            kind=kind, **text_fields(f), confidence=CONF_DATED if rule else CONF_DUTY,
+            kind=kind, **text_fields(f), confidence=conf,
             dueRule=_rule(rule), engineDueOn=rules.resolve_rule(rule, issued, received),
             desk=(f.get("roles") or [None])[0], severity=f.get("severity")))
     for f in found["summary"]:
@@ -205,11 +210,13 @@ def analyze(req: m.AnalyzeRequest) -> m.AnalyzeResponse:
         page, quote = evidence["amount"]
         findings.append(m.EngineFinding(kind="amount", text=notice["amount_text"], quote=quote,
                                         quoteLang=rules.detect_lang(quote), pageHint=page,
-                                        confidence=CONF_DETAIL,
+                                        confidence=CONF_DOUBT if found["amount_doubtful"] else CONF_DETAIL,
                                         amountMinor=int(round(notice["amount"] * 100))))
     dated = [f for f in findings if f.dueRule]
+    # Doubt about any date or the amount means the rules alone are not enough.
+    doubtful = found["amount_doubtful"] or any(o.get("due_doubtful") for o in found["obligations"])
     confident = (found["doc_type"] != rules.DEFAULT_DOC_TYPE
-                 and found["doc_type_score"] >= CONFIDENT_TYPE_SCORE and bool(dated))
+                 and found["doc_type_score"] >= CONFIDENT_TYPE_SCORE and bool(dated) and not doubtful)
     return m.AnalyzeResponse(
         docType=found["doc_type"], title=found["title"] or None, reference=notice["reference"],
         issuingOffice=notice["authority"], issuedOn=found["doc_date"], sections=notice["sections"],
