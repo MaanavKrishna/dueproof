@@ -420,7 +420,7 @@ describe("case page", () => {
     const d = c.demands[0];
     expect(d?.workings.length).toBeGreaterThan(1);
     expect(d?.penalty?.max).toBeGreaterThanOrEqual(d?.penalty?.min ?? 0);
-    expect(d?.rateSource).toMatch(/verify|Checked/);
+    expect(d?.rateSource).toMatch(/checked by a chartered accountant/i);
   });
 
   it("comments notify only members mentioned", async () => {

@@ -19,8 +19,11 @@ models/ppocr/ (not in the repository; fetched by scripts/fetch_ocr_models.py)
     pre/post-processing in dueproof_engine/ocr/paddle.py is our own, after
     PaddleOCR's documented DB and CTC algorithms.
 
-Run-time dependencies keep their own licences (none copyleft): pypdfium2/PDFium
+Run-time dependencies keep their own licences, none under a strong copyleft
+licence (GPL, AGPL, SSPL): pypdfium2/PDFium
 (Apache-2.0 / BSD-3-Clause), ONNX Runtime (MIT), numpy (BSD), Pillow (MIT-CMU),
 RapidFuzz (MIT), FastAPI/Starlette/Pydantic/Uvicorn/httpx (MIT/BSD).
 engine-heavy adds Tesseract (Apache-2.0), pytesseract (Apache-2.0), OpenCV
 (Apache-2.0), PyTorch (BSD), transformers (Apache-2.0), IndicTransToolkit (MIT).
+Weak copyleft: certifi and tqdm (MPL-2.0), and FFmpeg and libquadmath (LGPL)
+inside the OpenCV wheel; see the repository's NOTICE for their sources.

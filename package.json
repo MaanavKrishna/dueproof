@@ -17,5 +17,14 @@
     "@biomejs/biome": "2.6.8",
     "turbo": "2.11.11",
     "typescript": "7.0.2"
+  },
+  "pnpm": {
+    "overrides": {
+      "@vercel/cli-config>zod": "4.6.7",
+      "@vercel/cli-auth>zod": "4.6.7",
+      "@oclif/core>minimatch": "11.0.1",
+      "@vercel/queue>minimatch": "11.0.1",
+      "@esbuild-kit/core-utils>esbuild": "0.25.12"
+    }
   }
 }

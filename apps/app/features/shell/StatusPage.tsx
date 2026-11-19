@@ -4,13 +4,16 @@
  * Plain words, and one next step (01 §4 "When things go wrong").
  */
 import { ErrorIcon, RefreshIcon, SearchIcon } from "@dueproof/icons";
-import { Button, EmptyState, VisuallyHidden } from "@dueproof/ui";
+import { Button, EmptyState, useAppShell, VisuallyHidden } from "@dueproof/ui";
 import NextLink from "next/link";
 import styles from "./StatusPage.module.css";
 
 export function NotFoundState() {
+  // Inside the app shell its <main> already holds the page: never nest a second (L11).
+  const { inShell } = useAppShell();
+  const Root = inShell ? "div" : "main";
   return (
-    <main className={styles.page} id="dp-main">
+    <Root className={styles.page} {...(inShell ? {} : { id: "dp-main" })}>
       <VisuallyHidden>
         <h1>Page not found</h1>
       </VisuallyHidden>
@@ -25,7 +28,7 @@ export function NotFoundState() {
           </NextLink>
         }
       />
-    </main>
+    </Root>
   );
 }
 

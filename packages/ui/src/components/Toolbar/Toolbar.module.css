@@ -6,7 +6,8 @@
   align-items: center;
   gap: var(--dp-space-8);
   min-height: var(--dp-layout-toolbar);
-  padding: 0 var(--dp-space-16);
+  /* The page inset less the buttons' own padding, so their labels line up with the content. */
+  padding: 0 calc(var(--dp-page-inset, var(--dp-page-gutter)) - var(--dp-space-8));
   background: transparent;
   transition:
     background-color var(--dp-duration-fade) var(--dp-ease-out),
@@ -64,7 +65,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--dp-space-4);
-  padding: var(--dp-space-4) var(--dp-space-24) var(--dp-space-12);
+  padding: var(--dp-space-4) var(--dp-page-inset, var(--dp-page-gutter)) var(--dp-space-12);
 }
 
 .breadcrumbs {
@@ -89,22 +90,11 @@
   display: flex;
   flex-direction: column;
   gap: var(--dp-space-4);
-  padding: var(--dp-space-4) var(--dp-space-24) var(--dp-space-8);
+  padding: var(--dp-space-4) var(--dp-page-inset, var(--dp-page-gutter)) var(--dp-space-8);
 }
 
 .accessory {
-  padding: 0 var(--dp-space-24);
-}
-
-@media (width < 40rem) {
-  .bar {
-    padding: 0 var(--dp-space-8);
-  }
-  .large,
-  .compactMeta,
-  .accessory {
-    padding-inline: var(--dp-space-16);
-  }
+  padding: 0 var(--dp-page-inset, var(--dp-page-gutter));
 }
 
 @media (prefers-reduced-motion: reduce) {

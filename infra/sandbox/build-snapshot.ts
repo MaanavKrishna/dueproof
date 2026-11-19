@@ -45,6 +45,15 @@ const DEFAULT_OCR_LANGS = [
   "tam", "tel", "kan", "mal", "urd",
 ];
 
+/**
+ * torch, from PyTorch's CPU index. Keep equal to services/engine/pyproject.toml
+ * and uv.lock: an unpinned install would take the next release, and `uv sync`
+ * would then swap it for the locked version from PyPI, the CUDA build.
+ */
+const TORCH_VERSION = "2.15.0";
+/** uv, when the image has none. */
+const UV_VERSION = "0.11.32";
+
 const ENGINE_DIR = fileURLToPath(new URL("../../services/engine/", import.meta.url));
 
 export interface Step {
@@ -80,7 +89,7 @@ export function steps(opts: { ocrLangs: string[]; weightsUrl?: string | undefine
       name: "uv and Python 3.13",
       script: [
         "set -euo pipefail",
-        "command -v uv >/dev/null || python3 -m pip install --quiet --break-system-packages uv || (curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh)",
+        `command -v uv >/dev/null || python3 -m pip install --quiet --break-system-packages uv==${UV_VERSION} || (curl -LsSf https://astral.sh/uv/${UV_VERSION}/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh)`,
         "uv --version",
         "uv python install 3.13",
         `uv venv --python 3.13 ${LAYOUT.venv}`,
@@ -93,7 +102,7 @@ export function steps(opts: { ocrLangs: string[]; weightsUrl?: string | undefine
         "set -euo pipefail",
         `cd ${LAYOUT.engineRoot}`,
         // CPU torch first, so the heavy group doesn't pull the CUDA build.
-        `uv pip install --python ${LAYOUT.python} torch --index-url https://download.pytorch.org/whl/cpu`,
+        `uv pip install --python ${LAYOUT.python} torch==${TORCH_VERSION} --index-url https://download.pytorch.org/whl/cpu`,
         "uv sync --frozen --no-install-project --no-default-groups --group heavy --inexact",
       ].join("\n"),
       env: uvEnv,

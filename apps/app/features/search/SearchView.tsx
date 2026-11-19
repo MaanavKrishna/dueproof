@@ -60,6 +60,7 @@ export function SearchView({
   return (
     <ListPageTemplate
       title="Search"
+      width="wide"
       subtitle={
         query
           ? `${hits.length} result${hits.length === 1 ? "" : "s"} for “${query}”`

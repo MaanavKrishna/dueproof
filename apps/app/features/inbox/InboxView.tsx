@@ -1,5 +1,16 @@
 "use client";
-import { CaseIcon, DoneIcon, KeyboardIcon, LinkIcon, NoticeIcon, ProofIcon } from "@dueproof/icons";
+import {
+  AddIcon,
+  CaseIcon,
+  CloseIcon,
+  DoneIcon,
+  KeyboardIcon,
+  LinkIcon,
+  MoreIcon,
+  NoticeIcon,
+  ProofIcon,
+  UndoIcon,
+} from "@dueproof/icons";
 import {
   Amount,
   Banner,
@@ -10,9 +21,15 @@ import {
   Dialog,
   EmptyState,
   FindingCard,
+  IconButton,
   isTypingTarget,
   Kbd,
+  Link,
   ListPageTemplate,
+  Menu,
+  MenuContent,
+  MenuItem,
+  MenuTrigger,
   ProofViewer,
   Skeleton,
   StatusPill,
@@ -28,7 +45,8 @@ import styles from "@/components/screen.module.css";
 import { UploadPanel } from "@/components/UploadPanel";
 import { useProof } from "@/components/useProof";
 import { stageOf } from "@/components/useUploads";
-import { fileInCase, openCase } from "./actions";
+import { fileInCase, nothingOwed, openCase, putBackDocument, setAsideDocument } from "./actions";
+import inbox from "./inbox.module.css";
 import type { FileItem, InboxData, ReviewItem } from "./queries";
 
 /** "Received date assumed: confirm": keep the upload day, or set the day it arrived. */
@@ -95,6 +113,44 @@ function ReceivedDateCard({
   );
 }
 
+/** "Not a notice", with Undo: the toast puts it back exactly as it was. */
+function useSetAside() {
+  const router = useRouter();
+  const { toast } = useToast();
+  return async (documentId: string, name: string) => {
+    const r = await setAsideDocument(documentId);
+    if (!r.ok) return toast({ tone: "danger", title: "Not set aside", description: r.message });
+    toast({
+      title: "Set aside as not a notice",
+      description: `${name}. Its deadlines no longer count.`,
+      action: {
+        label: "Undo",
+        altText: `Put back ${name}`,
+        onClick: () => void putBackDocument(documentId).then(() => router.refresh()),
+      },
+    });
+    router.refresh();
+  };
+}
+
+/** What a document's state means, in words (M1): "Needs review" is kept for findings. */
+function documentState(
+  d: Pick<FileItem, "id">,
+  review: Pick<ReviewItem, "documentId" | "kind">[],
+): { label: string; tone: "success" | "warning" } {
+  const mine = review.filter((r) => r.documentId === d.id && r.kind !== "received_date");
+  if (mine.some((r) => r.kind === "nothing_found"))
+    return { label: "No deadline found", tone: "warning" };
+  if (review.some((r) => r.documentId === d.id && r.kind === "received_date"))
+    return { label: "Received date to confirm", tone: "warning" };
+  if (mine.length)
+    return {
+      label: `${mine.length} finding${mine.length === 1 ? "" : "s"} to check`,
+      tone: "warning",
+    };
+  return { label: "Read", tone: "success" };
+}
+
 function ReviewQueue({
   items,
   activeId,
@@ -112,6 +168,7 @@ function ReviewQueue({
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const setAside = useSetAside();
   const refs = useRef(new Map<string, HTMLLIElement>());
   const [busy, setBusy] = useState<string | null>(null);
   const index = Math.max(
@@ -154,6 +211,24 @@ function ReviewQueue({
         label: "Undo",
         altText: "Undo dismiss",
         onClick: () => void restoreFinding(item.id).then(() => router.refresh()),
+      },
+    });
+    focus(index + 1);
+    router.refresh();
+  }
+
+  async function owed(item: ReviewItem) {
+    setBusy(item.id);
+    const r = await nothingOwed(item.documentId);
+    setBusy(null);
+    if (!r.ok) return toast({ tone: "danger", title: "Nothing changed", description: r.message });
+    toast({
+      title: "Marked: nothing is owed",
+      description: item.documentName,
+      action: {
+        label: "Undo",
+        altText: "Undo nothing is owed",
+        onClick: () => void nothingOwed(item.documentId, true).then(() => router.refresh()),
       },
     });
     focus(index + 1);
@@ -252,6 +327,31 @@ function ReviewQueue({
               }
             >
               <p className={styles.small}>{item.reason}</p>
+              {canReview ? (
+                <div className={inbox.actions}>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    icon={AddIcon}
+                    onClick={() => router.push("/deadlines?add=1")}
+                  >
+                    Add a deadline by hand
+                  </Button>
+                  {item.caseId ? null : (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      icon={CloseIcon}
+                      onClick={() => void setAside(item.documentId, item.documentName)}
+                    >
+                      Not a notice
+                    </Button>
+                  )}
+                  <Button size="sm" variant="plain" onClick={() => void owed(item)}>
+                    Nothing is owed
+                  </Button>
+                </div>
+              ) : null}
             </Card>
           ) : (
             <FindingCard
@@ -428,13 +528,39 @@ export function InboxView({
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [editing, setEditing] = useState<EditableFinding | null>(null);
   const [opening, setOpening] = useState<FileItem | null>(null);
-  const active = data.review.find((r) => r.id === activeId) ?? null;
+  // A document to file, opened to look at before filing it.
+  const [looking, setLooking] = useState<FileItem | null>(null);
+  const setAside = useSetAside();
+  const reviewed = data.review.find((r) => r.id === activeId) ?? null;
+  const active = reviewed
+    ? {
+        documentId: reviewed.documentId,
+        name: reviewed.documentName,
+        highlight: reviewed.kind === "finding" ? reviewed.id : null,
+        page: reviewed.page ?? 1,
+      }
+    : looking
+      ? { documentId: looking.id, name: looking.name, highlight: null, page: 1 }
+      : null;
   const { proof, error } = useProof(inspectorOpen ? active?.documentId : null);
 
   const onActive = (id: string | null) => {
     setActiveId(id);
+    setLooking(null);
     if (id) setInspectorOpen(true);
   };
+  const look = (d: FileItem) => {
+    setActiveId(null);
+    setLooking(d);
+    setInspectorOpen(true);
+  };
+  // Show only the shortcuts that work on the item in focus (M2).
+  const shortcutsFor =
+    (reviewed ?? data.review[0])?.kind === "finding" && canReview
+      ? "finding"
+      : data.review.length > 1
+        ? "move"
+        : null;
 
   async function fileSuggested(item: FileItem) {
     if (!item.suggestedCase) return;
@@ -463,7 +589,7 @@ export function InboxView({
                   title={proof.title}
                   pages={proof.pages}
                   highlights={proof.highlights}
-                  activeHighlightId={active.kind === "finding" ? active.id : null}
+                  activeHighlightId={active.highlight}
                   onActiveHighlightChange={(id) => {
                     if (id && data.review.some((r) => r.id === id)) setActiveId(id);
                   }}
@@ -480,7 +606,7 @@ export function InboxView({
           </div>
         ) : undefined
       }
-      inspectorTitle={active ? active.documentName : "The page"}
+      inspectorTitle={active ? active.name : "The page"}
       inspectorOpen={inspectorOpen && active !== null}
       onInspectorOpenChange={setInspectorOpen}
     >
@@ -516,11 +642,16 @@ export function InboxView({
             <h2 id="inbox-review" className={styles.sectionTitle}>
               Needs review <span className={styles.muted}>{findingCount}</span>
             </h2>
-            {findingCount ? (
-              <span className={`${styles.row} ${styles.small}`}>
+            {shortcutsFor ? (
+              <span className={`${styles.row} ${styles.small} ${inbox.hints}`}>
                 <KeyboardIcon />
-                <Kbd>J</Kbd>/<Kbd>K</Kbd> move · <Kbd>Enter</Kbd> confirm · <Kbd>E</Kbd> edit ·{" "}
-                <Kbd>X</Kbd> dismiss
+                <Kbd>J</Kbd>/<Kbd>K</Kbd> move
+                {shortcutsFor === "finding" ? (
+                  <>
+                    {" "}
+                    · <Kbd>Enter</Kbd> confirm · <Kbd>E</Kbd> edit · <Kbd>X</Kbd> dismiss
+                  </>
+                ) : null}
               </span>
             ) : null}
           </div>
@@ -546,48 +677,89 @@ export function InboxView({
           {data.toFile.length ? (
             <Card padding="md">
               <ul className={styles.list} aria-label="To file in a case">
-                {data.toFile.map((d) => (
-                  <li key={d.id} className={styles.listItem}>
-                    <span className={styles.cellStack}>
-                      <span className={`${styles.ellipsis} ${styles.strong}`}>
-                        <NoticeIcon /> {d.name}
+                {data.toFile.map((d) => {
+                  const state = documentState(d, data.review);
+                  return (
+                    <li key={d.id} className={styles.listItem}>
+                      <span className={styles.cellStack}>
+                        <span className={`${styles.ellipsis} ${styles.strong}`}>
+                          <NoticeIcon />{" "}
+                          <Link
+                            variant="subtle"
+                            href={`/inbox?look=${d.id}`}
+                            aria-label={`Look at ${d.name}`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              look(d);
+                            }}
+                          >
+                            {d.name}
+                          </Link>
+                        </span>
+                        <span className={styles.small}>
+                          {d.client?.name ?? "Client not matched"}
+                          {d.reference ? ` · ${d.reference}` : ""} · received {d.received}
+                          {d.receivedAssumed ? " (assumed: confirm)" : ""}
+                        </span>
+                        {d.duplicateOf ? (
+                          <span className={inbox.duplicate}>
+                            Possible duplicate of “{d.duplicateOf.name}”
+                            {d.duplicateOf.caseId ? ", already in a case" : ""}. File one and set
+                            the other aside, so its deadlines don't count twice.
+                          </span>
+                        ) : null}
                       </span>
-                      <span className={styles.small}>
-                        {d.client?.name ?? "Client not matched"}
-                        {d.reference ? ` · ${d.reference}` : ""} · received {d.received}
-                        {d.receivedAssumed ? " (assumed: confirm)" : ""}
+                      <StatusPill label={state.label} tone={state.tone} />
+                      {d.suggestedCase && canFile ? (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          icon={LinkIcon}
+                          onClick={() => void fileSuggested(d)}
+                        >
+                          Add to {d.suggestedCase.reference ?? "case"}
+                        </Button>
+                      ) : (
+                        <span />
+                      )}
+                      <span className={styles.row}>
+                        {canFile ? (
+                          <Button
+                            size="sm"
+                            variant="tertiary"
+                            icon={CaseIcon}
+                            onClick={() => setOpening(d)}
+                          >
+                            Open case
+                          </Button>
+                        ) : null}
+                        {canReview ? (
+                          <Menu>
+                            <MenuTrigger>
+                              <IconButton
+                                icon={MoreIcon}
+                                label={`More for ${d.name}`}
+                                size="sm"
+                                variant="ghost"
+                              />
+                            </MenuTrigger>
+                            <MenuContent align="end">
+                              <MenuItem icon={ProofIcon} onSelect={() => look(d)}>
+                                Look at the page
+                              </MenuItem>
+                              <MenuItem
+                                icon={CloseIcon}
+                                onSelect={() => void setAside(d.id, d.name)}
+                              >
+                                Not a notice
+                              </MenuItem>
+                            </MenuContent>
+                          </Menu>
+                        ) : null}
                       </span>
-                    </span>
-                    <StatusPill
-                      label={d.status === "ready" ? "Read" : "Needs review"}
-                      tone={d.status === "ready" ? "success" : "warning"}
-                    />
-                    {d.suggestedCase && canFile ? (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        icon={LinkIcon}
-                        onClick={() => void fileSuggested(d)}
-                      >
-                        Add to {d.suggestedCase.reference ?? "case"}
-                      </Button>
-                    ) : (
-                      <span />
-                    )}
-                    {canFile ? (
-                      <Button
-                        size="sm"
-                        variant="tertiary"
-                        icon={CaseIcon}
-                        onClick={() => setOpening(d)}
-                      >
-                        Open case
-                      </Button>
-                    ) : (
-                      <span />
-                    )}
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             </Card>
           ) : (
@@ -600,6 +772,51 @@ export function InboxView({
             />
           )}
         </section>
+
+        {data.setAside.length ? (
+          <section className={styles.stack} aria-labelledby="inbox-aside">
+            <h2 id="inbox-aside" className={styles.sectionTitle}>
+              Set aside as not a notice <span className={styles.muted}>{data.setAside.length}</span>
+            </h2>
+            <Card padding="md">
+              <ul className={styles.list} aria-label="Set aside as not a notice">
+                {data.setAside.map((d) => (
+                  <li key={d.id} className={styles.listItem}>
+                    <span className={styles.cellStack}>
+                      <span className={styles.ellipsis}>{d.name}</span>
+                      <span className={styles.small}>received {d.received}</span>
+                    </span>
+                    <span />
+                    <span />
+                    {canReview ? (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        icon={UndoIcon}
+                        aria-label={`Put back ${d.name}`}
+                        onClick={() =>
+                          void putBackDocument(d.id).then((r) => {
+                            if (!r.ok)
+                              toast({
+                                tone: "danger",
+                                title: "Not put back",
+                                description: r.message,
+                              });
+                            router.refresh();
+                          })
+                        }
+                      >
+                        Put back
+                      </Button>
+                    ) : (
+                      <span />
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </section>
+        ) : null}
       </div>
       <EditFindingDialog
         finding={editing}

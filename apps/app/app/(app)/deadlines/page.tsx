@@ -4,7 +4,7 @@ import { loadDeadlinesPage } from "@/features/deadlines/queries";
 import { pageAccess } from "@/lib/server/page";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Deadlines · Dueproof" };
+export const metadata = { title: "Deadlines" };
 
 export default async function DeadlinesPage({
   searchParams,

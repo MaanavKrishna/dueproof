@@ -1,0 +1,94 @@
+# Weekly update pull requests, grouped so each ecosystem is one review.
+# Every package is pinned exactly, so nothing moves unless one of these is
+# merged. Security updates are raised as soon as an advisory appears.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      npm-production:
+        patterns: ["*"]
+        dependency-type: production
+        update-types: [minor, patch]
+      npm-development:
+        patterns: ["*"]
+        dependency-type: development
+        update-types: [minor, patch]
+      npm-security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  # The app image's Postgres World, installed with npm ci from its own lockfile.
+  - package-ecosystem: npm
+    directory: /apps/app/docker/workflow-world
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      workflow-world:
+        patterns: ["*"]
+
+  # services/engine: pyproject.toml with uv.lock.
+  - package-ecosystem: uv
+    directory: /services/engine
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      engine:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      engine-security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  # requirements.txt is generated from uv.lock (uv export). Dependabot may not
+  # regenerate it; the audit workflow fails until it matches uv.lock again.
+
+  - package-ecosystem: cargo
+    directory: /apps/desktop/src-tauri
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      desktop:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      desktop-security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directories:
+      - /apps/app
+      - /services/engine
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      docker-images:
+        patterns: ["*"]
+
+  - package-ecosystem: docker-compose
+    directory: /infra/docker
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      compose-images:
+        patterns: ["*"]

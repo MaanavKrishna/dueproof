@@ -1,9 +1,9 @@
+/* One task in one column: the page is narrow and pads the sides (ListPageTemplate width="narrow"). */
 .body {
   display: flex;
   flex-direction: column;
   gap: var(--dp-space-16);
-  max-width: var(--dp-layout-measure);
-  padding: var(--dp-space-16) var(--dp-space-24) var(--dp-space-32);
+  padding: var(--dp-space-16) 0 var(--dp-space-32);
 }
 
 .hint {
@@ -12,8 +12,9 @@
   font: var(--dp-text-footnote-font);
 }
 
-@media (max-width: 40rem) {
+/* Phones: the list body pads 8; make it the gutter, like the title. */
+@media (width < 40rem) {
   .body {
-    padding-inline: var(--dp-space-12);
+    padding-inline: var(--dp-space-8);
   }
 }

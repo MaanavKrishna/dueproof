@@ -55,6 +55,13 @@ export const NAV: NavSection[] = [
         keywords: ["uploads"],
       },
       {
+        id: "capture",
+        label: "Capture",
+        href: "/capture",
+        icon: CameraIcon,
+        keywords: ["camera", "photo", "scan", "upload"],
+      },
+      {
         id: "notices",
         label: "Notices",
         href: "/notices",
@@ -91,13 +98,6 @@ export const NAV: NavSection[] = [
         href: "/reports",
         icon: DocumentIcon,
         keywords: ["evidence", "csv", "statement", "workload", "exposure", "hearing pack"],
-      },
-      {
-        id: "capture",
-        label: "Capture",
-        href: "/capture",
-        icon: CameraIcon,
-        keywords: ["camera", "photo", "scan", "upload"],
       },
     ],
   },

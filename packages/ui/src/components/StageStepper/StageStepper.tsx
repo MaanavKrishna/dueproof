@@ -12,6 +12,7 @@ import {
 } from "@dueproof/icons";
 import type { ComponentProps, ReactNode } from "react";
 import { cx } from "../../utils/cx";
+import { Tooltip } from "../Tooltip/Tooltip";
 import styles from "./StageStepper.module.css";
 
 /** The case lifecycle (01 §4), in order. Matches CaseStage in packages/contracts. */
@@ -115,14 +116,23 @@ export function StageStepper({
               aria-current={state === "current" ? "step" : undefined}
             >
               {onStageSelect ? (
-                <button
-                  type="button"
-                  className={styles.button}
-                  onClick={() => onStageSelect(stage.id)}
-                  disabled={state === "current"}
-                >
-                  {body}
-                </button>
+                state === "current" ? (
+                  <button type="button" className={styles.button} disabled>
+                    {body}
+                  </button>
+                ) : (
+                  // When the step is drawn as an icon only, the tooltip names it on
+                  // hover and on focus (M13); the accessible name already does.
+                  <Tooltip content={stage.label}>
+                    <button
+                      type="button"
+                      className={styles.button}
+                      onClick={() => onStageSelect(stage.id)}
+                    >
+                      {body}
+                    </button>
+                  </Tooltip>
+                )
               ) : (
                 <span className={styles.button}>{body}</span>
               )}

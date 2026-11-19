@@ -2,7 +2,8 @@
 /** New client, or edit one: name, identifiers (checked as you type), partner and tags. */
 import { checkCin, checkGstin, checkPan, checkTan } from "@dueproof/core/identifiers";
 import { Button, Dialog, Select, TextArea, TextField } from "@dueproof/ui";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
+import { focusFirstInvalid } from "@/components/focus-invalid";
 import { type ClientInput, createClient, updateClient } from "./actions";
 import styles from "./clients.module.css";
 
@@ -37,6 +38,9 @@ export function ClientFormDialog({
     notes: initial?.notes ?? "",
   });
   const [error, setError] = useState<string | null>(null);
+  // Field errors sit on the field (M9); the line above the buttons is for the server's.
+  const [nameError, setNameError] = useState<string | undefined>(undefined);
+  const form = useRef<HTMLFormElement>(null);
   const [busy, setBusy] = useState(false);
   const set = (k: keyof typeof v) => (e: { target: { value: string } }) =>
     setV({ ...v, [k]: e.target.value });
@@ -49,6 +53,15 @@ export function ClientFormDialog({
   async function submit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    const noName = v.name.trim() ? undefined : "Give the client a name.";
+    setNameError(noName);
+    const invalid =
+      noName ||
+      gstinError ||
+      reasonOf(v.pan, checkPan) ||
+      reasonOf(v.tan, checkTan) ||
+      reasonOf(v.cin, checkCin);
+    if (invalid) return focusFirstInvalid(form.current);
     setBusy(true);
     const input: ClientInput = {
       name: v.name,
@@ -78,8 +91,18 @@ export function ClientFormDialog({
       title={initial ? "Edit client" : "New client"}
       size="md"
     >
-      <form className={styles.form} onSubmit={submit} noValidate>
-        <TextField label="Name" value={v.name} onChange={set("name")} required autoFocus />
+      <form ref={form} className={styles.form} onSubmit={submit} noValidate>
+        <TextField
+          label="Name"
+          value={v.name}
+          onChange={(e) => {
+            set("name")(e);
+            if (e.target.value.trim()) setNameError(undefined);
+          }}
+          required
+          autoFocus
+          {...(nameError ? { error: nameError } : {})}
+        />
         <TextField label="Legal name" optional value={v.legalName} onChange={set("legalName")} />
         <div className={styles.grid2}>
           <TextField

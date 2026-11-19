@@ -73,6 +73,7 @@ export function CameraCapture({ banner }: { banner?: ReactNode }) {
   return (
     <ListPageTemplate
       title="Capture"
+      width="narrow"
       subtitle="Photograph a notice; it goes to the Inbox to be read"
       scrollPage
     >

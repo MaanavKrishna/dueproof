@@ -7,8 +7,31 @@
   overflow-y: auto;
 }
 
+/*
+ * The page column (see page.ts). Every part of the page pads its sides by
+ * --dp-page-inset: the gutter, or more once the page is wider than its
+ * width allows, which centres the column. Use it only on the column's
+ * direct children: its percentage is of the column's width.
+ */
+.column {
+  --dp-page-max: 100%;
+  --dp-page-inset: max(var(--dp-page-gutter), (100% - var(--dp-page-max)) / 2);
+}
+
+.column[data-width="wide"] {
+  --dp-page-max: var(--dp-layout-page-wide);
+}
+
+.column[data-width="readable"] {
+  --dp-page-max: var(--dp-layout-page-readable);
+}
+
+.column[data-width="narrow"] {
+  --dp-page-max: var(--dp-layout-page-narrow);
+}
+
 .banner {
-  padding: 0 var(--dp-space-24) var(--dp-space-12);
+  padding: 0 var(--dp-page-inset) var(--dp-space-12);
 }
 
 /* List page: the table fills the remaining height. */
@@ -25,14 +48,11 @@
 }
 
 .summary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(calc(var(--dp-space-96) * 2), 1fr));
-  gap: var(--dp-space-12);
-  padding: 0 var(--dp-space-24) var(--dp-space-12);
+  padding: 0 var(--dp-page-inset) var(--dp-space-16);
 }
 
 .filters {
-  padding: 0 var(--dp-space-24);
+  padding: 0 var(--dp-page-inset);
 }
 
 .listBody {
@@ -40,7 +60,7 @@
   flex: 1 1 auto;
   flex-direction: column;
   min-height: calc(var(--dp-space-96) * 3);
-  padding: var(--dp-space-4) var(--dp-space-24) var(--dp-space-24);
+  padding: var(--dp-space-4) var(--dp-page-inset) var(--dp-space-24);
 }
 
 .listScroll .listBody {
@@ -55,16 +75,14 @@
 }
 
 .stageBar {
-  padding: var(--dp-space-4) var(--dp-space-24) var(--dp-space-12);
+  padding: var(--dp-space-4) var(--dp-page-inset) var(--dp-space-12);
 }
 
 .detailBody {
   display: flex;
   flex-direction: column;
   gap: var(--dp-space-24);
-  width: 100%;
-  max-width: calc(var(--dp-layout-content) + var(--dp-space-48));
-  padding: 0 var(--dp-space-24) var(--dp-space-48);
+  padding: 0 var(--dp-page-inset) var(--dp-space-48);
 }
 
 .tabList {
@@ -106,7 +124,7 @@
   align-items: center;
   gap: var(--dp-space-12);
   min-height: var(--dp-layout-toolbar);
-  padding: 0 var(--dp-space-16) 0 var(--dp-space-24);
+  padding: 0 var(--dp-space-16) 0 var(--dp-page-gutter);
 }
 
 .brand {
@@ -127,7 +145,7 @@
 }
 
 .wizardProgress {
-  padding: 0 var(--dp-space-24);
+  padding: 0 var(--dp-page-gutter);
 }
 
 .wizardMain {
@@ -139,7 +157,7 @@
     );
   justify-content: center;
   gap: var(--dp-space-48);
-  padding: var(--dp-space-40) var(--dp-space-24);
+  padding: var(--dp-space-40) var(--dp-page-gutter);
 }
 
 .wizardSteps {
@@ -208,7 +226,7 @@
   .wizardMain {
     grid-template-columns: minmax(0, var(--dp-layout-dialog-md));
     gap: var(--dp-space-24);
-    padding: var(--dp-space-24) var(--dp-space-16);
+    padding: var(--dp-space-24) var(--dp-page-gutter);
   }
   .wizardSteps,
   .wizardAside {
@@ -216,14 +234,8 @@
   }
 }
 
+/* Phones: tables keep more of the width; the title still pads by the gutter. */
 @media (width < 40rem) {
-  .banner,
-  .summary,
-  .filters,
-  .stageBar,
-  .detailBody {
-    padding-inline: var(--dp-space-16);
-  }
   .listBody {
     padding-inline: var(--dp-space-8);
   }

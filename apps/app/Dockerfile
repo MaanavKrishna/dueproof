@@ -14,7 +14,7 @@
 #     time) and bootstraps its schema on start;
 #   * sends no telemetry (NEXT_TELEMETRY_DISABLED).
 
-ARG NODE_IMAGE=node:24-slim
+ARG NODE_IMAGE=node:24-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54
 
 # ---------------------------------------------------------------- base
 FROM ${NODE_IMAGE} AS base
@@ -34,8 +34,11 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=dueproof-pnpm,target=/pnpm/store \
     pnpm fetch --frozen-lockfile
 COPY . .
+# ee/ (when present) is linked into the app at build time (next.config.ts), so
+# its dependencies are installed too; without ee/ the second filter matches
+# nothing and the Free edition is built.
 RUN --mount=type=cache,id=dueproof-pnpm,target=/pnpm/store \
-    pnpm install --offline --frozen-lockfile --filter "@dueproof/app..."
+    pnpm install --offline --frozen-lockfile --filter "@dueproof/app..." --filter "@dueproof/ee..."
 
 # ---------------------------------------------------------------- build
 FROM deps AS build
@@ -43,11 +46,13 @@ RUN pnpm --filter @dueproof/app build
 
 # ---------------------------------------------------------------- workflow world
 # The Postgres World is resolved by name at run time (WORKFLOW_TARGET_WORLD),
-# so the standalone trace doesn't include it: install it on its own.
+# so the standalone trace doesn't include it: install it on its own, from its
+# committed lockfile (every package pinned with its integrity hash), with no
+# install scripts.
 FROM base AS workflow-world
 WORKDIR /opt/workflow-world
-COPY apps/app/docker/workflow-world.package.json ./package.json
-RUN npm install --omit=dev --no-fund --no-audit --loglevel=error
+COPY apps/app/docker/workflow-world/package.json apps/app/docker/workflow-world/package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts --no-fund --no-audit --loglevel=error
 COPY apps/app/docker/bootstrap-workflow.mjs ./bootstrap.mjs
 
 # ---------------------------------------------------------------- runtime

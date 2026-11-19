@@ -31,6 +31,7 @@ import {
   StatusPill,
   Switch,
   TextField,
+  useMediaQuery,
   useToast,
 } from "@dueproof/ui";
 import { useRouter } from "next/navigation";
@@ -155,6 +156,14 @@ const BUILT_IN = [
   },
 ];
 
+/**
+ * On a phone the table keeps what decides the next step: client, next due and
+ * stage (M11). Everything else is a tap away on the case.
+ */
+const PHONE_COLUMNS = new Set(["client", "due", "stage"]);
+const PHONE_HIDDEN = columns.map((c) => c.id).filter((id) => !PHONE_COLUMNS.has(id));
+const DEFAULT_HIDDEN = columns.filter((c) => c.defaultHidden).map((c) => c.id);
+
 export function NoticesView({
   data,
   canAssign,
@@ -167,6 +176,8 @@ export function NoticesView({
   const router = useRouter();
   const { toast } = useToast();
   const [filters, setFilters] = useState<FilterValue>({});
+  const phone = useMediaQuery("(width < 40rem)");
+  const [hidden, setHidden] = useState<string[]>(DEFAULT_HIDDEN);
   const [query, setQuery] = useState("");
   const [viewId, setViewId] = useState<string | undefined>("all");
   const [saving, setSaving] = useState(false);
@@ -362,6 +373,10 @@ export function NoticesView({
       <DataTable
         label="Notices"
         columns={columns}
+        hiddenColumns={phone ? PHONE_HIDDEN : hidden}
+        onHiddenColumnsChange={(ids) => {
+          if (!phone) setHidden(ids);
+        }}
         data={rows}
         getRowId={(r) => r.id}
         selectable={canAssign || canMove}

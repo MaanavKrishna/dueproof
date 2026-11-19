@@ -309,7 +309,9 @@ export function CorrectDueDialog({
       onOpenChange={(o) => !o && onClose()}
       title="Correct the due date"
       description={
-        target ? `${target.title}. The computed date is kept beside your correction.` : undefined
+        target
+          ? `${target.title.replace(/[.\s]+$/, "")}. The computed date is kept beside your correction.`
+          : undefined
       }
       size="sm"
       dismissible={false}
@@ -394,15 +396,18 @@ export function DemandForm({
   demand,
   onDone,
   onCancel,
+  fresh = false,
 }: {
   data: CaseData;
   demand: Partial<CaseDemand> | null;
   onDone: (message: string) => void;
   onCancel?: () => void;
+  /** Start empty: another demand, so the notice's amount isn't offered twice. */
+  fresh?: boolean;
 }) {
   const gst = data.authority === "gst";
   const [principal, setPrincipal] = useState<number | null>(
-    demand?.principalMinor ?? data.amountMinor ?? null,
+    demand?.principalMinor ?? (fresh ? null : (data.amountMinor ?? null)),
   );
   const [taxType, setTaxType] = useState<string>(demand?.taxType ?? (gst ? "gst" : "income_tax"));
   const [rule, setRule] = useState<string>(
@@ -415,7 +420,18 @@ export function DemandForm({
   const [dueOn, setDueOn] = useState<string | null>(demand?.dueOn ?? null);
   const [asOf, setAsOf] = useState<string | null>(demand?.asOf ?? data.today);
   const { busy, error, run } = useSubmit(onDone);
-  const fromNotice = !demand?.id && data.amountMinor && principal === data.amountMinor;
+  const fromNotice = !demand?.id && !fresh && data.amountMinor && principal === data.amountMinor;
+  // Keep the link to the finding while the amount is the one read (M4): a
+  // confirmed notice amount is "As stated in the notice", not "Entered by hand".
+  const amountFinding = data.findings.find(
+    (f) => f.kind === "amount" && f.amountMinor === data.amountMinor,
+  );
+  const findingId =
+    demand?.findingId && principal === demand.principalMinor
+      ? demand.findingId
+      : fromNotice
+        ? (amountFinding?.id ?? null)
+        : null;
   let note: ReactNode = null;
   if (fromNotice && data.amountMinor) {
     note = (
@@ -442,7 +458,7 @@ export function DemandForm({
               ...(penalty !== "none" ? { penaltyRule: penalty } : {}),
               ...(dueOn ? { dueOn } : {}),
               ...(asOf ? { asOf } : {}),
-              ...(demand?.findingId ? { findingId: demand.findingId } : {}),
+              ...(findingId ? { findingId } : {}),
             }),
           demand?.id ? "Demand updated." : "Demand saved.",
         );
