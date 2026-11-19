@@ -6,9 +6,10 @@
  * the empty states; and the main journey at phone width.
  */
 import { expect, test } from "@playwright/test";
-import { fixture, RUN, signInOwner, watchConsole } from "./journeys-helpers";
+import { fixture, ownAddressPerTest, RUN, signInOwner, watchConsole } from "./journeys-helpers";
 
 test.describe.configure({ mode: "serial" });
+ownAddressPerTest();
 
 test.describe("at desk width", () => {
   test.use({ viewport: { width: 1440, height: 900 } });

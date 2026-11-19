@@ -11,9 +11,18 @@ import { copyFileSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join as joinPath } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
-import { fixture, invite, join, RUN, signInOwner, watchConsole } from "./journeys-helpers";
+import {
+  fixture,
+  invite,
+  join,
+  ownAddressPerTest,
+  RUN,
+  signInOwner,
+  watchConsole,
+} from "./journeys-helpers";
 
 test.describe.configure({ mode: "serial" });
+ownAddressPerTest();
 test.use({ viewport: { width: 1440, height: 900 } });
 
 const colleague = { email: `ravi-${RUN}@harbour.test`, name: `Ravi ${RUN}` };
@@ -29,6 +38,9 @@ function trayItem(page: Page, name: string) {
     .first();
 }
 
+/** Read now, or recognised as one another spec already uploaded (they share the server). */
+const READ = /Needs review|Ready|Already in the register/;
+
 test("upload a folder, several files and a photo; each is read", async ({ page }) => {
   const problems = watchConsole(page);
   await signInOwner(page);
@@ -43,10 +55,10 @@ test("upload a folder, several files and a photo; each is read", async ({ page }
   copyFileSync(fixture("minutes-board-87.pdf"), joinPath(dir, "October", "minutes.pdf"));
   const folder = page.locator('input[type="file"][webkitdirectory]');
   await folder.setInputFiles(joinPath(dir, "October"));
-  await expect(trayItem(page, "circular.pdf").getByText(/Needs review|Ready/)).toBeVisible({
+  await expect(trayItem(page, "circular.pdf").getByText(READ)).toBeVisible({
     timeout: 60_000,
   });
-  await expect(trayItem(page, "minutes.pdf").getByText(/Needs review|Ready/)).toBeVisible({
+  await expect(trayItem(page, "minutes.pdf").getByText(READ)).toBeVisible({
     timeout: 60_000,
   });
 
@@ -55,12 +67,10 @@ test("upload a folder, several files and a photo; each is read", async ({ page }
     .locator('input[type="file"]')
     .first()
     .setInputFiles([fixture("invoice-HVC-2026-1183.pdf"), fixture("edge-poster-page.pdf")]);
-  await expect(
-    trayItem(page, "invoice-HVC-2026-1183.pdf").getByText(/Needs review|Ready/),
-  ).toBeVisible({
+  await expect(trayItem(page, "invoice-HVC-2026-1183.pdf").getByText(READ)).toBeVisible({
     timeout: 60_000,
   });
-  await expect(trayItem(page, "edge-poster-page.pdf").getByText(/Needs review|Ready/)).toBeVisible({
+  await expect(trayItem(page, "edge-poster-page.pdf").getByText(READ)).toBeVisible({
     timeout: 60_000,
   });
 

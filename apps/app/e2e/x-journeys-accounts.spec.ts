@@ -10,6 +10,7 @@ import {
   invite,
   join,
   OWNER,
+  ownAddressPerTest,
   personContext,
   RUN,
   signInOwner,
@@ -18,6 +19,7 @@ import {
 } from "./journeys-helpers";
 
 test.describe.configure({ mode: "serial" });
+ownAddressPerTest();
 test.use({ viewport: { width: 1440, height: 900 } });
 
 const member = { email: `vik-${RUN}@harbour.test`, name: `Vikram ${RUN}` };
@@ -81,7 +83,8 @@ test("an invited member joins through the link, with the address fixed", async (
 }) => {
   await signInOwner(page);
   memberLink = await invite(page, member.email);
-  expect(memberLink).toContain(`/sign-up?email=${encodeURIComponent(member.email)}`);
+  expect(memberLink).toMatch(/\/sign-up\?invite=[\w.%-]+$/);
+  expect(memberLink).not.toContain("vik");
   await expect(page.getByRole("cell", { name: member.email, exact: true })).toBeVisible();
 
   const joined = await join(browser, memberLink, member.name);

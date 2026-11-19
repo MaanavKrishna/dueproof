@@ -5,9 +5,10 @@
  * calendar and timeline views, the iCal feed link and the CSV export.
  */
 import { expect, type Page, test } from "@playwright/test";
-import { RUN, signInOwner, watchConsole } from "./journeys-helpers";
+import { ownAddressPerTest, RUN, signInOwner, watchConsole } from "./journeys-helpers";
 
 test.describe.configure({ mode: "serial" });
+ownAddressPerTest();
 test.use({ viewport: { width: 1440, height: 900 } });
 
 const kept = `Coastal Spices ${RUN}`;

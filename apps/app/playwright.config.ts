@@ -66,7 +66,7 @@ export default defineConfig({
         RATE_LIMITS: E2E_RATE_LIMITS,
       },
     },
-    // The same build against the HTTP engine client, for journeys-engine.spec.ts:
+    // The same build against the HTTP engine client, for x-journeys-engine.spec.ts:
     // the engine is a stub that spec starts and stops on ENGINE_PORT.
     ...(dev
       ? []

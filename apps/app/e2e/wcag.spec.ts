@@ -270,7 +270,10 @@ test("keyboard only: upload, review, open a case, mark a deadline done", async (
   await expect(done).toBeFocused();
   const label = (await done.textContent())?.trim();
   await page.keyboard.press("Enter");
-  await expect(page.getByText(label === "Reopen" ? "Reopened." : "Marked done.")).toBeVisible();
+  // The toast, not the screen-reader announcer that repeats its words.
+  await expect(
+    page.getByText(label === "Reopen" ? "Reopened." : "Marked done.", { exact: true }),
+  ).toBeVisible();
   // The menu closed and focus went back to its button, not to the page body.
   await expect(menu).toBeHidden();
   expect(await page.evaluate(() => document.activeElement?.tagName)).not.toBe("BODY");

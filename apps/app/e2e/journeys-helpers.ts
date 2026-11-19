@@ -1,5 +1,8 @@
 /**
- * Shared steps for the journeys-*.spec.ts files: signing in as the owner the
+ * Named x-journeys-*.spec.ts so they run after the other specs (name order)
+ * and never change what those find.
+ *
+ * Shared steps for the x-journeys-*.spec.ts files: signing in as the owner the
  * other specs use, inviting someone and signing them up through the link, a
  * TOTP code for two-step sign-in, and a watch on the browser console (a CSP
  * refusal or an uncaught error fails the journey).
@@ -27,7 +30,7 @@ export const RUN = Date.now().toString(36).slice(-5);
  */
 export async function signInOwner(page: Page) {
   const base = test.info().project.use.baseURL as string;
-  const headers = { origin: base };
+  const headers = { origin: base, "x-forwarded-for": freshAddress() };
   const signIn = () =>
     page.request.post("/api/auth/sign-in/email", {
       data: { email: OWNER.email, password: OWNER.password },
@@ -41,16 +44,32 @@ export async function signInOwner(page: Page) {
 
 let address = 10;
 /**
+ * A client address of its own for each sign-in and each person's browser.
+ * Every request here comes from one machine, and Better Auth allows 20
+ * sign-ins and 3 sign-ups per address: without this the journeys would use
+ * up the other specs' allowance too.
+ */
+export function freshAddress(): string {
+  address += 1;
+  return `198.18.${Math.floor(address / 250) % 250}.${(address % 250) + 1}`;
+}
+
+/** Gives each test's own browser a fresh address too (sign-ins through the form). */
+export function ownAddressPerTest() {
+  test.beforeEach(async ({ context }) => {
+    await context.setExtraHTTPHeaders({ "x-forwarded-for": freshAddress() });
+  });
+}
+/**
  * A browser of its own for another person. Each gets its own client address
  * (Better Auth reads X-Forwarded-For), as people signing up from their own
  * machines would: Better Auth allows three sign-ups an hour per address.
  */
 export function personContext(browser: Browser): Promise<BrowserContext> {
-  address += 1;
   return browser.newContext({
     baseURL: test.info().project.use.baseURL as string,
     timezoneId: "Asia/Kolkata",
-    extraHTTPHeaders: { "x-forwarded-for": `198.18.${address % 250}.${(Date.now() % 250) + 1}` },
+    extraHTTPHeaders: { "x-forwarded-for": freshAddress() },
   });
 }
 

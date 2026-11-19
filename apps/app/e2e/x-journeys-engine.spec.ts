@@ -8,7 +8,7 @@
 import { createServer, type Server } from "node:http";
 import { createFakeEngine, createFakeEngineHandler } from "@dueproof/engine-client";
 import { expect, test } from "@playwright/test";
-import { fixture, OWNER, watchConsole } from "./journeys-helpers";
+import { fixture, OWNER, ownAddressPerTest, watchConsole } from "./journeys-helpers";
 
 const APP_PORT = Number(process.env.E2E_ENGINE_APP_PORT);
 const ENGINE_PORT = Number(process.env.E2E_ENGINE_PORT);
@@ -17,6 +17,7 @@ const APP = `http://localhost:${APP_PORT}`;
 
 test.skip(!APP_PORT || process.env.E2E_DEV === "1", "needs the second (HTTP engine) server");
 test.describe.configure({ mode: "serial" });
+ownAddressPerTest();
 test.use({ baseURL: APP, viewport: { width: 1440, height: 900 } });
 
 let engine: Server | undefined;
