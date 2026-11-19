@@ -12,6 +12,10 @@ ORG_NAME = ""
 TIMEZONE = "Asia/Kolkata"
 CHANNELS = ["Email", "GST portal", "Income-tax portal", "MCA portal", "Post", "Scan", "Upload"]
 LANGUAGES = ["hi"]
+# Hindi month names, both common spellings, so "20 अक्टूबर 2026" is a date.
+LOCAL_MONTHS = {"जनवरी": 1, "फरवरी": 2, "फ़रवरी": 2, "मार्च": 3, "अप्रैल": 4, "अप्रेल": 4, "मई": 5,
+                "जून": 6, "जुलाई": 7, "अगस्त": 8, "सितंबर": 9, "सितम्बर": 9, "अक्टूबर": 10,
+                "अक्तूबर": 10, "नवंबर": 11, "नवम्बर": 11, "दिसंबर": 12, "दिसम्बर": 12}
 
 # --- Desks -------------------------------------------------------------------
 ROLES = ["Direct Tax", "GST & Indirect Tax", "Corporate Secretarial", "Payroll & Labour",
