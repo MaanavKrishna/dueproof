@@ -1,9 +1,10 @@
 /**
  * GET /api/v1/reports/{name}.csv — CSV export of each report and table view:
  * deadlines (with the Deadlines filters), clients, workload, exposure,
- * statement (?client=) and evidence (?case=|client=|range=). Each starts
- * with authorizeRequest for the report's permission, then the export.user
- * rate limit (L5).
+ * statement (?client=) and evidence (?case=|client=|range=). Every export
+ * needs `data.export` (managers and above; core's policy matrix), then the
+ * report's own permission and the export.user rate limit (L5). Viewers
+ * and members read the reports on screen.
  */
 import { listClients } from "@/features/clients/queries";
 import { applyFilters } from "@/features/deadlines/group";
@@ -32,6 +33,7 @@ export async function GET(
   { params }: { params: Promise<{ name: string }> },
 ): Promise<Response> {
   try {
+    await authorizeRequest(request, "data.export");
     const { name } = await params;
     const url = new URL(request.url);
     const q = (k: string) => url.searchParams.get(k) ?? undefined;

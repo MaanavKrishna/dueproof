@@ -4,8 +4,12 @@ on:
     branches: [main]
   pull_request:
 
+# Read-only everywhere: no job pushes, comments or publishes.
 permissions:
   contents: read
+
+# Every action is pinned to a full commit SHA (the version is in the comment);
+# Dependabot moves them (.github/dependabot.yml).
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -21,9 +25,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: No AI attribution trailers
         run: |
           bad=$(git log --format='%H%n%B' | grep -iE '^(co-authored-by|generated-by|assisted-by):.*(claude|anthropic|copilot|openai|chatgpt|gemini|cursor|codex)|claude\.ai/code|generated with \[claude' || true)
@@ -38,9 +43,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: pnpm
@@ -63,11 +70,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Remove ee/
         run: rm -rf ee
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: pnpm
@@ -87,19 +96,29 @@ jobs:
       run:
         working-directory: services/engine
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          python-version: "3.14"
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          # The same Python as the engine image (services/engine/Dockerfile).
+          python-version: "3.13"
           enable-cache: true
-          cache-dependency-glob: services/engine/pyproject.toml
+          cache-dependency-glob: services/engine/uv.lock
       - name: Tesseract with the Hindi and Malayalam packs
         run: sudo apt-get update && sudo apt-get install -y tesseract-ocr tesseract-ocr-hin tesseract-ocr-mal
-      - name: Install (CPU PyTorch)
+      - name: uv.lock matches pyproject.toml
+        run: uv lock --check
+      - name: Install from uv.lock (with torch as locked, CPU build)
+        # torch comes from PyTorch's CPU index at the version uv.lock holds, as
+        # in the image; then the dev group exactly as locked.
         run: |
+          torch=$(python3 -c "import tomllib; print(next(p['version'] for p in tomllib.load(open('uv.lock', 'rb'))['package'] if p['name'] == 'torch'))")
+          echo "torch $torch (from uv.lock)"
           uv venv
-          uv pip install torch==2.13.0 --index-url https://download.pytorch.org/whl/cpu
-          uv pip install -e . --group dev
+          uv pip install "torch==$torch" --index-url https://download.pytorch.org/whl/cpu
+          uv sync --frozen --group dev --inexact
+          .venv/bin/python -c "import torch; print('torch', torch.__version__); assert torch.__version__.split('+')[0] == '$torch'; assert not torch.cuda.is_available()"
       - name: Lint
         run: .venv/bin/python -m pyflakes dueproof_engine tests scripts api
       - name: Tests
@@ -112,9 +131,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: pnpm
@@ -127,18 +148,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: WebKitGTK and the other Tauri build dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential file \
             libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - name: Rust (stable, with rustup on the runner)
+        run: |
+          rustup toolchain install stable --profile minimal --no-self-update
+          rustup default stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: apps/desktop/src-tauri
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: pnpm
@@ -147,5 +173,5 @@ jobs:
         run: pnpm --filter @dueproof/desktop test
       - name: Setup screen (the shell embeds it at compile time)
         run: pnpm --filter @dueproof/desktop build:ui
-      - name: Tests (cargo)
-        run: pnpm --filter @dueproof/desktop test:rust
+      - name: Tests (cargo, Cargo.lock as committed)
+        run: cargo test --locked --manifest-path apps/desktop/src-tauri/Cargo.toml

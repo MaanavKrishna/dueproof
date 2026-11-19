@@ -124,7 +124,7 @@ function UserMenu({ viewer, prefs }: { viewer: FrameViewer; prefs: Preferences }
             <MoonIcon size={16} /> Dark
           </MenuRadioItem>
           <MenuRadioItem value="system">
-            <MonitorIcon size={16} /> Match system
+            <MonitorIcon size={16} /> System
           </MenuRadioItem>
         </MenuRadioGroup>
         <MenuSeparator />

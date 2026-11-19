@@ -16,7 +16,8 @@ import {
   TextArea,
   TextField,
 } from "@dueproof/ui";
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useMemo, useRef, useState } from "react";
+import { focusFirstInvalid } from "@/components/focus-invalid";
 import { addManualDeadline } from "./actions";
 import styles from "./deadlines.module.css";
 import type { DeadlinesPageData } from "./queries";
@@ -44,6 +45,10 @@ export function AddDeadlineDialog({
   const [owner, setOwner] = useState<string>("none");
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // Field errors sit on the field (M9); the line above the buttons is for the server's.
+  const [titleError, setTitleError] = useState<string | undefined>(undefined);
+  const [dueError, setDueError] = useState<string | undefined>(undefined);
+  const form = useRef<HTMLFormElement>(null);
   const [busy, setBusy] = useState(false);
 
   const cal = useMemo(
@@ -63,8 +68,11 @@ export function AddDeadlineDialog({
   async function submit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!title.trim()) return setError("Give the deadline a title.");
-    if (!dueOn) return setError("Choose a due date.");
+    const noTitle = title.trim() ? undefined : "Give the deadline a title.";
+    const noDate = dueOn ? undefined : "Choose a due date.";
+    setTitleError(noTitle);
+    setDueError(noDate);
+    if (noTitle || noDate || !dueOn) return focusFirstInvalid(form.current);
     setBusy(true);
     const res = await addManualDeadline({
       title,
@@ -96,18 +104,26 @@ export function AddDeadlineDialog({
       description="For a date agreed with an officer, a hearing, or anything the notices don't show."
       size="md"
     >
-      <form className={styles.stack} onSubmit={submit} noValidate>
+      <form ref={form} className={styles.stack} onSubmit={submit} noValidate>
         <TextField
           label="Title"
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => {
+            setTitle(e.target.value);
+            if (e.target.value.trim()) setTitleError(undefined);
+          }}
           required
           maxLength={200}
+          {...(titleError ? { error: titleError } : {})}
         />
         <DatePicker
           label="Due on"
           value={dueOn}
-          onValueChange={setDueOn}
+          onValueChange={(d) => {
+            setDueOn(d);
+            if (d) setDueError(undefined);
+          }}
+          {...(dueError ? { error: dueError } : {})}
           today={data.today}
           holidays={holidayMap}
           referenceDate={data.today}

@@ -4,6 +4,7 @@ import { Button } from "../components/Button/Button";
 import { SettingsLayout, type SettingsNavItem } from "../components/SettingsLayout/SettingsLayout";
 import { Toolbar } from "../components/Toolbar/Toolbar";
 import { cx } from "../utils/cx";
+import type { PageWidth } from "./page";
 import styles from "./templates.module.css";
 
 export interface SettingsPageTemplateProps {
@@ -25,6 +26,8 @@ export interface SettingsPageTemplateProps {
   onSave?: () => void;
   onDiscard?: () => void;
   saveLabel?: string;
+  /** How wide the navigation and forms may go together (see PageWidth). Default "readable". */
+  width?: PageWidth;
   className?: string;
 }
 
@@ -48,6 +51,7 @@ export function SettingsPageTemplate({
   onSave,
   onDiscard,
   saveLabel = "Save changes",
+  width = "readable",
   className,
 }: SettingsPageTemplateProps) {
   const footer =
@@ -67,7 +71,10 @@ export function SettingsPageTemplate({
       </>
     ) : undefined;
   return (
-    <div className={cx(styles.page, styles.scrollPage, className)}>
+    <div
+      className={cx(styles.column, styles.page, styles.scrollPage, className)}
+      data-width={width}
+    >
       <Toolbar title={title} subtitle={subtitle} breadcrumbs={breadcrumbs} actions={actions} />
       {banner ? <div className={styles.banner}>{banner}</div> : null}
       <SettingsLayout

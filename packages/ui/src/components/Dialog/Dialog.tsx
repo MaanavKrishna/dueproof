@@ -1,9 +1,10 @@
 import { CloseIcon } from "@dueproof/icons";
 import { Dialog as RadixDialog } from "radix-ui";
-import type { ReactElement, ReactNode } from "react";
+import type { ReactElement, ReactNode, RefObject } from "react";
 import { AnimatePresence, fade, MotionFeatures, m, sheet, useReducedMotion } from "../../motion";
 import { cx } from "../../utils/cx";
 import { useControllableState } from "../../utils/use-controllable";
+import { useReturnFocus } from "../../utils/use-return-focus";
 import styles from "./Dialog.module.css";
 
 export interface DialogProps {
@@ -28,6 +29,11 @@ export interface DialogProps {
    */
   dismissible?: boolean;
   className?: string;
+  /**
+   * Where focus goes on close. Defaults to the trigger, or, with no trigger,
+   * the element that had focus when the dialog opened.
+   */
+  returnFocus?: RefObject<HTMLElement | null>;
 }
 
 /**
@@ -47,9 +53,11 @@ export function Dialog({
   hideClose = false,
   dismissible = true,
   className,
+  returnFocus,
 }: DialogProps) {
   const [open, setOpen] = useControllableState(openProp, defaultOpen, onOpenChange);
   const reduce = useReducedMotion();
+  const onCloseAutoFocus = useReturnFocus(open, Boolean(trigger), returnFocus);
   return (
     <RadixDialog.Root open={open} onOpenChange={setOpen}>
       {trigger ? <RadixDialog.Trigger asChild>{trigger}</RadixDialog.Trigger> : null}
@@ -70,6 +78,7 @@ export function Dialog({
                 <RadixDialog.Content
                   asChild
                   forceMount
+                  onCloseAutoFocus={onCloseAutoFocus}
                   {...(description ? {} : { "aria-describedby": undefined })}
                   onPointerDownOutside={(e) => {
                     if (!dismissible) e.preventDefault();

@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { NoAccess } from "@/components/NoAccess";
 import { EvidenceReportView } from "@/features/reports/EvidenceReportView";
 import { one, orNotFound } from "@/features/reports/load";
@@ -5,7 +6,7 @@ import { loadEvidenceReport } from "@/features/reports/queries";
 import { pageAccess } from "@/lib/server/page";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Evidence report · Dueproof" };
+export const metadata = { title: "Evidence report" };
 
 export default async function EvidenceReportPage({
   searchParams,
@@ -23,6 +24,8 @@ export default async function EvidenceReportPage({
       (e): e is [string, string] => Boolean(e[1]),
     ),
   ).toString();
+  // Nothing chosen: back to Reports to choose a case, a client or a date range (M10).
+  if (!q) redirect("/reports");
   const access = await pageAccess("report.view");
   if (!access.ok) return <NoAccess what="The evidence report" admins={access.admins} />;
   const ctx = access.ctx;

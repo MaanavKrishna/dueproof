@@ -28,6 +28,7 @@ import {
 import type { AuthContext } from "@/lib/authorize";
 import { computeDemand } from "@/lib/demands";
 import { notFound } from "@/lib/errors";
+import { hearingState, readHearingTime } from "@/lib/hearing-time";
 import {
   clientAllowed,
   type DueState,
@@ -115,6 +116,10 @@ export interface CaseDemand {
   penaltyRule: string | null;
   dueOn: string | null;
   asOf: string | null;
+  /** asOf in the house date format: "18 Nov 2026". */
+  asOfLabel: string | null;
+  /** False when the penalty rule is not yet checked by a chartered accountant. */
+  penaltyVerified: boolean;
   findingId: string | null;
   interestMinor: number | null;
   penalty: { min: number; max: number } | null;
@@ -156,6 +161,8 @@ export interface CaseData {
   owner: { id: string; name: string } | null;
   approvedBy: string | null;
   approvalRequestedBy: { id: string; name: string } | null;
+  /** Filed without partner approval: who decided, and why (audited as case.approval_skipped). */
+  approvalSkipped: { by: string; reason: string } | null;
   filingRef: string | null;
   filedOn: string | null;
   notice: CaseDocument | null;
@@ -202,6 +209,7 @@ const ACTION_WORDS: Record<string, string> = {
   "case.assign": "changed the owner",
   "case.stage": "moved the stage",
   "case.approve": "approved the reply",
+  "case.approval_skipped": "filed without partner approval",
   "case.document.link": "added a document to the thread",
   "document.upload.init": "uploaded a document",
   "document.upload.complete": "finished an upload",
@@ -342,6 +350,8 @@ export async function loadCase(
           warnings?: string[];
           receivedOnAssumed?: boolean;
         } | null;
+        // A hearing keeps its time (M8): read from its own words.
+        const time = f.kind === "hearing" ? readHearingTime(f.quote ?? f.text) : null;
         return {
           id: f.id,
           documentId: f.documentId,
@@ -362,8 +372,17 @@ export async function loadCase(
           deadline: dl
             ? {
                 id: dl.id,
-                state: dueState(dl.dueOn, clock.today, dl.status === "done"),
-                date: fmtDate(dl.dueOn, clock.locale),
+                state: hearingState(
+                  dueState(dl.dueOn, clock.today, dl.status === "done"),
+                  dl.dueOn,
+                  clock.today,
+                  time,
+                  now,
+                  clock.timezone,
+                ),
+                date: time
+                  ? `${fmtDate(dl.dueOn, clock.locale)}, ${time.label}`
+                  : fmtDate(dl.dueOn, clock.locale),
                 iso: dl.dueOn,
                 basis: dl.basis,
                 windowEnd: dl.windowEndOn ? fmtDate(dl.windowEndOn, clock.locale) : null,
@@ -382,8 +401,12 @@ export async function loadCase(
     const skipped = new Set<Stage>();
     const receivedHistory: CaseData["receivedHistory"] = [];
     const activity: CaseActivity[] = [];
+    let approvalSkipped: CaseData["approvalSkipped"] = null;
     for (const a of auditRows) {
       const detail = (a.detail ?? {}) as Record<string, unknown>;
+      if (a.action === "case.approval_skipped")
+        approvalSkipped = { by: nameOf(a.actor), reason: String(detail.reason ?? "") };
+      if (a.action === "case.approve") approvalSkipped = null;
       if (a.action === "case.stage") {
         const to = detail.to as Stage;
         stageDetails[to] = fmtDate(a.at.toISOString().slice(0, 10), clock.locale).replace(
@@ -516,13 +539,15 @@ export async function loadCase(
         penaltyRule: inputs.penaltyRule ?? null,
         dueOn: inputs.dueOn ?? null,
         asOf: inputs.asOf ?? null,
+        asOfLabel: inputs.asOf ? fmtDate(inputs.asOf, clock.locale) : null,
         findingId: d.findingId,
         interestMinor: comp.interest?.amountMinor ?? d.interestMinor,
         penalty: comp.penalty ? { min: comp.penalty.lowMinor, max: comp.penalty.highMinor } : null,
+        penaltyVerified: comp.penalty?.verified ?? true,
         workings: comp.interest?.workings ?? [],
         penaltyWorkings: comp.penalty?.workings ?? [],
         rateSource: comp.interest
-          ? `${comp.interest.source.citation}. ${comp.interest.verified ? "Checked." : "Not yet verified by a CA — verify."}`
+          ? `${comp.interest.source.citation}. ${comp.interest.verified ? "Checked by a chartered accountant." : "Not yet checked by a chartered accountant."}`
           : null,
         warnings: [...(comp.interest?.warnings ?? [])],
         error: comp.error,
@@ -553,6 +578,7 @@ export async function loadCase(
       owner: c.ownerUserId ? { id: c.ownerUserId, name: nameOf(c.ownerUserId) } : null,
       approvedBy: c.approvedByUserId ? nameOf(c.approvedByUserId) : null,
       approvalRequestedBy: requester ? { id: requester, name: nameOf(requester) } : null,
+      approvalSkipped: c.approvedByUserId ? null : approvalSkipped,
       filingRef: c.filingRef,
       filedOn: c.filedOn ? fmtDate(c.filedOn, clock.locale) : null,
       notice: notice ? toDoc(notice) : null,

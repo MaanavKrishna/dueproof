@@ -5,7 +5,7 @@ import { loadInbox } from "@/features/inbox/queries";
 import { pageAccess } from "@/lib/server/page";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Inbox · Dueproof" };
+export const metadata = { title: "Inbox" };
 
 export default async function InboxPage() {
   const gate = await pageAccess("case.view");

@@ -7,6 +7,7 @@ import "server-only";
 import { timingSafeEqual } from "node:crypto";
 import { rowsOf, sql } from "@dueproof/db";
 import { unsafeRawDb } from "@dueproof/db/internal";
+import { signEngineToken } from "@dueproof/engine-client";
 import type { Env } from "../env";
 import type { Container } from "./container";
 
@@ -18,7 +19,7 @@ export interface Check {
 }
 
 export interface EngineCheck extends Check {
-  /** Rungs and translation the engine reports (its /health is public too). */
+  /** Rungs and translation the engine reports (its /health shows them only to a token holder). */
   rungs?: Record<string, boolean>;
   translation?: boolean;
 }
@@ -60,7 +61,11 @@ export async function checkEngine(env: Env, doFetch: typeof fetch = fetch): Prom
   if (env.ENGINE_MODE === "fake") return { ok: true, ms: 0, rungs: { fake: true } };
   const url = `${(env.ENGINE_URL as string).replace(/\/+$/, "")}/health`;
   const r = await timed(async () => {
-    const res = await doFetch(url, { signal: AbortSignal.timeout(3000) });
+    // Anonymous callers get only {"status": "ok"}; the capabilities need the engine token.
+    const headers: Record<string, string> = env.ENGINE_SHARED_SECRET
+      ? { authorization: `Bearer ${signEngineToken(env.ENGINE_SHARED_SECRET, { ttlSeconds: 60 })}` }
+      : {};
+    const res = await doFetch(url, { headers, signal: AbortSignal.timeout(3000) });
     if (!res.ok) throw Object.assign(new Error(), { name: `http ${res.status}` });
     return (await res.json()) as { rungs?: Record<string, boolean>; translation?: string };
   });
@@ -104,11 +109,11 @@ const LOOPBACK = /^(127\.\d+\.\d+\.\d+|::1|::ffff:127\.\d+\.\d+\.\d+|localhost)$
 
 /**
  * /api/metrics is for the operator's own Prometheus. With METRICS_TOKEN set
- * it needs `Authorization: Bearer <token>`. Without one it answers only
- * requests from this machine: every address in the forwarding headers must
- * be loopback (the Next.js server fills x-forwarded-for with the socket's
- * address; Caddy and Vercel put the real client there), and nothing may
- * have come through Vercel.
+ * it needs `Authorization: Bearer <token>`. A route handler can't see the
+ * socket's address, only headers a client can write (X-Forwarded-For), so in
+ * production the token is required: without one the endpoint is off
+ * (security review I1). In development and tests, requests with no
+ * forwarding headers, or only loopback ones, are answered.
  */
 export function metricsAllowed(request: Request, env: Env): boolean {
   if (env.METRICS_TOKEN) {
@@ -117,6 +122,7 @@ export function metricsAllowed(request: Request, env: Env): boolean {
     const b = Buffer.from(env.METRICS_TOKEN);
     return a.length === b.length && timingSafeEqual(a, b);
   }
+  if (env.NODE_ENV === "production") return false;
   if (request.headers.has("x-vercel-id") || request.headers.has("forwarded")) return false;
   const hops = ["x-forwarded-for", "x-real-ip"].flatMap((h) =>
     (request.headers.get(h) ?? "")

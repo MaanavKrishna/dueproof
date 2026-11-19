@@ -151,9 +151,9 @@ export function OrganisationSettings({
         title="Organisation"
         description="Your firm's name and logo appear on reports and the evidence report cover."
       >
-        <SettingsRow label="Firm name" stacked>
+        <SettingsRow label="Organisation name" stacked>
           <TextField
-            label="Firm name"
+            label="Organisation name"
             hideLabel
             value={form.name}
             autoComplete="organization"

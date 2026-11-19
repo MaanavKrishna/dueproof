@@ -185,7 +185,8 @@ export function resolveStatutory(
   for (const c of rule.checks ?? []) {
     if (options.facts && factsMatch(c.when, options.facts)) warnings.push(c.warning);
   }
-  if (!rule.verified) warnings.push("Rule not yet verified against the statute (verify in M0).");
+  if (!rule.verified)
+    warnings.push("Rule not yet checked against the statute by a chartered accountant.");
 
   let dueOn = base.dueOn;
   const ext = findExtension(

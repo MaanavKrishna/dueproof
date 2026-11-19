@@ -126,7 +126,7 @@ services:
       retries: 3
 
   postgres:
-    image: pgvector/pgvector:pg17
+    image: pgvector/pgvector:pg17@sha256:b513c48566e4777cd3370451400000c78eda6a08131d68f4c31d4a76f27bd8fd
     restart: unless-stopped
     environment:
       POSTGRES_USER: dueproof
@@ -148,7 +148,7 @@ services:
       options: { max-size: "20m", max-file: "5" }
 
   caddy:
-    image: caddy:2-alpine
+    image: caddy:2-alpine@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0
     restart: unless-stopped
     depends_on:
       app: { condition: service_healthy }
@@ -169,7 +169,7 @@ services:
 
   # Nightly database dump + files archive, verified after each run (03 §14).
   backup:
-    image: pgvector/pgvector:pg17
+    image: pgvector/pgvector:pg17@sha256:b513c48566e4777cd3370451400000c78eda6a08131d68f4c31d4a76f27bd8fd
     restart: unless-stopped
     depends_on:
       postgres: { condition: service_healthy }
@@ -219,7 +219,7 @@ services:
   # Runs once per `up`: dumps the database before the app migrates it, if
   # there is anything to dump (skipped on a fresh install).
   pre-upgrade-backup:
-    image: pgvector/pgvector:pg17
+    image: pgvector/pgvector:pg17@sha256:b513c48566e4777cd3370451400000c78eda6a08131d68f4c31d4a76f27bd8fd
     restart: "no"
     depends_on:
       postgres: { condition: service_healthy }
@@ -230,7 +230,7 @@ services:
 
   # Restore a backup: see docs/backup-and-restore.md. Not started by `up`.
   restore:
-    image: pgvector/pgvector:pg17
+    image: pgvector/pgvector:pg17@sha256:b513c48566e4777cd3370451400000c78eda6a08131d68f4c31d4a76f27bd8fd
     profiles: [restore]
     restart: "no"
     depends_on:

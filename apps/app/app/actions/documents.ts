@@ -9,6 +9,7 @@ import { and, audit, documents, eq, type OrgTx, withOrg } from "@dueproof/db";
 import { z } from "zod";
 import { type ActionResult, runAction } from "@/lib/action";
 import { authorize } from "@/lib/authorize";
+import { requireClient } from "@/lib/client-access";
 import { storeDocumentPassword } from "@/lib/document-passwords";
 import { HttpError, notFound } from "@/lib/errors";
 import { announce, writeStatus } from "@/lib/pipeline/status";
@@ -28,11 +29,12 @@ async function restart(
   const ctx = await authorize("document.upload");
   const ok = await withOrg(ctx.container.database, ctx.orgId, async (tx, scope) => {
     const [doc] = await tx
-      .select({ status: documents.status })
+      .select({ status: documents.status, clientId: documents.clientId })
       .from(documents)
       .where(and(eq(documents.orgId, ctx.orgId), eq(documents.id, documentId)))
       .limit(1);
     if (!doc) throw notFound("That document");
+    requireClient(ctx, "document.upload", doc.clientId, "That document");
     if (!allowed.includes(doc.status))
       throw new HttpError(409, "This document isn't waiting for that.", "wrong_state");
     await writeStatus(tx, ctx.orgId, documentId, "stored", action);

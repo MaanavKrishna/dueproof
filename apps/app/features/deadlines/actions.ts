@@ -6,18 +6,13 @@
  * Dates for manual deadlines come from core's date engine.
  */
 import { listOrgPeople } from "@dueproof/auth";
-import {
-  authorize as checkPolicy,
-  isDateError,
-  isValidIsoDate,
-  PolicyDenied,
-  resolveDate,
-} from "@dueproof/core";
+import { isDateError, isValidIsoDate, resolveDate } from "@dueproof/core";
 import { and, audit, cases, clients, deadlines, eq, uuidv7, withOrg } from "@dueproof/db";
 import { type ActionResult, runAction } from "@/lib/action";
 import { type AuthContext, authorize } from "@/lib/authorize";
 import { loadOrgCalendar } from "@/lib/calendar";
-import { badRequest, forbidden, notFound } from "@/lib/errors";
+import { requireClient } from "@/lib/client-access";
+import { badRequest, notFound } from "@/lib/errors";
 import { notify } from "@/lib/notify";
 import { type FeedScope, signFeedToken } from "./ical";
 
@@ -39,12 +34,7 @@ async function loadForEdit(ctx: AuthContext, id: string) {
     return d;
   });
   if (!row) throw notFound("That deadline");
-  try {
-    checkPolicy(ctx, "deadline.edit", row.clientId ? { clientId: row.clientId } : undefined);
-  } catch (e) {
-    if (e instanceof PolicyDenied) throw forbidden();
-    throw e;
-  }
+  requireClient(ctx, "deadline.edit", row.clientId, "That deadline");
   return row;
 }
 
@@ -127,11 +117,16 @@ export async function restoreDeadline(prev: Snapshot): Promise<ActionResult<null
   });
 }
 
-/** Dismiss a deadline that doesn't apply (it stays in history). */
+/**
+ * Dismiss a deadline that doesn't apply (it stays in history). Saying a
+ * statutory date doesn't apply overrides the calendar: `statutory.override`.
+ */
 export async function dismissDeadline(id: string): Promise<ActionResult<Snapshot>> {
   return runAction("dismissDeadline", async () => {
     const ctx = await authorize("deadline.edit");
     const row = await loadForEdit(ctx, id);
+    if (row.source === "statutory")
+      requireClient(ctx, "statutory.override", row.clientId, "That deadline");
     await update(
       ctx,
       id,
@@ -234,6 +229,9 @@ export async function addManualDeadline(
           .where(and(eq(cases.orgId, ctx.orgId), eq(cases.id, input.caseId)))
           .limit(1);
         if (!c) throw notFound("That case");
+        requireClient(ctx, "deadline.edit", c.clientId, "That case");
+        if (clientId && c.clientId && clientId !== c.clientId)
+          throw badRequest("That case is for another client.");
         clientId = clientId ?? c.clientId;
       }
       if (clientId) {

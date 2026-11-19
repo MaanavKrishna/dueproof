@@ -8,7 +8,9 @@ import { and, audit, cases, eq, inArray, savedViews, uuidv7, withOrg } from "@du
 import { z } from "zod";
 import { type ActionResult, runAction } from "@/lib/action";
 import { authorize } from "@/lib/authorize";
+import { clientAllowed, requireClient } from "@/lib/client-access";
 import { badRequest, forbidden, notFound } from "@/lib/errors";
+import { loadPeople } from "@/lib/org";
 import { enforce } from "@/lib/rate-limit";
 import { moveStage, STAGES } from "@/lib/stages";
 import { applyFilters, toCsv } from "./model";
@@ -104,12 +106,14 @@ export async function bulkUpdate(
     if (v.stage && !BULK_STAGES.has(v.stage))
       throw badRequest("Approval and filing are done on each case, not in bulk.");
     const ctx = await authorize(v.ownerUserId !== undefined ? "case.assign" : "case.change_stage");
+    if (v.ownerUserId && !(await loadPeople(ctx)).some((p) => p.id === v.ownerUserId))
+      throw badRequest("That person isn't in your organisation.");
     return withOrg(ctx.container.database, ctx.orgId, async (tx, scope) => {
       const rows = await tx
         .select()
         .from(cases)
         .where(and(eq(cases.orgId, ctx.orgId), inArray(cases.id, v.caseIds)));
-      if (rows.some((r) => r.clientId && ctx.clientIds && !ctx.clientIds.includes(r.clientId)))
+      if (rows.some((r) => !clientAllowed(ctx, r.clientId)))
         throw forbidden("Some of these cases are for clients you don't have access to.");
       const undo: BulkUndo = {
         items: rows.map((r) => ({ id: r.id, ownerUserId: r.ownerUserId, stage: r.stage })),
@@ -143,24 +147,56 @@ const UndoInput = z.object({
     .max(1000),
 });
 
-/** Put cases back as they were before a bulk change (each step audited). */
+/**
+ * Put cases back as they were before a bulk change. Undo is held to the
+ * same rules as the change itself: a new owner needs `case.assign` and must
+ * be in the organisation, a stage goes through `moveStage` (approval needs
+ * `reply.request_approval`, filing needs the acknowledgement and its
+ * number), and every case must be one of the caller's clients.
+ */
 export async function undoBulk(
   input: z.input<typeof UndoInput>,
 ): Promise<ActionResult<{ count: number }>> {
   return runAction(async () => {
     const v = UndoInput.parse(input);
     const ctx = await authorize("case.change_stage");
+    const people = new Set((await loadPeople(ctx)).map((p) => p.id));
     return withOrg(ctx.container.database, ctx.orgId, async (tx, scope) => {
+      const rows = await tx
+        .select()
+        .from(cases)
+        .where(
+          and(
+            eq(cases.orgId, ctx.orgId),
+            inArray(
+              cases.id,
+              v.items.map((i) => i.id),
+            ),
+          ),
+        );
+      const byId = new Map(rows.map((r) => [r.id, r]));
+      // Check every case before changing any, so a refused item leaves nothing half-undone.
+      for (const item of v.items) {
+        const c = byId.get(item.id);
+        if (!c) continue;
+        requireClient(ctx, "case.view", c.clientId, "That case");
+        if (c.ownerUserId !== item.ownerUserId) {
+          requireClient(ctx, "case.assign", c.clientId, "That case");
+          if (item.ownerUserId && !people.has(item.ownerUserId))
+            throw badRequest("That person isn't in your organisation.");
+        }
+        if (c.stage !== item.stage)
+          requireClient(ctx, "case.change_stage", c.clientId, "That case");
+      }
       let count = 0;
       for (const item of v.items) {
-        const [c] = await tx
-          .select()
-          .from(cases)
-          .where(and(eq(cases.orgId, ctx.orgId), eq(cases.id, item.id)))
-          .limit(1);
+        const c = byId.get(item.id);
         if (!c) continue;
         if (c.ownerUserId !== item.ownerUserId) {
-          await tx.update(cases).set({ ownerUserId: item.ownerUserId }).where(eq(cases.id, c.id));
+          await tx
+            .update(cases)
+            .set({ ownerUserId: item.ownerUserId })
+            .where(and(eq(cases.orgId, ctx.orgId), eq(cases.id, c.id)));
           await audit.write(tx, scope, {
             actor: ctx.userId,
             action: "case.assign",
@@ -171,14 +207,12 @@ export async function undoBulk(
           });
         }
         if (c.stage !== item.stage) {
-          await tx.update(cases).set({ stage: item.stage }).where(eq(cases.id, c.id));
-          await audit.write(tx, scope, {
-            actor: ctx.userId,
-            action: "case.stage",
-            targetType: "case",
-            targetId: c.id,
-            requestId: ctx.requestId,
-            detail: { from: c.stage, to: item.stage, reason: "Undone", undo: true },
+          // Back to "filed" keeps the case's own acknowledgement number; moveStage checks the upload.
+          await moveStage(tx, ctx, scope, c, {
+            to: item.stage,
+            reason: "Undone",
+            ...(c.filingRef ? { filingRef: c.filingRef } : {}),
+            ...(c.filedOn ? { filedOn: c.filedOn } : {}),
           });
         }
         count += 1;
@@ -188,11 +222,12 @@ export async function undoBulk(
   });
 }
 
-/** CSV of the current view: the same filters as the screen, applied on the server. */
+/** CSV of the current view: the same filters as the screen, applied on the server. Needs `data.export`. */
 export async function exportNoticesCsv(
   filters: Record<string, string[]>,
 ): Promise<ActionResult<{ filename: string; csv: string; count: number }>> {
   return runAction(async () => {
+    await authorize("data.export");
     const ctx = await authorize("report.view");
     await enforce(ctx.container, "export.user", ctx.userId);
     const f = FiltersSchema.parse(filters);

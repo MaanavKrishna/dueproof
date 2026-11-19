@@ -6,7 +6,7 @@ import { HttpError } from "@/lib/errors";
 import { pageAccess } from "@/lib/server/page";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Case · Dueproof" };
+export const metadata = { title: "Case" };
 
 export default async function CasePage({
   params,

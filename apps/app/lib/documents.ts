@@ -1,4 +1,7 @@
-/** Read models for one document, org-scoped through withOrg. */
+/**
+ * Read models for one document, org-scoped through withOrg and limited to
+ * the caller's clients: another client's document is "not found".
+ */
 import "server-only";
 import {
   and,
@@ -12,6 +15,7 @@ import {
   withOrg,
 } from "@dueproof/db";
 import type { AuthContext } from "./authorize";
+import { clientScope } from "./client-access";
 import { notFound } from "./errors";
 
 export async function getDocumentStatus(ctx: AuthContext, documentId: string) {
@@ -19,7 +23,13 @@ export async function getDocumentStatus(ctx: AuthContext, documentId: string) {
     const [doc] = await tx
       .select({ id: documents.id, status: documents.status, statusDetail: documents.statusDetail })
       .from(documents)
-      .where(and(eq(documents.orgId, ctx.orgId), eq(documents.id, documentId)))
+      .where(
+        and(
+          eq(documents.orgId, ctx.orgId),
+          eq(documents.id, documentId),
+          clientScope(ctx, documents.clientId),
+        ),
+      )
       .limit(1);
     return doc;
   });
@@ -32,7 +42,13 @@ export async function getDocumentDetail(ctx: AuthContext, documentId: string) {
     const [doc] = await tx
       .select()
       .from(documents)
-      .where(and(eq(documents.orgId, ctx.orgId), eq(documents.id, documentId)))
+      .where(
+        and(
+          eq(documents.orgId, ctx.orgId),
+          eq(documents.id, documentId),
+          clientScope(ctx, documents.clientId),
+        ),
+      )
       .limit(1);
     if (!doc) throw notFound("That document");
     const [found, proof, due, events] = await Promise.all([

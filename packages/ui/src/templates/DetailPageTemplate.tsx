@@ -4,6 +4,7 @@ import { Tab, TabList, TabPanel, Tabs } from "../components/Tabs/Tabs";
 import { Toolbar } from "../components/Toolbar/Toolbar";
 import { cx } from "../utils/cx";
 import { useControllableState } from "../utils/use-controllable";
+import type { PageWidth } from "./page";
 import styles from "./templates.module.css";
 
 export interface DetailTab {
@@ -41,6 +42,8 @@ export interface DetailPageTemplateProps {
   inspectorActions?: ReactNode;
   /** Wider inspector for documents. Default "lg". */
   inspectorSize?: "md" | "lg";
+  /** How wide the content may go (see PageWidth). Default "wide". */
+  width?: PageWidth;
   className?: string;
 }
 
@@ -67,6 +70,7 @@ export function DetailPageTemplate({
   onInspectorOpenChange,
   inspectorActions,
   inspectorSize = "lg",
+  width = "wide",
   className,
 }: DetailPageTemplateProps) {
   const [tab, setTab] = useControllableState(
@@ -84,7 +88,7 @@ export function DetailPageTemplate({
       inspectorActions={inspectorActions}
       inspectorSize={inspectorSize}
     >
-      <div className={styles.detail}>
+      <div className={cx(styles.column, styles.detail)} data-width={width}>
         <Toolbar
           title={title}
           breadcrumbs={breadcrumbs}

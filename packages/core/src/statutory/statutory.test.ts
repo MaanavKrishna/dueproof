@@ -40,7 +40,10 @@ describe("India pack golden dates", () => {
       });
       if (c.basis) expect(r.basis).toBe(c.basis);
       if (c.warningsMatch) expect(r.warnings.join(" | ")).toContain(c.warningsMatch);
-      expect(r.warnings.join(" ")).toContain("verify in M0");
+      expect(r.warnings.join(" ")).toContain(
+        "checked against the statute by a chartered accountant",
+      );
+      expect(r.warnings.join(" ")).not.toMatch(/M0/);
       expect(r.inputs.packVersion).toBe(IN_PACK.version);
     },
   );

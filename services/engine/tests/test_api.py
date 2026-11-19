@@ -52,6 +52,63 @@ class Tokens(unittest.TestCase):
                 self.assertEqual(r.status_code, 401)
         self.assertEqual(anon.get("/health").json()["status"], "ok")
 
+    def test_health_is_minimal_without_a_token(self):
+        from fastapi.testclient import TestClient
+        from dueproof_engine.app import app
+        anon = TestClient(app)
+        self.assertEqual(anon.get("/health").json(), {"status": "ok"})
+        full = client().get("/health").json()
+        self.assertIn("rungs", full)
+        self.assertIn("version", full)
+
+    def test_openapi_and_docs_need_a_token(self):
+        from fastapi.testclient import TestClient
+        from dueproof_engine.app import app
+        anon = TestClient(app)
+        self.assertEqual(anon.get("/openapi.json").status_code, 401)
+        self.assertIn(anon.get("/docs").status_code, (401, 404))
+        self.assertEqual(client().get("/openapi.json").status_code, 200)
+
+    def test_auth_is_checked_before_the_body_is_read(self):
+        from fastapi.testclient import TestClient
+        from dueproof_engine.app import app
+        read = []
+
+        def chunks():
+            for _ in range(4):
+                read.append(1)
+                yield b"x" * 1024
+        r = TestClient(app).post("/v1/link", content=chunks())
+        self.assertEqual((r.status_code, r.json()["error"]), (401, "unauthorised"))
+        self.assertLessEqual(len(read), 1)  # at most what the client buffered before sending
+
+    def test_body_cap_holds_for_a_chunked_request(self):
+        def chunks():
+            for _ in range(8):
+                yield b"x" * 1024
+        with mock.patch("dueproof_engine.app.MAX_BODY_BYTES", 4096):
+            r = client().post("/v1/link", content=chunks(),
+                              headers={"content-type": "application/json"})
+        self.assertEqual((r.status_code, r.json()["error"]), (413, "too_large"))
+        with mock.patch("dueproof_engine.app.MAX_BODY_BYTES", 4096):
+            r = client().post("/v1/link", json={"pages": [], "quotes": []})
+        self.assertEqual(r.status_code, 200)
+
+    def test_an_encoded_body_is_refused(self):
+        import gzip
+        r = client().post("/v1/link", content=gzip.compress(b'{"pages":[],"quotes":[]}'),
+                          headers={"content-type": "application/json", "content-encoding": "gzip"})
+        self.assertEqual((r.status_code, r.json()["error"]), (415, "encoded"))
+
+    def test_a_slow_body_is_cut_off(self):
+        def slow():
+            yield b'{"pages":[],'
+            time.sleep(0.5)
+            yield b'"quotes":[]}'
+        with mock.patch("dueproof_engine.app.BODY_TIMEOUT", 0.2):
+            r = client().post("/v1/link", content=slow(), headers={"content-type": "application/json"})
+        self.assertEqual((r.status_code, r.json()["error"]), (408, "timeout"))
+
     def test_no_secret_means_no_service(self):
         with mock.patch.dict(os.environ, {"ENGINE_SHARED_SECRET": "short"}):
             r = client().post("/v1/link", json={"pages": [], "quotes": []})
@@ -203,6 +260,26 @@ class Refusals(unittest.TestCase):
         with mock.patch.dict(os.environ, {"DUEPROOF_ALLOWED_HOSTS": "*.r2.cloudflarestorage.com"}):
             r = self.post("/v1/inspect", sourceUrl=self.storage.url(NOTICE))
         self.assertEqual(r.status_code, 502)
+
+    def test_empty_allowlist_refuses_every_host(self):
+        # Fail closed (security review S4): unset is not "anything goes".
+        with mock.patch.dict(os.environ, {"DUEPROOF_ALLOWED_HOSTS": ""}):
+            r = self.post("/v1/inspect", sourceUrl=self.storage.url(NOTICE))
+            self.assertEqual((r.status_code, r.json()["error"]), (502, "storage"))
+            with mock.patch.dict(os.environ, {"DUEPROOF_ALLOW_ANY_HOST": "1"}):
+                r = self.post("/v1/inspect", sourceUrl=self.storage.url(NOTICE))
+                self.assertEqual(r.status_code, 200)
+
+    def test_exact_r2_hosts(self):
+        from dueproof_engine.api import storage
+        hosts = "dueproof-prod.acct123.r2.cloudflarestorage.com,acct123.r2.cloudflarestorage.com"
+        with mock.patch.dict(os.environ, {"DUEPROOF_ALLOWED_HOSTS": hosts}):
+            storage.check_url("https://dueproof-prod.acct123.r2.cloudflarestorage.com/org/o/x")
+            storage.check_url("https://acct123.r2.cloudflarestorage.com/dueproof-prod/org/o/x")
+            for other in ("https://other.r2.cloudflarestorage.com/x",
+                          "https://evil.acct999.r2.cloudflarestorage.com/x"):
+                with self.subTest(other), self.assertRaises(storage.StorageError):
+                    storage.check_url(other)
 
     def test_invalid_body_does_not_echo_input(self):
         r = client().post("/v1/link", json={"pages": [{"page": 0, "text": "SECRET-DOCUMENT-TEXT"}],

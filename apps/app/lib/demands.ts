@@ -62,6 +62,8 @@ export function computeDemand(
                 taxMinor: principalMinor,
                 dueOn: inputs.dueOn,
                 paidOn: inputs.asOf,
+                // asOf is the date computed to; nothing has been paid.
+                paid: false,
               },
               { locale },
             );

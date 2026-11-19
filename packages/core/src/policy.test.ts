@@ -18,6 +18,7 @@ deadline.edit           Y Y Y Y .
 reply.draft             Y Y Y Y .
 reply.request_approval  Y Y Y Y .
 reply.approve           Y Y Y . .
+reply.skip_approval     Y Y Y . .
 client.view             Y Y Y Y Y
 client.edit             Y Y Y . .
 statutory.override      Y Y Y . .

@@ -58,7 +58,16 @@ missing or wrong (never its value). The complete list with defaults is
 | Endpoint | What | Who can reach it |
 |---|---|---|
 | `GET /api/health` | Database and engine reachability and timings, version, edition. 200 (`ok`/`degraded`) or 503 (`down`) | Self-hosted: only from the server (Caddy refuses it). Hosted: public, holds no secrets |
-| `GET /api/metrics` | Prometheus text: parts up, check times, workflow runs by status, rate-limit refusals, memory | Loopback only, or anyone with `Authorization: Bearer $METRICS_TOKEN` |
+| `GET /api/metrics` | Prometheus text: parts up, check times, workflow runs by status, rate-limit refusals, memory | Anyone with `Authorization: Bearer $METRICS_TOKEN`. In production it is off until the token is set; development also answers local requests |
+
+The Workflow DevKit's queue route (`/.well-known/workflow/v1/flow`) runs
+workflow steps. On hosted, the Vercel World's queue authenticates its own
+deliveries. On a self-hosted server, the Postgres World's route has no
+authentication of its own: Caddy refuses it from the internet, and the
+app's worker calls it on localhost. The engine container shares the
+internal network with the app (it fetches signed storage links from it), so
+anything running in the engine could reach the route. Keep the engine
+image yours and up to date; separating the two networks is on the roadmap.
 
 ## Security headers and limits
 

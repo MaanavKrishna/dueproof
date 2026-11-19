@@ -160,6 +160,8 @@ export {
   type SavedView,
 } from "./components/FilterBar/FilterBar";
 export { FindingCard, type FindingCardProps } from "./components/FindingCard/FindingCard";
+// Layout
+export { Grid, type GridItemSize, type GridProps } from "./components/Grid/Grid";
 export { IconButton, type IconButtonProps } from "./components/IconButton/IconButton";
 export {
   InsetGroupedList,
@@ -331,6 +333,7 @@ export {
   type DetailTab,
 } from "./templates/DetailPageTemplate";
 export { ListPageTemplate, type ListPageTemplateProps } from "./templates/ListPageTemplate";
+export { PAGE_WIDTHS, type PageWidth } from "./templates/page";
 export {
   SettingsPageTemplate,
   type SettingsPageTemplateProps,

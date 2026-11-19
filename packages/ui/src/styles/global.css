@@ -53,3 +53,26 @@ body {
   font-family: var(--dp-font-family-indic);
   line-height: var(--dp-font-line-height-indic);
 }
+
+/*
+ * Layout (packages/ui README, "Layout"). The page gutter grows with the
+ * screen. Page templates combine it with their width (full, wide, readable,
+ * narrow) into --dp-page-inset, the side padding of every part of the page,
+ * so the title, banners, filters and content share one left edge.
+ * Breakpoints are the tokens' (640 and 1440); media queries can't read variables.
+ */
+:root {
+  --dp-page-gutter: var(--dp-layout-gutter-regular);
+}
+
+@media (width < 40rem) {
+  :root {
+    --dp-page-gutter: var(--dp-layout-gutter-compact);
+  }
+}
+
+@media (width >= 90rem) {
+  :root {
+    --dp-page-gutter: var(--dp-layout-gutter-roomy);
+  }
+}

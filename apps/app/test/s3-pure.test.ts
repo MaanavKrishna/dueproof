@@ -24,7 +24,7 @@ import {
 import { validSubscription } from "../features/push/validate";
 import { renderDigest } from "../features/reminders/digest";
 import { csvCell, rupees, toCsv } from "../lib/csv";
-import type { DeadlineRow } from "../lib/deadline-rows";
+import { type DeadlineRow, isPastWhenAdded } from "../lib/deadline-rows";
 import { parseEnv } from "../lib/env";
 import { vapidKeys } from "../lib/push";
 
@@ -125,6 +125,10 @@ function row(p: Partial<DeadlineRow> & { id: string; dueOn: string }): DeadlineR
     caseId: null,
     caseTitle: null,
     findingId: null,
+    documentId: null,
+    unfiled: false,
+    pastWhenAdded: false,
+    time: null,
     completedAt: null,
     snoozedUntil: null,
     ackNumber: null,
@@ -155,6 +159,63 @@ describe("deadline list", () => {
     ]);
     expect(mondayOf("2026-11-22")).toBe("2026-11-16");
     expect(weekRange("2026-11-30")).toBe("30 Nov – 6 Dec 2026");
+  });
+
+  it("keeps deadlines from unfiled documents apart, never in Overdue (H2)", () => {
+    const groups = groupByWeek(
+      [
+        row({ id: "late", dueOn: "2026-11-10" }),
+        row({
+          id: "invoice",
+          dueOn: "2026-11-01",
+          source: "notice",
+          findingId: "f",
+          unfiled: true,
+        }),
+      ],
+      today,
+    );
+    expect(groups.map((g) => [g.label, g.rows.map((r) => r.id)])).toEqual([
+      ["Overdue", ["late"]],
+      ["Not filed yet", ["invoice"]],
+    ]);
+  });
+
+  it("groups statutory periods already past when added apart from Overdue (M5)", () => {
+    const groups = groupByWeek(
+      [
+        row({ id: "late", dueOn: "2026-11-10" }),
+        row({ id: "q2", dueOn: "2026-10-31", pastWhenAdded: true }),
+        row({ id: "next", dueOn: "2026-11-24" }),
+      ],
+      today,
+    );
+    expect(groups.map((g) => [g.label, g.rows.map((r) => r.id)])).toEqual([
+      ["Overdue", ["late"]],
+      ["Already past when added", ["q2"]],
+      ["Next week", ["next"]],
+    ]);
+    expect(
+      isPastWhenAdded({
+        source: "statutory",
+        dueOn: "2026-10-31",
+        createdAt: new Date("2026-11-18T10:00:00Z"),
+      }),
+    ).toBe(true);
+    expect(
+      isPastWhenAdded({
+        source: "statutory",
+        dueOn: "2026-11-20",
+        createdAt: new Date("2026-11-18T10:00:00Z"),
+      }),
+    ).toBe(false);
+    expect(
+      isPastWhenAdded({
+        source: "notice",
+        dueOn: "2026-10-31",
+        createdAt: new Date("2026-11-18T10:00:00Z"),
+      }),
+    ).toBe(false);
   });
 
   it("filters by client, person, source and status, with snoozed items apart", () => {
@@ -285,9 +346,39 @@ describe("web push", () => {
     );
     expect(() => validSubscription({ endpoint: "https://127.0.0.1/x", keys })).toThrow(/allowed/);
     expect(() =>
-      validSubscription({ endpoint: "https://push.example/x", keys: { p256dh: "a b", auth: "x" } }),
+      validSubscription({
+        endpoint: "https://fcm.googleapis.com/fcm/send/x",
+        keys: { p256dh: "a b", auth: "x" },
+      }),
     ).toThrow(/keys/);
     expect(() => validSubscription(null)).toThrow();
+  });
+
+  it("allows only the browsers' push services (security review L2)", () => {
+    const keys = { p256dh: "BNcRdreALRFXTkOOUHK1EtK2", auth: "tBHItJI5svbpez7KI4CCXg" };
+    for (const ok of [
+      "https://fcm.googleapis.com/fcm/send/abc",
+      "https://updates.push.services.mozilla.com/wpush/v2/abc",
+      "https://web.push.apple.com/QGx",
+      "https://wns2-par02p.notify.windows.com/w/?token=abc",
+    ]) {
+      expect(validSubscription({ endpoint: ok, keys }).endpoint).toBe(ok);
+    }
+    for (const bad of [
+      "https://172.16.0.1/x",
+      "https://0.0.0.0/x",
+      "https://100.64.0.1/x",
+      "https://[fd00::1]/x",
+      "https://[::ffff:10.0.0.1]/x",
+      "https://metadata.google.internal/x",
+      "https://push.example/x",
+      "https://fcm.googleapis.com.evil.test/x",
+      "https://evilfcm.googleapis.com.test/x",
+      "https://fcm.googleapis.com:8443/x",
+      "https://user@fcm.googleapis.com/x",
+    ]) {
+      expect(() => validSubscription({ endpoint: bad, keys }), bad).toThrow(/allowed/);
+    }
   });
 
   it("derives a stable P-256 VAPID pair from AUTH_SECRET unless keys are set", () => {

@@ -21,6 +21,8 @@ export function createVercelBlobStorage(_options: VercelBlobOptions): StoragePor
     get: no,
     head: no,
     delete: no,
+    getStream: no,
+    copy: no,
     putSignedUrl: no,
     getSignedUrl: no,
   };

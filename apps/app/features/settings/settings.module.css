@@ -1,8 +1,10 @@
+/* The settings page column (readable width, centred), so nothing jumps when the section loads. */
 .skeleton {
   display: flex;
   flex-direction: column;
   gap: var(--dp-space-24);
-  padding: var(--dp-space-32) var(--dp-space-32);
+  padding: var(--dp-space-32)
+    max(var(--dp-page-gutter), (100% - var(--dp-layout-page-readable)) / 2);
 }
 
 .skeletonTitle {
@@ -27,7 +29,7 @@
   flex: 1;
   flex-direction: column;
   gap: var(--dp-space-20);
-  max-width: calc(var(--dp-space-96) * 7);
+  max-width: var(--dp-layout-content);
 }
 
 .skeletonCard {
@@ -36,7 +38,7 @@
 
 @media (width < 40rem) {
   .skeleton {
-    padding: var(--dp-space-16);
+    padding-block: var(--dp-space-16);
   }
   .skeletonNav {
     display: none;

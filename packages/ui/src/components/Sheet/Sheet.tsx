@@ -1,9 +1,10 @@
 import { CloseIcon } from "@dueproof/icons";
 import { Dialog as RadixDialog } from "radix-ui";
-import type { ReactElement, ReactNode } from "react";
+import type { ReactElement, ReactNode, RefObject } from "react";
 import { AnimatePresence, fade, MotionFeatures, m, sheet, useReducedMotion } from "../../motion";
 import { cx } from "../../utils/cx";
 import { useControllableState } from "../../utils/use-controllable";
+import { useReturnFocus } from "../../utils/use-return-focus";
 import styles from "./Sheet.module.css";
 
 export type SheetSide = "right" | "left" | "bottom";
@@ -25,6 +26,11 @@ export interface SheetProps {
    */
   modal?: boolean;
   className?: string;
+  /**
+   * Where focus goes on close. Defaults to the trigger, or, with no trigger,
+   * the element that had focus when the dialog opened.
+   */
+  returnFocus?: RefObject<HTMLElement | null>;
 }
 
 const offscreen: Record<SheetSide, { x?: string; y?: string }> = {
@@ -46,9 +52,11 @@ export function Sheet({
   side = "right",
   modal = true,
   className,
+  returnFocus,
 }: SheetProps) {
   const [open, setOpen] = useControllableState(openProp, defaultOpen, onOpenChange);
   const reduce = useReducedMotion();
+  const onCloseAutoFocus = useReturnFocus(open, Boolean(trigger), returnFocus);
   const hidden = reduce ? { opacity: 0 } : { ...offscreen[side] };
   return (
     <RadixDialog.Root open={open} onOpenChange={setOpen} modal={modal}>
@@ -71,6 +79,7 @@ export function Sheet({
               <RadixDialog.Content
                 asChild
                 forceMount
+                onCloseAutoFocus={onCloseAutoFocus}
                 {...(description ? {} : { "aria-describedby": undefined })}
                 onInteractOutside={(e) => {
                   if (!modal) e.preventDefault();
