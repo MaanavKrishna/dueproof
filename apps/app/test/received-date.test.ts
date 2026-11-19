@@ -17,7 +17,7 @@ import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createAuth } from "@dueproof/auth";
+import { createAuth, inviteToken } from "@dueproof/auth";
 import { addDays } from "@dueproof/core";
 import {
   and,
@@ -74,9 +74,19 @@ let sha256: string;
 let pipelineRuns = 0;
 const TODAY = todayIn("Asia/Kolkata");
 
-async function signUp(email: string): Promise<{ headers: Headers; ctx: AuthContext }> {
+async function signUp(
+  email: string,
+  invitationId?: string,
+): Promise<{ headers: Headers; ctx: AuthContext }> {
   const res = await container.auth.api.signUpEmail({
-    body: { email, name: email.split("@")[0] ?? "x", password: "a-long-test-password" },
+    body: {
+      email,
+      name: email.split("@")[0] ?? "x",
+      password: "a-long-test-password",
+      ...(invitationId
+        ? { inviteToken: inviteToken(container.env.AUTH_SECRET, invitationId) }
+        : {}),
+    },
     returnHeaders: true,
   });
   const cookie = (res.headers.get("set-cookie") ?? "").split(";")[0] ?? "";
@@ -440,10 +450,11 @@ describe("H6: every pipeline deadline has someone to remind", () => {
     }
 
     // A colleague opens the case: it is theirs, and so are the deadlines the app assigned.
+    const invitationId = uuidv7();
     await unsafeRawDb(database)
       .insert(invitation)
       .values({
-        id: uuidv7(),
+        id: invitationId,
         organizationId: lead.ctx.orgId,
         email: "mira@harbour.test",
         role: "manager",
@@ -451,7 +462,7 @@ describe("H6: every pipeline deadline has someone to remind", () => {
         expiresAt: new Date(Date.now() + 86_400_000),
         inviterId: lead.ctx.userId,
       });
-    const mira = await signUp("mira@harbour.test");
+    const mira = await signUp("mira@harbour.test", invitationId);
     expect(mira.ctx.orgId).toBe(lead.ctx.orgId);
     as(mira.headers);
     const { caseId } = ok(await openCase({ documentId, newClientName: "Mira's client" }));
