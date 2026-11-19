@@ -34,8 +34,11 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=dueproof-pnpm,target=/pnpm/store \
     pnpm fetch --frozen-lockfile
 COPY . .
+# ee/ (when present) is linked into the app at build time (next.config.ts), so
+# its dependencies are installed too; without ee/ the second filter matches
+# nothing and the Free edition is built.
 RUN --mount=type=cache,id=dueproof-pnpm,target=/pnpm/store \
-    pnpm install --offline --frozen-lockfile --filter "@dueproof/app..."
+    pnpm install --offline --frozen-lockfile --filter "@dueproof/app..." --filter "@dueproof/ee..."
 
 # ---------------------------------------------------------------- build
 FROM deps AS build
