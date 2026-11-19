@@ -8,7 +8,7 @@
  * uploads, the exact size. The route hands the request to
  * `handleLocalStorageRequest()`.
  */
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, resolve, sep } from "node:path";
@@ -125,7 +125,9 @@ export class LocalDiskStorage implements StoragePort {
     const src = this.#path(from);
     const dest = this.#path(to);
     await mkdir(dirname(dest), { recursive: true });
-    const tmp = `${dest}.${process.pid}.${this.#now()}.tmp`;
+    // Unique per call: two copies to the same key in one millisecond (a racing
+    // upload sent twice) must not share a temporary file.
+    const tmp = `${dest}.${randomUUID()}.tmp`;
     await copyFile(src, tmp);
     await rename(tmp, dest);
     try {
