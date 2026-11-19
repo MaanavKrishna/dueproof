@@ -245,33 +245,22 @@ test("keyboard only: upload, review, open a case, mark a deadline done", async (
   await page.keyboard.press("Enter");
   await page.waitForURL(/\/cases\//);
   await expect(page.getByText(/30 days from receipt/).first()).toBeVisible();
-  // The duty's own menu (the page has one too): open each with Enter, close with Escape.
+  // Mark done sits on the duty card (M3); its menu still opens with Enter and closes with Escape.
+  const more = page.getByRole("button", { name: /^More for / }).first();
+  await tabTo(page, more);
+  await page.keyboard.press("Enter");
   const menu = page.getByRole("menu");
-  const done = menu.getByRole("menuitem", { name: /Mark done|Reopen/ });
-  const menus = page.getByRole("button", { name: "More actions" });
-  let found = false;
-  for (let m = 0; m < (await menus.count()) && !found; m++) {
-    await tabTo(page, menus.nth(m));
-    await page.keyboard.press("Enter");
-    await expect(menu).toBeVisible();
-    if (await done.count()) {
-      found = true;
-      break;
-    }
-    await page.keyboard.press("Escape");
-    await expect(menu).toBeHidden();
-    await expect(menus.nth(m)).toBeFocused();
-  }
-  expect(found, "a duty with a deadline has Mark done in its menu").toBe(true);
-  for (let i = 0; i < 10; i++) {
-    if (await done.evaluate((el) => el === document.activeElement)) break;
-    await page.keyboard.press("ArrowDown");
-  }
-  await expect(done).toBeFocused();
+  await expect(menu).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(menu).toBeHidden();
+  await expect(more).toBeFocused();
+  const done = page.getByRole("button", { name: /^(Mark done|Reopen)$/ }).first();
+  await tabTo(page, done, { back: true });
   const label = (await done.textContent())?.trim();
   await page.keyboard.press("Enter");
-  await expect(page.getByText(label === "Reopen" ? "Reopened." : "Marked done.")).toBeVisible();
-  // The menu closed and focus went back to its button, not to the page body.
-  await expect(menu).toBeHidden();
+  await expect(
+    page.getByText(label === "Reopen" ? /^Reopened: / : /^Marked done: /).first(),
+  ).toBeVisible();
+  // Focus stays on the control, not the page body.
   expect(await page.evaluate(() => document.activeElement?.tagName)).not.toBe("BODY");
 });
