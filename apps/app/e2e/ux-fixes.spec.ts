@@ -12,13 +12,21 @@
 import { fileURLToPath } from "node:url";
 import { expect, type Page, test } from "@playwright/test";
 
+/** A made-up client address (TEST-NET-2), so sign-ins don't share one rate-limit bucket. */
+function testClientAddress(): string {
+  const n = () => Math.floor(Math.random() * 250) + 1;
+  return `198.51.${n()}.${n()}`;
+}
+
 const fixture = (name: string) =>
   fileURLToPath(new URL(`../../../services/engine/tests/fixtures/${name}`, import.meta.url));
 const ACCOUNT = { email: "asha@harbour.test", password: "a-long-test-password", name: "Asha Rao" };
 
 async function signIn(page: Page) {
   const base = test.info().project.use.baseURL as string;
-  const headers = { origin: base };
+  // A client address of its own: every spec signs in from this one machine, and
+  // Better Auth allows 20 sign-ins per address in 15 minutes.
+  const headers = { origin: base, "x-forwarded-for": testClientAddress() };
   const up = await page.request.post("/api/auth/sign-up/email", { data: ACCOUNT, headers });
   if (up.ok()) return;
   const res = await page.request.post("/api/auth/sign-in/email", { data: ACCOUNT, headers });

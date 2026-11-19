@@ -24,7 +24,9 @@ test.describe("at desk width", () => {
       .locator('input[type="file"]')
       .first()
       .setInputFiles(fixture("invoice-HVC-2026-1183.pdf"));
-    await expect(page.getByText(/Needs review|Ready|Already in the register/).first()).toBeVisible({
+    await expect(
+      page.getByText(/Read: something to check|Ready|Already in the register/).first(),
+    ).toBeVisible({
       timeout: 60_000,
     });
 
@@ -101,16 +103,16 @@ test.describe("at desk width", () => {
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
 
     await page.goto("/settings/organisation");
-    const name = page.getByLabel("Firm name");
+    const name = page.getByLabel("Organisation name");
     const before = await name.inputValue();
     await name.fill(`${before} ${RUN}`);
     await page.getByRole("button", { name: /^Save/ }).first().click();
     await page.reload();
-    await expect(page.getByLabel("Firm name")).toHaveValue(`${before} ${RUN}`);
-    await page.getByLabel("Firm name").fill(before);
+    await expect(page.getByLabel("Organisation name")).toHaveValue(`${before} ${RUN}`);
+    await page.getByLabel("Organisation name").fill(before);
     await page.getByRole("button", { name: /^Save/ }).first().click();
     await page.reload();
-    await expect(page.getByLabel("Firm name")).toHaveValue(before);
+    await expect(page.getByLabel("Organisation name")).toHaveValue(before);
 
     await page.goto("/settings/ai");
     await page.getByRole("radio", { name: /Local model/ }).click();

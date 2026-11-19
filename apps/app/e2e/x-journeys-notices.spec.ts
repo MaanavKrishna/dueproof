@@ -39,7 +39,7 @@ function trayItem(page: Page, name: string) {
 }
 
 /** Read now, or recognised as one another spec already uploaded (they share the server). */
-const READ = /Needs review|Ready|Already in the register/;
+const READ = /Read: something to check|Ready|Already in the register/;
 
 test("upload a folder, several files and a photo; each is read", async ({ page }) => {
   const problems = watchConsole(page);
@@ -80,7 +80,9 @@ test("upload a folder, several files and a photo; each is read", async ({ page }
     .locator('input[type="file"]')
     .first()
     .setInputFiles({ name: `photo-${RUN}.png`, mimeType: "image/png", buffer: png });
-  await expect(trayItem(page, `photo-${RUN}.png`).getByText(/Needs review|Ready/)).toBeVisible({
+  await expect(
+    trayItem(page, `photo-${RUN}.png`).getByText(/Read: something to check|Ready/),
+  ).toBeVisible({
     timeout: 60_000,
   });
 
@@ -113,7 +115,7 @@ test("a locked PDF waits for its password, then is read", async ({ page }) => {
   await dialog.getByLabel("Password").fill("open-sesame");
   await dialog.getByRole("button", { name: "Read it" }).click();
   await expect(dialog).toBeHidden();
-  await expect(item.getByText(/Needs review|Ready/)).toBeVisible({ timeout: 60_000 });
+  await expect(item.getByText(/Read: something to check|Ready/)).toBeVisible({ timeout: 60_000 });
 });
 
 test("a duplicate and a file of the wrong type are turned away, and say why", async ({ page }) => {
@@ -201,13 +203,19 @@ test("file a notice in a case with a new client, and read the case page", async 
 test("mark a duty done, then reopen it", async ({ page }) => {
   await signInOwner(page);
   await page.goto(caseUrl);
-  // The first card's menu is the summary's; the second is the first duty's.
-  await page.getByRole("button", { name: "More actions" }).nth(1).click();
-  await page.getByRole("menuitem", { name: "Mark done" }).click();
-  await expect(page.getByText("Marked done.").first()).toBeVisible();
-  await page.getByRole("button", { name: "More actions" }).nth(1).click();
-  await page.getByRole("menuitem", { name: "Reopen" }).click();
-  await expect(page.getByText("Reopened.").first()).toBeVisible();
+  // Mark done sits on each duty's card.
+  await page.waitForLoadState("networkidle");
+  await page
+    .getByRole("button", { name: /^Mark done$/ })
+    .first()
+    .click();
+  await expect(page.getByText(/^Marked done: /).first()).toBeVisible();
+  await page.waitForLoadState("networkidle");
+  await page
+    .getByRole("button", { name: /^Reopen$/ })
+    .first()
+    .click();
+  await expect(page.getByText(/^Reopened: /).first()).toBeVisible();
 });
 
 test("a comment that mentions a colleague reaches their bell", async ({ page, browser }) => {

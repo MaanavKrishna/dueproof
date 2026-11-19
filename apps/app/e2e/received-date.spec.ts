@@ -11,10 +11,17 @@
  */
 import { expect, type Page, test } from "@playwright/test";
 
+/** A made-up client address (TEST-NET-2), so sign-ins don't share one rate-limit bucket. */
+function testClientAddress(): string {
+  const n = () => Math.floor(Math.random() * 250) + 1;
+  return `198.51.${n()}.${n()}`;
+}
+
 const fixture = (name: string) =>
   new URL(`../../../services/engine/tests/fixtures/${name}`, import.meta.url).pathname;
 const ASMT10 = fixture("notice-gst-asmt10.pdf");
-const MINUTES = fixture("minutes-board-87.pdf");
+// A file no earlier spec uploads (layout.spec.ts reads the minutes): this one must be new.
+const POSTER = fixture("edge-poster-page.pdf");
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** Today in India, as an ISO date (the organisation's default time zone). */
@@ -31,14 +38,17 @@ const typed = (iso: string) => iso.split("-").reverse().join("/");
 /** 20 Nov 2026 (or 08 Nov 2026): how the app shows a date. */
 const shown = (iso: string) => {
   const [y, m, d] = iso.split("-").map(Number);
-  return new RegExp(`0?${d} ${MONTHS[(m ?? 1) - 1]} ${y}`);
+  // Not preceded by a digit: 9 Nov must not match 19 Nov.
+  return new RegExp(`(?<!\\d)0?${d} ${MONTHS[(m ?? 1) - 1]} ${y}`);
 };
 
 /** Sign up (the first person owns the organisation), or sign in when another spec already did. */
 async function signIn(page: Page) {
   const base = test.info().project.use.baseURL as string;
   const body = { email: "asha@harbour.test", password: "a-long-test-password", name: "Asha Rao" };
-  const headers = { origin: base };
+  // A client address of its own: every spec signs in from this one machine, and
+  // Better Auth allows 20 sign-ins per address in 15 minutes.
+  const headers = { origin: base, "x-forwarded-for": testClientAddress() };
   const up = await page.request.post("/api/auth/sign-up/email", { data: body, headers });
   if (up.ok()) return;
   const res = await page.request.post("/api/auth/sign-in/email", { data: body, headers });
@@ -60,11 +70,11 @@ test("the received date is asked for at upload and can be changed per file", asy
   await bulk.fill(typed(received));
   await bulk.press("Enter");
   await expect(bulk).toHaveValue(shown(received));
-  await page.locator('input[type="file"]').first().setInputFiles(MINUTES);
+  await page.locator('input[type="file"]').first().setInputFiles(POSTER);
 
   // The file carries the date it was sent with, and it can be changed after the read.
   const dates = page.getByRole("list", { name: "Received dates" });
-  const field = dates.getByRole("textbox", { name: "Received on, minutes-board-87.pdf" });
+  const field = dates.getByRole("textbox", { name: "Received on, edge-poster-page.pdf" });
   await expect(field).toHaveValue(shown(received));
   const filing = page.getByRole("list", { name: "To file in a case" });
   const item = filing.getByRole("listitem").filter({ hasText: shown(received) });

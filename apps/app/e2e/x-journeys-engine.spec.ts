@@ -89,7 +89,7 @@ test("a notice read while the engine is down fails plainly, and Retry reads it o
 
   await startEngine();
   await item.getByRole("button", { name: "Retry minutes-board-87.pdf" }).click();
-  await expect(item.getByText(/Needs review|Ready/)).toBeVisible({ timeout: 60_000 });
+  await expect(item.getByText(/Read: something to check|Ready/)).toBeVisible({ timeout: 60_000 });
   const filing = page.getByRole("list", { name: "To file in a case" });
   await expect(filing.getByText(/Minutes of the 87th meeting/)).toBeVisible();
 

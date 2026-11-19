@@ -12,6 +12,12 @@ import { fileURLToPath } from "node:url";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 
+/** A made-up client address (TEST-NET-2), so sign-ins don't share one rate-limit bucket. */
+function testClientAddress(): string {
+  const n = () => Math.floor(Math.random() * 250) + 1;
+  return `198.51.${n()}.${n()}`;
+}
+
 const FIXTURE = fileURLToPath(
   new URL("../../../services/engine/tests/fixtures/notice-gst-asmt10.pdf", import.meta.url),
 );
@@ -19,7 +25,9 @@ const ACCOUNT = { email: "asha@harbour.test", password: "a-long-test-password", 
 
 async function signIn(page: Page) {
   const base = test.info().project.use.baseURL as string;
-  const headers = { origin: base };
+  // A client address of its own: every spec signs in from this one machine, and
+  // Better Auth allows 20 sign-ins per address in 15 minutes.
+  const headers = { origin: base, "x-forwarded-for": testClientAddress() };
   const up = await page.request.post("/api/auth/sign-up/email", { data: ACCOUNT, headers });
   if (up.ok()) return;
   const res = await page.request.post("/api/auth/sign-in/email", { data: ACCOUNT, headers });
@@ -216,15 +224,27 @@ test("keyboard only: upload, review, open a case, mark a deadline done", async (
   // may be empty; when it isn't, an item is confirmed with the keyboard.)
   await expect(page.getByRole("heading", { name: /^Needs review/ })).toBeVisible();
   const queue = page.getByRole("list", { name: "Needs review" });
-  if (await queue.count()) {
-    const before = await queue.getByRole("listitem").count();
+  // Other specs share the queue: its cards that aren't findings (a received
+  // date to confirm, a page with no duty) have their own buttons, and Enter
+  // doesn't confirm them. Walk with J to a finding, if there is one.
+  const findings = queue
+    .getByRole("listitem")
+    .filter({ hasNotText: /Received date assumed|No deadline found/ });
+  if (await findings.count()) {
+    const target = await findings.first().elementHandle();
     await tabTo(page, queue.locator('li[tabindex="0"]'));
     await page.keyboard.press("j");
     await page.keyboard.press("k");
+    for (let i = 0; i < 50; i++) {
+      if (await target?.evaluate((el) => el.contains(document.activeElement))) break;
+      await page.keyboard.press("j");
+    }
+    expect(await target?.evaluate((el) => el.contains(document.activeElement))).toBe(true);
     await page.keyboard.press("Enter");
+    // The item Enter confirmed leaves the queue (watched itself, not the count).
     await expect
-      .poll(() => queue.getByRole("listitem").count(), { timeout: 20_000 })
-      .toBeLessThan(before);
+      .poll(() => target?.evaluate((el) => el.isConnected) ?? false, { timeout: 20_000 })
+      .toBe(false);
   }
 
   // Mark a deadline done on the ASMT-10 case, reached through the Notices grid.
