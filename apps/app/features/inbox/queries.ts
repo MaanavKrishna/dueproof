@@ -21,6 +21,7 @@ import {
   inArray,
   isNull,
   ne,
+  or,
   sql,
   withOrg,
 } from "@dueproof/db";
@@ -68,6 +69,19 @@ export interface FileItem {
   client: { id: string; name: string } | null;
   suggestedCase: { id: string; title: string; reference: string | null } | null;
   role: string;
+  /**
+   * Another document that looks like the same notice (a scan and a PDF of
+   * it): same reference, or same title and issue date. Flagged so a person
+   * files one and sets the other aside, and deadlines aren't doubled (H2).
+   */
+  duplicateOf: { id: string; name: string; caseId: string | null } | null;
+}
+
+/** A document set aside as not a notice, with a way to put it back. */
+export interface SetAsideItem {
+  id: string;
+  name: string;
+  received: string;
 }
 
 export interface ProcessingItem {
@@ -84,6 +98,7 @@ export interface InboxData {
   processing: ProcessingItem[];
   review: ReviewItem[];
   toFile: FileItem[];
+  setAside: SetAsideItem[];
   clients: { id: string; name: string; gstin: string | null }[];
   cases: { id: string; title: string; reference: string | null; client: string | null }[];
 }
@@ -124,6 +139,38 @@ export function describeConflict(raw: unknown, locale = "en-IN"): ReviewItem["co
     rule: ruleWords(first.rule, first.ruleDueOn, locale),
     ai: ruleWords(first.ai, first.aiDueOn, locale),
   };
+}
+
+interface LookAlike {
+  id: string;
+  title: string | null;
+  reference: string | null;
+  issuedOn: string | null;
+  caseId: string | null;
+  createdAt: Date;
+}
+
+/**
+ * The document this one probably duplicates: same reference, or the same
+ * title and issue date. Only the later of two is flagged, preferring a twin
+ * already filed in a case.
+ */
+export function findDuplicate<T extends LookAlike>(
+  doc: Omit<LookAlike, "caseId">,
+  others: readonly T[],
+): T | null {
+  const same = others.filter(
+    (o) =>
+      o.id !== doc.id &&
+      ((doc.reference !== null && o.reference === doc.reference) ||
+        (doc.title !== null &&
+          o.title === doc.title &&
+          doc.issuedOn !== null &&
+          o.issuedOn === doc.issuedOn)),
+  );
+  const filed = same.find((o) => o.caseId !== null);
+  if (filed) return filed;
+  return same.find((o) => o.createdAt < doc.createdAt) ?? null;
 }
 
 export async function loadInbox(ctx: AuthContext, now: Date = new Date()): Promise<InboxData> {
@@ -337,6 +384,7 @@ export async function loadInbox(ctx: AuthContext, now: Date = new Date()): Promi
           eq(documents.orgId, ctx.orgId),
           clientScope(ctx, documents.clientId),
           eq(documents.status, "needs_review"),
+          ne(documents.role, "other"),
           isNull(findings.id),
         ),
       )
@@ -373,9 +421,11 @@ export async function loadInbox(ctx: AuthContext, now: Date = new Date()): Promi
         status: documents.status,
         receivedOn: documents.receivedOn,
         receivedOnAssumed: documents.receivedOnAssumed,
+        issuedOn: documents.issuedOn,
         role: documents.role,
         clientId: documents.clientId,
         client: clients.name,
+        createdAt: documents.createdAt,
       })
       .from(documents)
       .leftJoin(clients, eq(clients.id, documents.clientId))
@@ -389,8 +439,43 @@ export async function loadInbox(ctx: AuthContext, now: Date = new Date()): Promi
       )
       .orderBy(desc(documents.createdAt))
       .limit(100);
+    const toFileRows = unfiled.filter((d) => d.role !== "other");
+    const asideRows = unfiled.filter((d) => d.role === "other");
 
-    const refs = [...new Set(unfiled.map((d) => d.reference).filter((r): r is string => !!r))];
+    // Look-alikes: any other document with the same reference or the same title.
+    const likeRefs = [
+      ...new Set(toFileRows.map((d) => d.reference).filter((r): r is string => !!r)),
+    ];
+    const likeTitles = [...new Set(toFileRows.map((d) => d.title).filter((t): t is string => !!t))];
+    const lookalikes =
+      likeRefs.length || likeTitles.length
+        ? await tx
+            .select({
+              id: documents.id,
+              filename: documents.filename,
+              title: documents.title,
+              reference: documents.reference,
+              issuedOn: documents.issuedOn,
+              caseId: documents.caseId,
+              createdAt: documents.createdAt,
+            })
+            .from(documents)
+            .where(
+              and(
+                eq(documents.orgId, ctx.orgId),
+                clientScope(ctx, documents.clientId),
+                ne(documents.role, "other"),
+                or(
+                  likeRefs.length ? inArray(documents.reference, likeRefs) : undefined,
+                  likeTitles.length ? inArray(documents.title, likeTitles) : undefined,
+                ),
+              ),
+            )
+            .orderBy(asc(documents.createdAt))
+            .limit(500)
+        : [];
+
+    const refs = [...new Set(toFileRows.map((d) => d.reference).filter((r): r is string => !!r))];
     const caseRows = await tx
       .select({
         id: cases.id,
@@ -428,8 +513,9 @@ export async function loadInbox(ctx: AuthContext, now: Date = new Date()): Promi
         status: d.status,
       })),
       review,
-      toFile: unfiled.map((d) => {
+      toFile: toFileRows.map((d) => {
         const s = d.reference ? byRef.get(d.reference) : undefined;
+        const twin = findDuplicate(d, lookalikes);
         return {
           id: d.id,
           name: d.title ?? d.filename,
@@ -441,8 +527,16 @@ export async function loadInbox(ctx: AuthContext, now: Date = new Date()): Promi
           receivedAssumed: d.receivedOnAssumed,
           client: d.clientId && d.client ? { id: d.clientId, name: d.client } : null,
           suggestedCase: s ? { id: s.id, title: s.title, reference: s.reference } : null,
+          duplicateOf: twin
+            ? { id: twin.id, name: twin.title ?? twin.filename, caseId: twin.caseId }
+            : null,
         };
       }),
+      setAside: asideRows.map((d) => ({
+        id: d.id,
+        name: d.title ?? d.filename,
+        received: fmtDate(d.receivedOn, clock.locale),
+      })),
       clients: clientRows.map((c) => ({ id: c.id, name: c.name, gstin: c.gstins[0] ?? null })),
       cases: caseRows,
     };

@@ -143,7 +143,7 @@ export function ClientsView({
   return (
     <ListPageTemplate
       title="Clients"
-      subtitle={`${rows.length.toLocaleString("en-IN")} clients · ${withOverdue.toLocaleString("en-IN")} with something overdue`}
+      subtitle={`${rows.length.toLocaleString("en-IN")} ${rows.length === 1 ? "client" : "clients"} · ${withOverdue.toLocaleString("en-IN")} with something overdue`}
       actions={
         <>
           <Button

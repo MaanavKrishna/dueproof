@@ -18,18 +18,17 @@ export interface ProofTarget {
   caseHref?: string | null;
 }
 
-export function ProofSheet({
-  target,
-  onClose,
+/** Loads a document's pages and shows the finding's highlight. */
+export function ProofPanel({
+  documentId,
+  findingId = null,
 }: {
-  target: ProofTarget | null;
-  onClose: () => void;
+  documentId: string | null | undefined;
+  findingId?: string | null;
 }) {
   const [proof, setProof] = useState<ProofData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [active, setActive] = useState<string | null>(null);
-  const documentId = target?.documentId;
-  const findingId = target?.findingId ?? null;
 
   useEffect(() => {
     if (!documentId) return;
@@ -49,6 +48,48 @@ export function ProofSheet({
 
   const page = proof?.highlights.find((h) => h.id === active)?.page ?? 1;
   return (
+    <div className={styles.proofFill}>
+      {error ? (
+        <EmptyState
+          icon={ErrorIcon}
+          size="compact"
+          title="The page couldn't be loaded"
+          description={error}
+        />
+      ) : proof ? (
+        proof.pages.length ? (
+          <ProofViewer
+            title={proof.title}
+            pages={proof.pages}
+            highlights={proof.highlights}
+            activeHighlightId={active}
+            onActiveHighlightChange={setActive}
+            defaultPage={page}
+            pageStrip={false}
+            defaultZoom="fit-width"
+          />
+        ) : (
+          <EmptyState
+            size="compact"
+            title="No pages yet"
+            description="This document is still being read."
+          />
+        )
+      ) : (
+        <Skeleton shape="rect" width="100%" height="100%" aria-label="Loading the page" />
+      )}
+    </div>
+  );
+}
+
+export function ProofSheet({
+  target,
+  onClose,
+}: {
+  target: ProofTarget | null;
+  onClose: () => void;
+}) {
+  return (
     <Sheet
       open={target !== null}
       onOpenChange={(o) => {
@@ -64,37 +105,7 @@ export function ProofSheet({
         ) : undefined
       }
     >
-      <div className={styles.proofFill}>
-        {error ? (
-          <EmptyState
-            icon={ErrorIcon}
-            size="compact"
-            title="The page couldn't be loaded"
-            description={error}
-          />
-        ) : proof ? (
-          proof.pages.length ? (
-            <ProofViewer
-              title={proof.title}
-              pages={proof.pages}
-              highlights={proof.highlights}
-              activeHighlightId={active}
-              onActiveHighlightChange={setActive}
-              defaultPage={page}
-              pageStrip={false}
-              defaultZoom="fit-width"
-            />
-          ) : (
-            <EmptyState
-              size="compact"
-              title="No pages yet"
-              description="This document is still being read."
-            />
-          )
-        ) : (
-          <Skeleton shape="rect" width="100%" height="100%" aria-label="Loading the page" />
-        )}
-      </div>
+      <ProofPanel documentId={target?.documentId} findingId={target?.findingId ?? null} />
     </Sheet>
   );
 }

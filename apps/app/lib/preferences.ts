@@ -21,7 +21,8 @@ export interface Preferences {
   density: Density;
 }
 
-export const DEFAULT_PREFERENCES: Preferences = { theme: "light", density: "comfortable" };
+/** "system" follows the device (L6): a dark-mode user never gets a white app. */
+export const DEFAULT_PREFERENCES: Preferences = { theme: "system", density: "comfortable" };
 
 export function parseTheme(value: unknown): Theme | undefined {
   return typeof value === "string" && (THEMES as readonly string[]).includes(value)

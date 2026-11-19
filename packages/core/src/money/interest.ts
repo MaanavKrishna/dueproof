@@ -77,7 +77,8 @@ function result(
   warnings: string[] = [],
 ): CalcResult {
   const w = [...warnings];
-  if (!rule.verified) w.push(`${rule.section}: rate and method not yet verified (verify in M0).`);
+  if (!rule.verified)
+    w.push(`${rule.section}: rate and method not yet checked by a chartered accountant.`);
   return {
     amountMinor: toSafe(amount, "interest"),
     workings,
@@ -147,6 +148,12 @@ export interface DailyInterestInput {
   dueOn: IsoDate;
   /** The date of payment, or the date to compute up to ("today", passed in). */
   paidOn: IsoDate;
+  /**
+   * False when nothing has been paid and `paidOn` is only the date the
+   * interest is computed to: the workings then say "computed to", not
+   * "paid on". Default true.
+   */
+  paid?: boolean;
 }
 
 /** Simple interest per day at an annual rate, split across rate changes (GST s.50). */
@@ -158,11 +165,17 @@ export function dailyInterest(input: DailyInterestInput, options: MoneyOptions =
   const tax = checkAmount(input.taxMinor, "Tax");
   const f = fmtTools(options);
   const days = diffDays(input.dueOn, input.paidOn);
+  const paid = input.paid !== false;
   const workings: Step[] = [
     {
       label: "Period of delay",
-      formula: "days from the day after the due date to the date of payment",
-      inputs: { "due date": f.date(input.dueOn), "paid on": f.date(input.paidOn) },
+      formula: paid
+        ? "days from the day after the due date to the date of payment"
+        : "days from the day after the due date to the date computed to",
+      inputs: {
+        "due date": f.date(input.dueOn),
+        [paid ? "paid on" : "computed to"]: f.date(input.paidOn),
+      },
       result: `${Math.max(days, 0)} days`,
     },
   ];

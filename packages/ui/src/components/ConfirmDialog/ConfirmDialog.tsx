@@ -1,4 +1,4 @@
-import { type ReactElement, type ReactNode, useEffect, useState } from "react";
+import { type ReactElement, type ReactNode, type RefObject, useEffect, useState } from "react";
 import { useControllableState } from "../../utils/use-controllable";
 import { Button } from "../Button/Button";
 import { Dialog, DialogClose } from "../Dialog/Dialog";
@@ -29,6 +29,8 @@ export interface ConfirmDialogProps {
   onConfirm: () => void | Promise<void>;
   /** Extra content between the description and the buttons. */
   children?: ReactNode;
+  /** Where focus goes on close; see Dialog. */
+  returnFocus?: RefObject<HTMLElement | null>;
 }
 
 /**
@@ -48,6 +50,7 @@ export function ConfirmDialog({
   confirmText,
   onConfirm,
   children,
+  returnFocus,
 }: ConfirmDialogProps) {
   const [open, setOpen] = useControllableState(openProp, defaultOpen, onOpenChange);
   const [typed, setTyped] = useState("");
@@ -87,6 +90,7 @@ export function ConfirmDialog({
         if (!busy) setOpen(next);
       }}
       {...(trigger ? { trigger } : {})}
+      {...(returnFocus ? { returnFocus } : {})}
       title={title}
       description={description}
       size="sm"

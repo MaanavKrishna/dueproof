@@ -35,8 +35,13 @@ export interface NoticeHeaderProps extends Omit<ComponentProps<"header">, "title
   authority: NoticeAuthority;
   /** "GST · ASMT-10 · Scrutiny of returns". */
   type: string;
-  /** "ZD2710240012345". */
-  reference: string;
+  /**
+   * "ZD2710240012345": the heading when given. Leave it out when none was
+   * read: the heading is then `title`, and the facts say "Reference: not found".
+   */
+  reference?: string | null;
+  /** The notice's title, the heading when there is no reference. */
+  title?: string;
   /** "DIN 20241027…", shown under the reference. */
   din?: string;
   /** "Office of the Superintendent, CGST Range IV, Mumbai East". */
@@ -70,6 +75,7 @@ export function NoticeHeader({
   authority,
   type,
   reference,
+  title,
   din,
   issuingOffice,
   amount,
@@ -98,10 +104,14 @@ export function NoticeHeader({
         </span>
         <div className={styles.titles}>
           <p className={styles.type}>{type}</p>
-          <Heading className={styles.reference}>
-            <span className={styles.srOnly}>Reference </span>
-            {reference}
-          </Heading>
+          {reference ? (
+            <Heading className={styles.reference}>
+              <span className={styles.srOnly}>Reference </span>
+              {reference}
+            </Heading>
+          ) : (
+            <Heading className={styles.reference}>{title ?? type}</Heading>
+          )}
           {din ? <p className={styles.din}>{din}</p> : null}
           {badges ? <div className={styles.badges}>{badges}</div> : null}
         </div>
@@ -112,6 +122,12 @@ export function NoticeHeader({
           <dt>Issued by</dt>
           <dd>{issuingOffice}</dd>
         </div>
+        {reference ? null : (
+          <div className={styles.fact}>
+            <dt>Reference</dt>
+            <dd>Not found on the notice</dd>
+          </div>
+        )}
         {amount !== undefined ? (
           <div className={styles.fact}>
             <dt>Amount demanded</dt>

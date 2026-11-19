@@ -5,7 +5,7 @@ import { HttpError } from "@/lib/errors";
 import { pageAccess } from "@/lib/server/page";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Search · Dueproof" };
+export const metadata = { title: "Search" };
 
 export default async function SearchPage({
   searchParams,

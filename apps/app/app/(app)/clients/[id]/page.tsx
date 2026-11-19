@@ -6,7 +6,7 @@ import { HttpError } from "@/lib/errors";
 import { pageAccess } from "@/lib/server/page";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Client · Dueproof" };
+export const metadata = { title: "Client" };
 
 export default async function ClientPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

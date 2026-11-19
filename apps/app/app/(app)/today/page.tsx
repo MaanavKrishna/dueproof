@@ -4,7 +4,7 @@ import { TodayView } from "@/features/today/TodayView";
 import { pageAccess } from "@/lib/server/page";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Today · Dueproof" };
+export const metadata = { title: "Today" };
 
 export default async function TodayPage({
   searchParams,

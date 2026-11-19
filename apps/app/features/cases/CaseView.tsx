@@ -7,6 +7,7 @@ import {
   ArrowLeftIcon,
   CalendarStatutoryIcon,
   DocumentIcon,
+  DoneIcon,
   EditIcon,
   FiledAckIcon,
   HearingPackIcon,
@@ -15,6 +16,7 @@ import {
   OrderIcon,
   PrintIcon,
   ProofIcon,
+  UndoIcon,
   UserIcon,
 } from "@dueproof/icons";
 import {
@@ -44,6 +46,7 @@ import {
   StageStepper,
   StatusPill,
   Timeline,
+  useMediaQuery,
   useToast,
   Workings,
 } from "@dueproof/ui";
@@ -65,6 +68,7 @@ import {
   ReceivedDialog,
   StageDialog,
 } from "./CaseDialogs";
+import caseStyles from "./case.module.css";
 import type { CaseData, CaseDemand, CaseFinding } from "./queries";
 
 const ROLE_ICON = {
@@ -108,7 +112,13 @@ export function CaseView({
 }) {
   const router = useRouter();
   const { toast } = useToast();
-  const [inspectorOpen, setInspectorOpen] = useState(true);
+  // The page sits beside the case only when there is room (80rem, where
+  // SplitView stops overlaying). Narrower, on a phone or at 200% zoom, it
+  // would cover the case, so it starts closed and opens on demand (H4).
+  // Closed on the server too, so a phone never paints it first.
+  const roomy = useMediaQuery("(width >= 80rem)");
+  const [inspectorChoice, setInspectorOpen] = useState<boolean | null>(null);
+  const inspectorOpen = inspectorChoice ?? roomy;
   const [activeFinding, setActiveFinding] = useState<string | null>(
     initial.findingId ?? data.findings.find((f) => f.deadline)?.id ?? data.findings[0]?.id ?? null,
   );
@@ -171,6 +181,26 @@ export function CaseView({
     });
   }
 
+  /** Mark a duty done (or reopen it), with Undo in the toast, as on Deadlines (M3). */
+  async function toggleDone(dl: { id: string; status: string }, duty: string) {
+    const next = dl.status === "done" ? "open" : "done";
+    const r = await setDeadlineStatus({ deadlineId: dl.id, status: next });
+    if (!r.ok) return fail(r.message);
+    router.refresh();
+    toast({
+      tone: "success",
+      title: next === "done" ? `Marked done: ${duty}` : `Reopened: ${duty}`,
+      action: {
+        label: "Undo",
+        altText: "Undo the last change",
+        onClick: () =>
+          void setDeadlineStatus({ deadlineId: dl.id, status: dl.status as "open" | "done" }).then(
+            (back) => (back.ok ? router.refresh() : fail(back.message)),
+          ),
+      },
+    });
+  }
+
   const duties = data.findings.filter(
     (f) =>
       f.status !== "dismissed" && ["obligation", "deadline", "hearing", "amount"].includes(f.kind),
@@ -189,7 +219,8 @@ export function CaseView({
     <NoticeHeader
       authority={data.authority}
       type={data.typeLabel}
-      reference={data.reference ?? "No reference read"}
+      reference={data.reference}
+      title={data.title}
       issuingOffice={data.issuingOffice}
       {...(data.amountMinor ? { amount: data.amountMinor } : {})}
       {...(data.sections.length ? { sections: data.sections } : {})}
@@ -385,58 +416,61 @@ export function CaseView({
               : {})}
             actions={
               data.can.editDeadlines || data.can.review ? (
-                <Menu>
-                  <MenuTrigger>
-                    <IconButton icon={MoreIcon} label="More actions" size="sm" variant="ghost" />
-                  </MenuTrigger>
-                  <MenuContent align="end">
-                    {dl && data.can.editDeadlines ? (
-                      <>
+                <span className={styles.row}>
+                  {dl && data.can.editDeadlines ? (
+                    <Button
+                      size="sm"
+                      variant={dl.status === "done" ? "plain" : "secondary"}
+                      icon={dl.status === "done" ? UndoIcon : DoneIcon}
+                      onClick={() => void toggleDone(dl, f.duty)}
+                    >
+                      {dl.status === "done" ? "Reopen" : "Mark done"}
+                    </Button>
+                  ) : null}
+                  <Menu>
+                    <MenuTrigger>
+                      <IconButton
+                        icon={MoreIcon}
+                        label={`More for ${f.duty}`}
+                        size="sm"
+                        variant="ghost"
+                      />
+                    </MenuTrigger>
+                    <MenuContent align="end">
+                      {dl && data.can.editDeadlines ? (
+                        <>
+                          <MenuItem
+                            icon={EditIcon}
+                            onSelect={() =>
+                              setCorrectDue({
+                                deadlineId: dl.id,
+                                title: f.duty,
+                                iso: dl.iso,
+                              })
+                            }
+                          >
+                            Correct due date
+                          </MenuItem>
+                        </>
+                      ) : null}
+                      {data.can.review ? (
                         <MenuItem
                           onSelect={() =>
-                            void setDeadlineStatus({
-                              deadlineId: dl.id,
-                              status: dl.status === "done" ? "open" : "done",
-                            }).then((r) =>
-                              r.ok
-                                ? done(dl.status === "done" ? "Reopened." : "Marked done.")
-                                : fail(r.message),
-                            )
-                          }
-                        >
-                          {dl.status === "done" ? "Reopen" : "Mark done"}
-                        </MenuItem>
-                        <MenuItem
-                          icon={EditIcon}
-                          onSelect={() =>
-                            setCorrectDue({
-                              deadlineId: dl.id,
-                              title: f.duty,
-                              iso: dl.iso,
+                            setEditing({
+                              id: f.id,
+                              duty: f.duty,
+                              dueIso: f.deadline?.iso ?? null,
+                              amountMinor: f.amountMinor,
+                              kind: f.kind,
                             })
                           }
                         >
-                          Correct due date
+                          Correct the finding
                         </MenuItem>
-                      </>
-                    ) : null}
-                    {data.can.review ? (
-                      <MenuItem
-                        onSelect={() =>
-                          setEditing({
-                            id: f.id,
-                            duty: f.duty,
-                            dueIso: f.deadline?.iso ?? null,
-                            amountMinor: f.amountMinor,
-                            kind: f.kind,
-                          })
-                        }
-                      >
-                        Correct the finding
-                      </MenuItem>
-                    ) : null}
-                  </MenuContent>
-                </Menu>
+                      ) : null}
+                    </MenuContent>
+                  </Menu>
+                </span>
               ) : undefined
             }
           />
@@ -589,7 +623,8 @@ export function CaseView({
               steps={[
                 {
                   id: "stated",
-                  label: "As stated in the notice",
+                  // One answer, never both (M4): read from the notice, or typed by a person.
+                  label: d.findingId ? "As stated in the notice" : "Entered by hand",
                   inputs: [
                     {
                       label: "Tax",
@@ -616,14 +651,17 @@ export function CaseView({
                           value: `${w.formula} = ${w.result}`,
                         })),
                         result: <Amount minor={d.penalty.min} to={d.penalty.max} estimate />,
+                        ...(d.penaltyVerified
+                          ? {}
+                          : { note: "Not yet checked by a chartered accountant." }),
                       },
                     ]
                   : []),
               ]}
-              {...(d.interestMinor !== null && d.asOf
+              {...(d.interestMinor !== null && d.asOfLabel
                 ? {
                     total: {
-                      label: `Interest to ${d.asOf}`,
+                      label: `Interest computed to ${d.asOfLabel}`,
                       value: <Amount minor={d.interestMinor} size="lg" estimate />,
                     },
                   }
@@ -646,7 +684,8 @@ export function CaseView({
           headingLevel={2}
           padding="md"
         >
-          <DemandForm data={data} demand={null} onDone={done} />
+          {/* A second demand starts empty, so the notice's amount isn't entered twice (M4). */}
+          <DemandForm data={data} demand={null} fresh={data.demands.length > 0} onDone={done} />
         </Card>
       ) : !data.demands.length ? (
         <EmptyState
@@ -707,7 +746,11 @@ export function CaseView({
           [data.typeLabel.split(" · ")[0], data.reference].filter(Boolean).join(" · ") || data.title
         }
         toolbarLeading={
-          <NextLink href="/notices" aria-label="Back to notices" className={styles.focusRing}>
+          <NextLink
+            href="/notices"
+            aria-label="Back to notices"
+            className={`${styles.focusRing} ${caseStyles.back}`}
+          >
             <ArrowLeftIcon label="Back to notices" />
           </NextLink>
         }

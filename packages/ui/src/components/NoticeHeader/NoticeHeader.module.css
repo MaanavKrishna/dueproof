@@ -163,6 +163,8 @@
 }
 
 .link {
+  /* A hit target, not just the text's height (M11). */
+  min-height: var(--dp-size-target);
   padding: var(--dp-space-2) var(--dp-space-4);
   color: var(--dp-accent-text);
   font-weight: var(--dp-font-weight-medium);

@@ -45,19 +45,24 @@ const statusWords: Record<
   { label: string; tone: "neutral" | "accent" | "warning" | "danger" | "success" }
 > = {
   ready: { label: "Ready", tone: "success" },
-  needs_review: { label: "Needs review", tone: "warning" },
+  needs_review: { label: "Something to check", tone: "warning" },
   needs_password: { label: "Needs password", tone: "warning" },
   failed: { label: "Failed", tone: "danger" },
   quarantined: { label: "Quarantined", tone: "danger" },
 };
 
+/** Where a row leads: its case, else the Inbox to file it, else its detail on Deadlines. */
+function rowHref(row: Pick<TodayRow, "id" | "caseId" | "unfiled">): string {
+  if (row.caseId) return `/cases/${row.caseId}`;
+  if (row.unfiled) return "/inbox";
+  return `/deadlines?deadline=${encodeURIComponent(row.id)}`;
+}
+
 function Row({ row, onProof }: { row: TodayRow; onProof: (r: TodayRow) => void }) {
-  const title = row.caseId ? (
+  const title = (
     <Link asChild variant="subtle">
-      <NextLink href={`/cases/${row.caseId}`}>{row.title}</NextLink>
+      <NextLink href={rowHref(row)}>{row.title}</NextLink>
     </Link>
-  ) : (
-    row.title
   );
   return (
     <li className={styles.listItem}>
@@ -67,7 +72,11 @@ function Row({ row, onProof }: { row: TodayRow; onProof: (r: TodayRow) => void }
         </span>
         <span className={styles.ellipsis}>{title}</span>
       </span>
-      <DueChip state={row.state} detail={row.dueLabel} size="sm" />
+      {row.unfiled ? (
+        <span className={styles.small}>{row.dueLabel}</span>
+      ) : (
+        <DueChip state={row.state} detail={row.dueLabel} size="sm" />
+      )}
       {row.owner ? (
         <Avatar name={row.owner} size="xs" />
       ) : (
@@ -100,6 +109,7 @@ function Bucket({
   empty,
   onProof,
   href,
+  note,
 }: {
   title: string;
   icon: ReactNode;
@@ -107,6 +117,7 @@ function Bucket({
   empty: string;
   onProof: (r: TodayRow) => void;
   href: string;
+  note?: string;
 }) {
   return (
     <Card
@@ -127,6 +138,7 @@ function Bucket({
         ) : undefined
       }
     >
+      {note ? <p className={styles.small}>{note}</p> : null}
       {rows.length ? (
         <ul className={styles.list} aria-label={title}>
           {rows.slice(0, SEE_ALL).map((r) => (
@@ -158,6 +170,8 @@ export function TodayView({ data, summary }: { data: TodayData; summary: string 
     !data.dueToday.length &&
     !data.thisWeek.length &&
     !data.hearings.length &&
+    !data.notFiled.length &&
+    !data.pastWhenAdded.length &&
     !data.review.count &&
     !data.recent.length;
 
@@ -188,11 +202,13 @@ export function TodayView({ data, summary }: { data: TodayData; summary: string 
             icon={OverdueIcon}
             value={String(data.overdue.length)}
             tone={data.overdue.length ? "attention" : "default"}
+            href="/deadlines"
           />
           <StatCard
             label="Due this week"
             icon={WeekIcon}
             value={String(data.dueToday.length + data.thisWeek.length)}
+            href="/deadlines"
           />
           <StatCard
             label="To review"
@@ -277,6 +293,28 @@ export function TodayView({ data, summary }: { data: TodayData; summary: string 
             onProof={openProof}
             href="/deadlines?kind=hearing"
           />
+          {data.pastWhenAdded.length ? (
+            <Bucket
+              title="Already past when added"
+              icon={<CalendarStatutoryIcon />}
+              rows={data.pastWhenAdded}
+              empty=""
+              note="These periods were already due when the registration was added. Mark the ones already filed as done; the rest are overdue."
+              onProof={openProof}
+              href="/deadlines"
+            />
+          ) : null}
+          {data.notFiled.length ? (
+            <Bucket
+              title="Not filed yet"
+              icon={<InboxIcon />}
+              rows={data.notFiled}
+              empty=""
+              note="Read from documents not filed in a case. They aren't counted as due until someone files the document, or sets it aside as not a notice."
+              onProof={openProof}
+              href="/inbox"
+            />
+          ) : null}
           <Card
             title={
               <span className={styles.row}>

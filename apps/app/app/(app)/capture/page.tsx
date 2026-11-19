@@ -4,7 +4,7 @@ import { InstallGuide } from "@/features/pwa/InstallGuide";
 import { pageAccess } from "@/lib/server/page";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Capture · Dueproof" };
+export const metadata = { title: "Capture" };
 
 export default async function CapturePage() {
   const access = await pageAccess("document.upload");

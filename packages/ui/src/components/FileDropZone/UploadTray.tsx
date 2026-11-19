@@ -67,12 +67,19 @@ const stageInfo: Record<UploadStage, { label: string; icon: Icon; tone: string }
   finding: { label: "Finding dates and duties", icon: SpinnerIcon, tone: "progress" },
   checking: { label: "Checking proof", icon: SpinnerIcon, tone: "progress" },
   done: { label: "Ready", icon: DoneIcon, tone: "success" },
-  needs_review: { label: "Needs review", icon: WarningIcon, tone: "warning" },
+  // "Needs review" is kept for findings (M1): a document says what to do.
+  needs_review: { label: "Read: something to check", icon: WarningIcon, tone: "warning" },
   needs_password: { label: "This PDF needs a password", icon: LockIcon, tone: "warning" },
   duplicate: { label: "Already in the register", icon: WarningIcon, tone: "warning" },
   failed: { label: "Failed", icon: ErrorIcon, tone: "danger" },
   quarantined: { label: "Held for safety review", icon: ErrorIcon, tone: "danger" },
 };
+
+/** Two messages that say the same thing, ignoring a full stop and case. */
+function sameWords(a: string, b: string): boolean {
+  const norm = (x: string) => x.trim().replace(/\.$/, "").toLowerCase();
+  return norm(a) === norm(b);
+}
 
 function bytes(n: number): string {
   if (n >= 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
@@ -113,8 +120,9 @@ export function UploadTray({
   const problems = items.filter((i) =>
     ["danger", "warning"].includes(stageInfo[i.stage].tone),
   ).length;
+  // Counts up, never down (L3): "Reading 7 files · 3 done".
   const summary = working.length
-    ? `Processing ${working.length} of ${items.length} ${items.length === 1 ? "file" : "files"}`
+    ? `Reading ${items.length} ${items.length === 1 ? "file" : "files"} · ${items.length - working.length} done`
     : `${done} of ${items.length} ready`;
 
   return (
@@ -168,9 +176,14 @@ export function UploadTray({
                   {item.stage === "uploading" && item.progress !== undefined ? (
                     <span className={styles.pct}>{Math.round(item.progress * 100)}%</span>
                   ) : null}
-                  {item.detail ? <span className={styles.detail}>· {item.detail}</span> : null}
+                  {item.detail && !sameWords(item.detail, info.label) ? (
+                    <span className={styles.detail}>· {item.detail}</span>
+                  ) : null}
                 </div>
-                {item.error ? <p className={styles.error}>{item.error}</p> : null}
+                {/* Said once (L4): not again when it repeats the status. */}
+                {item.error && !sameWords(item.error, info.label) ? (
+                  <p className={styles.error}>{item.error}</p>
+                ) : null}
                 {pct !== null && item.stage !== "done" ? (
                   <div
                     className={styles.track}
@@ -202,7 +215,12 @@ export function UploadTray({
                   item.stage === "needs_review" ||
                   item.stage === "duplicate") &&
                 onOpen ? (
-                  <Button size="sm" variant="plain" onClick={() => onOpen(item.id)}>
+                  <Button
+                    size="sm"
+                    variant="plain"
+                    aria-label={`Open ${item.name}`}
+                    onClick={() => onOpen(item.id)}
+                  >
                     Open
                   </Button>
                 ) : null}

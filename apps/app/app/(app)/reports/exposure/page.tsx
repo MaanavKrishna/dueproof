@@ -5,7 +5,7 @@ import { loadExposureReport } from "@/features/reports/queries";
 import { pageAccess } from "@/lib/server/page";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Exposure · Dueproof" };
+export const metadata = { title: "Exposure" };
 
 export default async function ExposurePage({
   searchParams,
