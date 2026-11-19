@@ -1,6 +1,6 @@
 [package]
 name = "dueproof-desktop"
-version = "0.1.0"
+version = "0.1.1"
 description = "Dueproof desktop shell (Tauri 2)"
 authors = ["Maanav Krishna"]
 license-file = "../../../LICENSE"
