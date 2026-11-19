@@ -20,6 +20,7 @@ export function SignInForm({
   firstRun,
   sso = false,
   ssoError = false,
+  noOrganisation = false,
 }: {
   next: string;
   firstRun: boolean;
@@ -27,6 +28,8 @@ export function SignInForm({
   sso?: boolean;
   /** Came back from the identity provider with an error. */
   ssoError?: boolean;
+  /** Signed in, but not a member of any organisation (removed, say). */
+  noOrganisation?: boolean;
 }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("password");
@@ -38,7 +41,9 @@ export function SignInForm({
   const [error, setError] = useState<string | null>(
     ssoError
       ? "Single sign-on didn't work. If you already have a Dueproof password, sign in with it."
-      : null,
+      : noOrganisation
+        ? "You signed in, but this account isn't a member of an organisation here. Ask an administrator to invite you again."
+        : null,
   );
   const codeRef = useRef<HTMLInputElement>(null);
 

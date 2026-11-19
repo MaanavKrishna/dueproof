@@ -21,12 +21,21 @@ import { cookies, headers } from "next/headers";
 import { connection } from "next/server";
 import type { ReactNode } from "react";
 import { DENSITY_COOKIE, noFlashScript, readPreferences, THEME_COOKIE } from "@/lib/preferences";
+import { STYLE_NONCE_SCRIPT } from "@/lib/security/headers";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: { default: "Dueproof", template: "%s · Dueproof" },
   description: "Every deadline in your notices, proved on the page.",
   robots: { index: false, follow: false },
+  // Without these, browsers ask for /favicon.ico on every page, and get a 404.
+  icons: {
+    icon: [
+      { url: "/icons/icon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: "/icons/apple-touch-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
@@ -61,6 +70,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           nonce={nonce}
           // biome-ignore lint/security/noDangerouslySetInnerHtml: a fixed script built from allow-lists, run before paint.
           dangerouslySetInnerHTML={{ __html: noFlashScript() }}
+        />
+        <script
+          nonce={nonce}
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: a fixed string; passes the nonce on to run-time styles.
+          dangerouslySetInnerHTML={{ __html: STYLE_NONCE_SCRIPT }}
         />
       </head>
       <body>

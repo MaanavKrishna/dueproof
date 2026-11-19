@@ -625,9 +625,15 @@ export function InboxView({
               stage: stageOf(p.status),
             }))}
             onSettled={() => router.refresh()}
-            onOpen={(documentId) =>
-              onActive(data.review.find((r) => r.documentId === documentId)?.id ?? null)
-            }
+            onOpen={(documentId) => {
+              // Its findings to review, else the next step for it here (filing
+              // it in a case), else wherever it is filed (a duplicate, say).
+              const review = data.review.find((r) => r.documentId === documentId);
+              if (review) return onActive(review.id);
+              const unfiled = data.toFile.find((d) => d.id === documentId);
+              if (unfiled && canFile) return setOpening(unfiled);
+              router.push(`/notices/${encodeURIComponent(documentId)}`);
+            }}
           />
         </section>
 

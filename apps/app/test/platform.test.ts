@@ -30,6 +30,8 @@ import { unlockDocument } from "../app/actions/documents";
 import { regenerateStatutory } from "../app/actions/statutory";
 import { GET as documentEvents } from "../app/api/v1/documents/[id]/events/route";
 import { POST as initRoute } from "../app/api/v1/uploads/route";
+import { locate } from "../features/cases/queries";
+import { loadDeadlinesPage } from "../features/deadlines/queries";
 import { type AuthContext, authorize } from "../lib/authorize";
 import {
   getDocumentPassword,
@@ -244,6 +246,12 @@ describe("sign-up, upload and processing", () => {
     expect(again).toEqual({ status: "duplicate", documentId });
   });
 
+  it("a link with a document's id finds where that document is", async () => {
+    // The upload tray's "Open" on a duplicate sends /notices/{documentId}.
+    expect(await locate(owner, documentId)).toEqual({ inbox: true });
+    expect(await locate(owner, uuidv7())).toBeNull();
+  });
+
   it("quarantines a file whose bytes don't match its claimed type", async () => {
     const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
     const init = await upload(owner, png, "application/pdf", "fake.pdf");
@@ -404,6 +412,9 @@ describe("sign-up, upload and processing", () => {
     expect(viewer.orgId).toBe(owner.orgId);
     expect((await getDocumentDetail(viewer, documentId)).findings).toHaveLength(7);
     await expect(authorize("document.upload", { headers })).rejects.toMatchObject({ status: 403 });
+    // Deadlines offers a viewer nothing the server would refuse.
+    expect((await loadDeadlinesPage(viewer)).canEdit).toBe(false);
+    expect((await loadDeadlinesPage(owner)).canEdit).toBe(true);
   });
 
   it("regenerates a client's statutory calendar through the server action", async () => {

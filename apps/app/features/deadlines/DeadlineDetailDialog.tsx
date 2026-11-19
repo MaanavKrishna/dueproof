@@ -28,6 +28,7 @@ export function DeadlineDetailDialog({
   row,
   onOpenChange,
   people,
+  data,
   onChanged,
 }: {
   row: DeadlineRow | null;
@@ -67,7 +68,8 @@ export function DeadlineDetailDialog({
               File it from the Inbox
             </Button>
           ) : null}
-          {row.status === "open" ? (
+          {/* Viewers read only: no button the server would refuse. */}
+          {!data.canEdit ? null : row.status === "open" ? (
             <Button variant="primary" onClick={() => cmd.done(row)}>
               Mark done
             </Button>

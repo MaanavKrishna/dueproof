@@ -339,6 +339,11 @@ async function refuseNewUser(raw: AnyPgDatabase, userId: string, message: string
 /**
  * After sign-up: join the invitation's organisation (the token was checked
  * before the account was made), or create one and become its owner.
+ *
+ * Better Auth runs this after it has stored the account and its password, so
+ * if a later step fails, what was made here and the account are undone before
+ * the error goes back: the person can try again, the invitation stays usable,
+ * and a half-made organisation never blocks the first-run screen.
  */
 async function placeNewUser(
   config: AuthConfig,
@@ -359,85 +364,136 @@ async function placeNewUser(
   if (invite) {
     const accepted = invite;
     const role = (accepted.role ?? "member") as Role;
-    const used = await raw.transaction(async (tx) => {
-      // Single use: only the request that flips it from pending joins.
-      const rows = await tx
-        .update(invitation)
-        .set({ status: "accepted" })
-        .where(
-          and(
-            eq(invitation.id, accepted.id),
-            eq(invitation.status, "pending"),
-            gt(invitation.expiresAt, new Date()),
-          ),
-        )
-        .returning({ id: invitation.id });
-      if (rows.length === 0) return false;
-      await tx.insert(member).values({
-        id: uuidv7(),
-        organizationId: accepted.organizationId,
-        userId: user.id,
-        role,
-        mayApproveReplies: APPROVER_ROLES_BY_DEFAULT.includes(role),
-        createdAt: new Date(),
+    let used: boolean;
+    try {
+      used = await raw.transaction(async (tx) => {
+        // Single use: only the request that flips it from pending joins.
+        const rows = await tx
+          .update(invitation)
+          .set({ status: "accepted" })
+          .where(
+            and(
+              eq(invitation.id, accepted.id),
+              eq(invitation.status, "pending"),
+              gt(invitation.expiresAt, new Date()),
+            ),
+          )
+          .returning({ id: invitation.id });
+        if (rows.length === 0) return false;
+        await tx.insert(member).values({
+          id: uuidv7(),
+          organizationId: accepted.organizationId,
+          userId: user.id,
+          role,
+          mayApproveReplies: APPROVER_ROLES_BY_DEFAULT.includes(role),
+          createdAt: new Date(),
+        });
+        return true;
       });
-      return true;
-    });
+    } catch (e) {
+      await undoSignUp(raw, user.id, {});
+      throw e;
+    }
     if (!used)
       return refuseNewUser(raw, user.id, "This invitation link has expired or was already used.");
-    await withOrg(config.database, accepted.organizationId, (tx, ctx) =>
-      audit.write(tx, ctx, {
-        actor: user.id,
-        action: "member.join",
-        targetType: "user",
-        targetId: user.id,
-        detail: { role, invitationId: accepted.id },
-      }),
-    );
+    try {
+      await withOrg(config.database, accepted.organizationId, (tx, ctx) =>
+        audit.write(tx, ctx, {
+          actor: user.id,
+          action: "member.join",
+          targetType: "user",
+          targetId: user.id,
+          detail: { role, invitationId: accepted.id },
+        }),
+      );
+    } catch (e) {
+      await undoSignUp(raw, user.id, { invitationId: accepted.id });
+      throw e;
+    }
     return;
   }
 
   const orgId = uuidv7();
-  const created = await raw.transaction(async (tx) => {
-    // Two first sign-ups at once: only one may create the organisation.
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext('dueproof:first-run'))`);
-    if (config.signupPolicy === "first-user") {
-      const [orgs] = await tx.select({ n: count() }).from(organization);
-      if (orgs && orgs.n > 0) return false;
-    }
-    const now = new Date();
-    await tx.insert(organization).values({
-      id: orgId,
-      name: user.name ? `${user.name}'s organisation` : ORG_NAME_FALLBACK,
-      slug: `org-${orgId.replace(/-/g, "").slice(-16)}`,
-      createdAt: now,
+  let created: boolean;
+  try {
+    created = await raw.transaction(async (tx) => {
+      // Two first sign-ups at once: only one may create the organisation.
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtext('dueproof:first-run'))`);
+      if (config.signupPolicy === "first-user") {
+        const [orgs] = await tx.select({ n: count() }).from(organization);
+        if (orgs && orgs.n > 0) return false;
+      }
+      const now = new Date();
+      await tx.insert(organization).values({
+        id: orgId,
+        name: user.name ? `${user.name}'s organisation` : ORG_NAME_FALLBACK,
+        slug: `org-${orgId.replace(/-/g, "").slice(-16)}`,
+        createdAt: now,
+      });
+      await tx.insert(member).values({
+        id: uuidv7(),
+        organizationId: orgId,
+        userId: user.id,
+        role: "owner",
+        mayApproveReplies: true,
+        createdAt: now,
+      });
+      return true;
     });
-    await tx.insert(member).values({
-      id: uuidv7(),
-      organizationId: orgId,
-      userId: user.id,
-      role: "owner",
-      mayApproveReplies: true,
-      createdAt: now,
-    });
-    return true;
-  });
+  } catch (e) {
+    await undoSignUp(raw, user.id, {});
+    throw e;
+  }
   if (!created) {
     // Lost the first-run race and has no invitation: undo the account.
     await raw.execute(sql`delete from "user" where id = ${user.id}`);
     throw new APIError("FORBIDDEN", { message: "Sign-up is by invitation." });
   }
-  await withOrg(config.database, orgId, async (tx, ctx) => {
-    await tx.insert(orgSettings).values({ orgId }).onConflictDoNothing();
-    await audit.write(tx, ctx, {
-      actor: user.id,
-      action: "organisation.create",
-      targetType: "organisation",
-      targetId: orgId,
-      detail: { policy: config.signupPolicy },
+  try {
+    await withOrg(config.database, orgId, async (tx, ctx) => {
+      await tx.insert(orgSettings).values({ orgId }).onConflictDoNothing();
+      await audit.write(tx, ctx, {
+        actor: user.id,
+        action: "organisation.create",
+        targetType: "organisation",
+        targetId: orgId,
+        detail: { policy: config.signupPolicy },
+      });
     });
-  });
+  } catch (e) {
+    // withOrg rolled its own work back, so the organisation holds no tenant
+    // rows yet and can go (its member row goes with it).
+    await undoSignUp(raw, user.id, { orgId });
+    throw e;
+  }
   await config.onOrganisationCreated?.(orgId, user.id);
+}
+
+/**
+ * Remove a sign-up that couldn't be finished: the new organisation (if any),
+ * the invitation's acceptance (if any), and the account with its password and
+ * sessions (they cascade from the user). Best effort: the first failure is
+ * the one worth reporting, and the caller rethrows it.
+ */
+async function undoSignUp(
+  raw: AnyPgDatabase,
+  userId: string,
+  made: { orgId?: string; invitationId?: string },
+): Promise<void> {
+  try {
+    await raw.transaction(async (tx) => {
+      if (made.orgId) await tx.delete(organization).where(eq(organization.id, made.orgId));
+      if (made.invitationId) {
+        await tx
+          .update(invitation)
+          .set({ status: "pending" })
+          .where(eq(invitation.id, made.invitationId));
+      }
+      await tx.execute(sql`delete from "user" where id = ${userId}`);
+    });
+  } catch {
+    // Nothing more can be done here.
+  }
 }
 
 export interface Membership {

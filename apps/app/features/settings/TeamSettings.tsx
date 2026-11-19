@@ -42,6 +42,7 @@ import {
   setMemberClientAccess,
 } from "@/app/actions/team";
 import { ROLE_LABELS, ROLE_OPTIONS } from "@/lib/form-options";
+import { plural } from "@/lib/plural";
 import { type SettingsChrome, SettingsFrame } from "./SettingsFrame";
 import { type SsoData, SsoSection } from "./SsoSection";
 import styles from "./settings.module.css";
@@ -190,7 +191,9 @@ export function TeamSettings({ chrome, data }: { chrome: SettingsChrome; data: T
                         <ClientAccessDialog member={m} clients={data.clients} onSaved={report} />
                       ) : (
                         <span className={styles.muted}>
-                          {m.clientIds === null ? "All clients" : `${m.clientIds.length} clients`}
+                          {m.clientIds === null
+                            ? "All clients"
+                            : plural(m.clientIds.length, "client")}
                         </span>
                       )}
                     </td>

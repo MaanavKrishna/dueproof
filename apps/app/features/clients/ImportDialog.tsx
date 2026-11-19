@@ -14,6 +14,7 @@ import {
   TextArea,
 } from "@dueproof/ui";
 import { useMemo, useState } from "react";
+import { plural } from "@/lib/plural";
 import { importClients } from "./actions";
 import styles from "./clients.module.css";
 import {
@@ -124,7 +125,7 @@ export function ImportDialog({
         {preview ? (
           <Banner
             tone={preview.issues.length ? "warning" : "success"}
-            title={`${preview.rows.length} rows ready · ${preview.skipped} with problems`}
+            title={`${plural(preview.rows.length, "row")} ready · ${preview.skipped} with problems`}
           >
             {preview.issues.length ? (
               <ul className={styles.issues}>
@@ -162,7 +163,7 @@ export function ImportDialog({
             disabled={!preview?.rows.length || Boolean(result)}
             onClick={run}
           >
-            Import {preview?.rows.length ?? 0} clients
+            Import {plural(preview?.rows.length ?? 0, "client")}
           </Button>
         </div>
       </div>

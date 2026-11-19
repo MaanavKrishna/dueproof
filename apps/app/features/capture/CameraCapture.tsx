@@ -44,8 +44,7 @@ export function CameraCapture({ banner }: { banner?: ReactNode }) {
         sha256: await sha256Hex(file),
       });
       if (!init.ok) return update(id, { stage: "failed", error: init.message });
-      if (init.data.status === "duplicate")
-        return update(id, { stage: "duplicate", detail: "Already in the register" });
+      if (init.data.status === "duplicate") return update(id, { stage: "duplicate" });
       if (init.data.status === "upload") {
         const put = await fetch(init.data.upload.url, {
           method: "PUT",

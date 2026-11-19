@@ -156,6 +156,42 @@ describe("S3Storage (R2)", () => {
     expect(new URL(get.url).searchParams.get("X-Amz-Expires")).toBe("300");
   });
 
+  it("signs only what the browser sends: no checksum of an empty body", async () => {
+    // The SDK's default added x-amz-checksum-crc32=AAAAAA== (CRC32 of nothing)
+    // to presigned PUTs, so R2/S3 refused every real upload from the browser.
+    const put = await s3.putSignedUrl(orgKey("o1", "originals", "x.pdf"), {
+      contentType: "application/pdf",
+    });
+    const q = new URL(put.url).searchParams;
+    const amz = [...q.keys()].filter((k) => k.toLowerCase().startsWith("x-amz-checksum"));
+    expect(amz).toEqual([]);
+    expect(q.get("x-amz-sdk-checksum-algorithm")).toBeNull();
+    // A cross-origin PUT carries exactly these headers, and CORS must allow them.
+    expect(q.get("X-Amz-SignedHeaders")).toBe("content-type;host");
+    expect(Object.keys(put.headers)).toEqual(["content-type"]);
+    expect(put.method).toBe("PUT");
+
+    const get = new URL((await s3.getSignedUrl(orgKey("o1", "originals", "x.pdf"))).url);
+    expect(get.searchParams.get("x-amz-checksum-mode")).toBeNull();
+    expect(get.searchParams.get("X-Amz-SignedHeaders")).toBe("host");
+  });
+
+  it("signs path-style URLs for MinIO", async () => {
+    const minio = new S3Storage({
+      bucket: "dueproof",
+      endpoint: "http://localhost:9000",
+      region: "us-east-1",
+      forcePathStyle: true,
+      accessKeyId: "minio",
+      secretAccessKey: "minio-secret",
+      now: () => Date.UTC(2026, 10, 16, 10, 0, 0),
+    });
+    const put = new URL((await minio.putSignedUrl(orgKey("o1", "originals", "x.pdf"))).url);
+    expect(put.origin).toBe("http://localhost:9000");
+    expect(put.pathname).toBe("/dueproof/org/o1/originals/x.pdf");
+    expect(put.searchParams.get("X-Amz-SignedHeaders")).toBe("host");
+  });
+
   it("rejects bad keys before signing", async () => {
     await expect(s3.getSignedUrl("org/o1/../x")).rejects.toThrow();
   });

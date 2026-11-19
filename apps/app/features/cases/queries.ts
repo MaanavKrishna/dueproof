@@ -228,6 +228,32 @@ const ACTION_WORDS: Record<string, string> = {
   "case.appeal_window": "added the appeal window",
 };
 
+/**
+ * Where a link with a bare id should go: the case itself, the case a
+ * document is filed in, or (for a document not in a case yet) the Inbox.
+ * Null when the id is neither, or names something this member can't see.
+ */
+export async function locate(
+  ctx: AuthContext,
+  id: string,
+): Promise<{ caseId: string; documentId?: string } | { inbox: true } | null> {
+  return withOrg(ctx.container.database, ctx.orgId, async (tx) => {
+    const [c] = await tx
+      .select({ id: cases.id, clientId: cases.clientId })
+      .from(cases)
+      .where(and(eq(cases.orgId, ctx.orgId), eq(cases.id, id)))
+      .limit(1);
+    if (c) return clientAllowed(ctx, c.clientId) ? { caseId: c.id } : null;
+    const [d] = await tx
+      .select({ id: documents.id, caseId: documents.caseId, clientId: documents.clientId })
+      .from(documents)
+      .where(and(eq(documents.orgId, ctx.orgId), eq(documents.id, id)))
+      .limit(1);
+    if (!d || !clientAllowed(ctx, d.clientId)) return null;
+    return d.caseId ? { caseId: d.caseId, documentId: d.id } : { inbox: true };
+  });
+}
+
 export async function loadCase(
   ctx: AuthContext,
   caseId: string,
