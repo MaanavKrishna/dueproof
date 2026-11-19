@@ -1,5 +1,65 @@
 # Changelog
 
+## 0.1.1 — 2026-11-19 (beta)
+
+A release of fixes. Every screen now fits any window, from a phone to a wide
+monitor; reading is stricter about dates, amounts and proof; and a security
+review closed the gaps it found. There are about 300 new tests, among them 28
+journeys through the app in a real browser.
+
+**Before you upgrade**
+- Migration 0007 adds unique keys to findings and deadlines. It runs on start;
+  it fails if a document already has duplicate findings or deadlines.
+- Hosted engine: set `DUEPROOF_ALLOWED_HOSTS` to your exact storage hosts. With
+  it empty, the engine now refuses every fetch (outside development).
+- Hosted app: the Dueproof AI plan is now given to the organisations listed in
+  `AI_PLAN_ORGS`. `/api/metrics` needs `METRICS_TOKEN` in production.
+
+**Layout**
+- Page widths and gutters are tokens, with a `Grid` primitive and page
+  templates in `@dueproof/ui`. Pages fill wide screens and reflow on phones,
+  with no sideways scrolling at 390 px.
+- On a phone the case page opens with the document closed.
+
+**Reading and proof**
+- The deadline is the date the duty applies to ("on or before", "adjourned
+  to"), not the notice's own date. A sentence with two candidate dates goes to
+  review instead of being guessed.
+- The demand is read by its words: turnover, refunds and threatened penalties
+  are not the demand. Lakh, crore and "Rupees …" forms are read.
+- A quote whose numbers differ from the page is *unlocated*, however close its
+  words are.
+- More date and period forms ("20th day of October, 2026", "within thirty (30)
+  days", Hindi month names).
+- An AI date its quote doesn't state is dropped. A retried AI step replays its
+  answer instead of paying for a second call.
+
+**Security**
+- Invitations are joined only through their tokenised link.
+- Access limited to some clients is enforced on every document, finding, case,
+  deadline and upload action.
+- Undoing a bulk change, and filing without partner approval, now check
+  permissions. Filing without approval needs a reason and is shown on the case.
+- Exports need the export permission; statutory overrides need theirs.
+- Uploads are bound to their size and type, and sealed under their hash.
+- The engine checks its token before reading a body, limits body size and
+  time, refuses compressed bodies, and fetches only from allowed public hosts.
+- PDFs are opened in a sandboxed child process with memory, CPU and time
+  limits. Image frames, page text and render sizes are capped; emoji and odd
+  scans no longer give server errors; OCR has a time limit.
+- Actions in CI are pinned to commits, with a dependency audit and Dependabot.
+
+**Fixes**
+- Hosted: the app role can be used by a database owner that is not a
+  superuser, and uploads to R2 no longer fail on a checksum.
+- A sign-up that fails part-way is undone, so the person can try again.
+- Viewers aren't offered changes the server refuses; "1 client", not
+  "1 clients"; the upload tray's Open always goes somewhere.
+- A removed member is told why sign-in doesn't take them in.
+- Dialogs lock the page behind them under the content security policy, and
+  focus returns where it was when they close.
+- Statutory extensions, interest and hearing times corrected.
+
 ## 0.1.0 — 2026-11-16 (beta)
 
 Dueproof reads tax, regulatory and court notices in English and 22 Indian
