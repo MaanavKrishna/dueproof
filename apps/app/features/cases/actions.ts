@@ -26,6 +26,7 @@ import { z } from "zod";
 import { type ActionResult, runAction } from "@/lib/action";
 import { type Action, type AuthContext, authorize } from "@/lib/authorize";
 import { loadOrgCalendar, type OrgCalendar } from "@/lib/calendar";
+import { requireClient } from "@/lib/client-access";
 import { computeDemand, INTEREST_RULES } from "@/lib/demands";
 import { badRequest, notFound } from "@/lib/errors";
 import { handCorrection } from "@/lib/findings";
@@ -221,6 +222,9 @@ export async function correctDueDate(input: z.input<typeof DueInput>) {
   return runAction(async () => {
     const v = DueInput.parse(input);
     return withDeadline(v.deadlineId, async (tx, ctx, scope, d) => {
+      // A statutory date comes from the calendar pack; changing it by hand is an override.
+      if (d.source === "statutory")
+        requireClient(ctx, "statutory.override", d.clientId, "That deadline");
       const r = resolveDate(
         { type: "fixed", date: v.dueOn },
         { anchors: {}, holidays: [], workingDays: [1, 2, 3, 4, 5, 6, 7] },

@@ -83,6 +83,7 @@ async function signUp(
       email,
       name: email.split("@")[0] ?? "x",
       password: "a-long-test-password",
+      // An invitation's link carries its token (H1).
       ...(invitationId
         ? { inviteToken: inviteToken(container.env.AUTH_SECRET, invitationId) }
         : {}),

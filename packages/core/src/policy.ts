@@ -22,6 +22,7 @@ export const ACTIONS = [
   "reply.draft",
   "reply.request_approval",
   "reply.approve",
+  "reply.skip_approval",
   // clients and the calendar
   "client.view",
   "client.edit",
@@ -64,6 +65,7 @@ const MANAGE: readonly Action[] = [
   "statutory.override",
   "exposure.view",
   "reply.approve",
+  "reply.skip_approval",
   "data.export",
 ];
 const ADMIN: readonly Action[] = [
@@ -104,6 +106,7 @@ const CLIENT_SCOPED = new Set<Action>([
   "reply.draft",
   "reply.request_approval",
   "reply.approve",
+  "reply.skip_approval",
   "client.view",
   "client.edit",
   "statutory.override",

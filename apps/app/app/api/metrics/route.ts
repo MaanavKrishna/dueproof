@@ -1,7 +1,7 @@
 /**
- * GET /api/metrics — Prometheus text format (03 §12). Operator-only: with
- * METRICS_TOKEN set it needs that bearer token; without, it answers only
- * requests that didn't come through a reverse proxy (see metricsAllowed).
+ * GET /api/metrics — Prometheus text format (03 §12). Operator-only: it
+ * needs the METRICS_TOKEN bearer token; in production, with no token set,
+ * it is off (see metricsAllowed).
  * It reports reachability, queue counts and process figures, never tenant
  * data, so it doesn't call authorize().
  */

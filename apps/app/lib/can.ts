@@ -3,13 +3,7 @@ import { type Action, authorize as checkPolicy, type Resource } from "@dueproof/
 import type { AuthContext } from "./authorize";
 
 /** True when the person may see this client (client-level access, Settings → Team). */
-export function inScope(
-  ctx: Pick<AuthContext, "clientIds">,
-  clientId: string | null | undefined,
-): boolean {
-  if (!ctx.clientIds || !clientId) return true;
-  return ctx.clientIds.includes(clientId);
-}
+export { clientAllowed as inScope } from "./client-access";
 
 export function may(ctx: AuthContext, action: Action, resource?: Resource): boolean {
   try {

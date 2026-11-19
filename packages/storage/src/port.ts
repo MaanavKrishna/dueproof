@@ -27,8 +27,14 @@ export interface SignOptions {
 
 export interface PutSignOptions extends SignOptions {
   contentType?: string;
-  /** Refuse bodies larger than this (local adapter enforces; S3 relies on the declared size check at complete). */
+  /** Refuse bodies larger than this (local adapter; S3 binds `size` instead). */
   maxBytes?: number;
+  /**
+   * The exact size of the body, bound into the URL: S3 and R2 sign the
+   * Content-Length header, and the local adapter refuses any other length.
+   * Uploads always set it; the engine's page images don't know it in advance.
+   */
+  size?: number;
 }
 
 export interface ObjectInfo {
@@ -42,6 +48,10 @@ export interface StoragePort {
   get(key: string): Promise<Uint8Array | null>;
   head(key: string): Promise<ObjectInfo | null>;
   delete(key: string): Promise<void>;
+  /** The object's bytes as a stream, so a large object is never held in memory. */
+  getStream(key: string): Promise<AsyncIterable<Uint8Array> | null>;
+  /** Server-side copy; `to` is replaced if it exists. */
+  copy(from: string, to: string): Promise<void>;
   putSignedUrl(key: string, options?: PutSignOptions): Promise<SignedUrl>;
   getSignedUrl(key: string, options?: SignOptions): Promise<SignedUrl>;
 }

@@ -11,11 +11,10 @@ import { withOrg } from "@dueproof/db";
 import { renderFeed } from "@/features/deadlines/feed";
 import { verifyFeedToken } from "@/features/deadlines/ical";
 import { lastFeedRevocation } from "@/features/deadlines/queries";
+import { resolveClientIds } from "@/lib/client-access";
 import { errorResponse, forbidden, HttpError, notFound } from "@/lib/errors";
-import { clientIdsFor } from "@/lib/org-metadata";
 import { enforce } from "@/lib/rate-limit";
 import { getContainer } from "@/lib/server/container";
-import { getOrg } from "@/lib/server/directory";
 
 export const dynamic = "force-dynamic";
 
@@ -32,9 +31,12 @@ export async function GET(
     await enforce(container, "api.token", `${claim.orgId}|${claim.userId}`);
     const membership = await getMembership(container.database, claim.userId, claim.orgId);
     if (!membership) throw notFound("That calendar feed");
-    const admin = membership.role === "owner" || membership.role === "admin";
-    const meta = admin ? undefined : (await getOrg(container.database, claim.orgId))?.metadata;
-    const scope = meta ? clientIdsFor(meta, claim.userId) : undefined;
+    const scope = await resolveClientIds(
+      container.database,
+      claim.orgId,
+      claim.userId,
+      membership.role,
+    );
     try {
       checkPolicy({ userId: claim.userId, role: membership.role }, "case.view");
     } catch (e) {

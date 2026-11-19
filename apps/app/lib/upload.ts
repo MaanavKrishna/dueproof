@@ -2,7 +2,9 @@
  * Upload flow (03 §6): init → signed PUT straight to storage → complete.
  *
  * - init: validates name, size and claimed type; dedupes by (org, sha256);
- *   creates the document as `received`; returns a ≤ 5-minute signed PUT.
+ *   checks the case and client are the caller's (client-access's
+ *   uploadTarget); creates the document as `received`; returns a ≤ 5-minute
+ *   signed PUT to an incoming key, bound to the exact size and type.
  *   A file that was quarantined or failed can be sent again: the same row
  *   goes back to `received` instead of being called a duplicate. Two inits
  *   of one file at once get the same document, never a conflict error.
@@ -10,8 +12,10 @@
  *   default) and sends it. Without one, the upload day stands in and the
  *   document is marked `receivedOnAssumed`, so every deadline that counts
  *   from it is flagged "received date assumed: confirm" (lib/received-date.ts).
- * - complete: reads the object back, checks size, sha256 and magic bytes;
- *   a mismatch quarantines the document and deletes the object. Otherwise
+ * - complete: seals the upload (storage's `sealUpload`): size from the
+ *   object's metadata first, then a copy to the final key that no signed
+ *   PUT named, then a streamed sha256 of that copy, then magic bytes. A
+ *   mismatch quarantines the document and deletes the object. Otherwise
  *   the document is `stored` and processDocument starts. The move out of
  *   `received` is a conditional update, so two completes at once start one
  *   pipeline run.
@@ -19,13 +23,13 @@
  * Both take an AuthContext from authorize(); callers never pass an org id.
  */
 import "server-only";
-import { createHash } from "node:crypto";
 import { DocumentRole, Id, IsoDate } from "@dueproof/contracts";
 import { isValidIsoDate } from "@dueproof/core";
 import { and, audit, documents, eq, orgSettings, uuidv7, withOrg } from "@dueproof/db";
-import { orgKey, type SignedUrl } from "@dueproof/storage";
+import { incomingKey, orgKey, type SignedUrl, sealUpload } from "@dueproof/storage";
 import { z } from "zod";
 import type { AuthContext } from "./authorize";
+import { requireClient, uploadTarget } from "./client-access";
 import { badRequest, HttpError, notFound } from "./errors";
 import { isAllowedMime, sniffMime } from "./mime";
 import { announce, claimStatus, todayIn, writeStatus } from "./pipeline/status";
@@ -88,6 +92,8 @@ export async function initUpload(
       receivedOn: input.receivedOn ?? today,
       receivedOnAssumed: input.receivedOn === undefined,
     };
+    // The case and client must be this organisation's and the caller's; the client follows the case.
+    const target = await uploadTarget(tx, ctx, input);
     const find = async () => {
       const [row] = await tx
         .select({ id: documents.id, status: documents.status })
@@ -111,8 +117,8 @@ export async function initUpload(
           mime: input.mime,
           sizeBytes: input.size,
           role: input.role,
-          ...(input.caseId ? { caseId: input.caseId } : {}),
-          ...(input.clientId ? { clientId: input.clientId } : {}),
+          ...(target.caseId ? { caseId: target.caseId } : {}),
+          ...(target.clientId ? { clientId: target.clientId } : {}),
           ...dates,
           uploadedBy: ctx.userId,
         })
@@ -153,8 +159,8 @@ export async function initUpload(
         sha256: input.sha256,
         storageKey,
         role: input.role,
-        caseId: input.caseId ?? null,
-        clientId: input.clientId ?? null,
+        caseId: target.caseId,
+        clientId: target.clientId,
         ...dates,
         channel: "upload",
         status: "received",
@@ -184,9 +190,10 @@ export async function initUpload(
   });
 
   if (outcome.kind === "duplicate") return { status: "duplicate", documentId: outcome.id };
-  const upload = await storage.putSignedUrl(storageKey, {
+  const upload = await storage.putSignedUrl(incomingKey(ctx.orgId, outcome.id), {
     contentType: input.mime,
     maxBytes: input.size,
+    size: input.size,
   });
   return { status: "upload", documentId: outcome.id, upload };
 }
@@ -214,17 +221,20 @@ export async function completeUpload(
     return row;
   });
   if (!doc) throw notFound("That document");
+  requireClient(ctx, "document.upload", doc.clientId, "That document");
   if (doc.status !== "received") return { documentId, status: "duplicate" };
 
-  const body = await storage.get(doc.storageKey);
-  if (!body)
+  const sealed = await sealUpload(storage, incomingKey(ctx.orgId, doc.id), doc.storageKey, {
+    size: doc.sizeBytes,
+    sha256: doc.sha256,
+    maxBytes: ctx.container.env.UPLOAD_MAX_BYTES,
+  });
+  if (!sealed.ok && sealed.problem === "not_uploaded")
     throw new HttpError(409, "The file hasn't arrived yet. Try the upload again.", "not_uploaded");
 
-  const sha = createHash("sha256").update(body).digest("hex");
-  const sniffed = sniffMime(body);
+  const sniffed = sealed.ok ? sniffMime(sealed.head) : null;
   let problem: string | null = null;
-  if (body.byteLength !== doc.sizeBytes) problem = "size_mismatch";
-  else if (sha !== doc.sha256) problem = "hash_mismatch";
+  if (!sealed.ok) problem = sealed.problem;
   else if (!sniffed) problem = "unsupported_type";
   else if (sniffed !== doc.mime) problem = "type_mismatch";
 

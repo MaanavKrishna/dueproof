@@ -56,6 +56,38 @@ export interface PushMessage {
   tag?: string;
 }
 
+/**
+ * The push services browsers actually use. An endpoint must be on one of
+ * these hosts (exactly, or a subdomain of it), over https on the default
+ * port: the server POSTs to it, so an allowlist is what stops a
+ * subscription from pointing the server at its own network (security
+ * review L2). Checked when a subscription is stored and again before each
+ * send, so rows stored before the check are skipped and removed.
+ *
+ * - fcm.googleapis.com: Chrome, Edge (Chromium), Opera, Samsung Internet
+ * - push.services.mozilla.com: Firefox (autopush, updates.push.services.mozilla.com)
+ * - push.apple.com: Safari (web.push.apple.com)
+ * - notify.windows.com: Windows Notification Service (wns2-*.notify.windows.com)
+ */
+export const PUSH_SERVICE_HOSTS = [
+  "fcm.googleapis.com",
+  "push.services.mozilla.com",
+  "push.apple.com",
+  "notify.windows.com",
+] as const;
+
+export function isPushServiceEndpoint(endpoint: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(endpoint);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== "https:" || url.port !== "" || url.username || url.password) return false;
+  const host = url.hostname.toLowerCase();
+  return PUSH_SERVICE_HOSTS.some((h) => host === h || host.endsWith(`.${h}`));
+}
+
 export interface PushSubscriptionJson {
   endpoint: string;
   keys: { p256dh: string; auth: string };
@@ -121,6 +153,10 @@ export async function sendPushToUser(
   });
   const gone: string[] = [];
   for (const s of subs) {
+    if (!isPushServiceEndpoint(s.endpoint)) {
+      gone.push(s.id);
+      continue;
+    }
     try {
       const status = await transport(
         { endpoint: s.endpoint, keys: s.keys as PushSubscriptionJson["keys"] },

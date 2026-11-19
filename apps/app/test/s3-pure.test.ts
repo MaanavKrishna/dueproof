@@ -346,9 +346,39 @@ describe("web push", () => {
     );
     expect(() => validSubscription({ endpoint: "https://127.0.0.1/x", keys })).toThrow(/allowed/);
     expect(() =>
-      validSubscription({ endpoint: "https://push.example/x", keys: { p256dh: "a b", auth: "x" } }),
+      validSubscription({
+        endpoint: "https://fcm.googleapis.com/fcm/send/x",
+        keys: { p256dh: "a b", auth: "x" },
+      }),
     ).toThrow(/keys/);
     expect(() => validSubscription(null)).toThrow();
+  });
+
+  it("allows only the browsers' push services (security review L2)", () => {
+    const keys = { p256dh: "BNcRdreALRFXTkOOUHK1EtK2", auth: "tBHItJI5svbpez7KI4CCXg" };
+    for (const ok of [
+      "https://fcm.googleapis.com/fcm/send/abc",
+      "https://updates.push.services.mozilla.com/wpush/v2/abc",
+      "https://web.push.apple.com/QGx",
+      "https://wns2-par02p.notify.windows.com/w/?token=abc",
+    ]) {
+      expect(validSubscription({ endpoint: ok, keys }).endpoint).toBe(ok);
+    }
+    for (const bad of [
+      "https://172.16.0.1/x",
+      "https://0.0.0.0/x",
+      "https://100.64.0.1/x",
+      "https://[fd00::1]/x",
+      "https://[::ffff:10.0.0.1]/x",
+      "https://metadata.google.internal/x",
+      "https://push.example/x",
+      "https://fcm.googleapis.com.evil.test/x",
+      "https://evilfcm.googleapis.com.test/x",
+      "https://fcm.googleapis.com:8443/x",
+      "https://user@fcm.googleapis.com/x",
+    ]) {
+      expect(() => validSubscription({ endpoint: bad, keys }), bad).toThrow(/allowed/);
+    }
   });
 
   it("derives a stable P-256 VAPID pair from AUTH_SECRET unless keys are set", () => {

@@ -6,11 +6,19 @@ model calls. The contract is packages/contracts/src/engine.ts.
     POST /v1/translate  English for non-English segments (engine-heavy), else engine "none"
     POST /v1/analyze    rule-based findings with verbatim quotes and DateRules
     POST /v1/link       locate quotes on pages (the proof)
-    GET  /health        liveness and what this deployment can do (no auth)
+    GET  /health        liveness ({"status": "ok"}, no auth); with a valid token,
+                        also what this deployment can do
+    GET  /openapi.json  the schema, for token holders only (no /docs, no /redoc)
+
+Every other path is checked by `Guard` before a byte of the body is read:
+first the bearer token, then the body size, counted while streaming
+(Content-Length is not trusted, and a chunked body has none).
 
 Errors are JSON {"error", "reason"?, "message"?}:
     401 unauthorised      the bearer token is missing, bad, expired or too long-lived
+    408 timeout           the request body took longer than DUEPROOF_BODY_TIMEOUT
     413 too_large         the request body is over DUEPROOF_MAX_BODY_BYTES
+    415 encoded           the request body has a Content-Encoding (only raw JSON is read)
     422 unreadable        /v1/read on a document it cannot read; reason is the
                           contract's code (encrypted, malformed, too_large,
                           too_many_pages, unsupported). /v1/inspect answers
@@ -23,6 +31,7 @@ Run:  uvicorn dueproof_engine.app:app --host 0.0.0.0 --port 8000
 """
 from __future__ import annotations
 
+import asyncio
 import importlib.util
 import logging
 import os
@@ -41,9 +50,14 @@ from dueproof_engine.profiles import ProfileError
 
 log = logging.getLogger("dueproof.app")
 MAX_BODY_BYTES = int(os.environ.get("DUEPROOF_MAX_BODY_BYTES") or 20 * 1024 * 1024)
+# The whole request body must arrive within this many seconds (a slow sender holds a worker).
+BODY_TIMEOUT = float(os.environ.get("DUEPROOF_BODY_TIMEOUT") or 30)
 
 app = FastAPI(title="Dueproof engine", version=__version__, docs_url=None, redoc_url=None,
               openapi_url="/openapi.json")
+
+# Paths answered without a token. Everything else, /openapi.json included, needs one.
+OPEN_PATHS = frozenset({"/health"})
 
 if auth.disabled():
     log.warning("ENGINE_AUTH=none: every caller is trusted. Never run like this on a network.")
@@ -69,18 +83,78 @@ def authorised(authorization: str | None = Header(default=None)) -> None:
         raise Refused(401, "unauthorised", str(exc)) from None
 
 
+class Guard:
+    """Outermost ASGI layer: authenticate, then read the body with a cap.
+
+    The token is checked from the headers before the body is read, so an
+    unauthenticated caller can't make the engine take in 20 MB. The body is
+    then counted chunk by chunk and refused past MAX_BODY_BYTES, whatever
+    Content-Length said (or with none, for a chunked request), and handed on
+    in full to the app."""
+
+    def __init__(self, inner):
+        self.inner = inner
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.inner(scope, receive, send)
+        headers = {k.decode("latin-1").lower(): v.decode("latin-1") for k, v in scope["headers"]}
+        request_id = headers.get("x-request-id", "")[:64] or uuid.uuid4().hex[:12]
+
+        async def refuse(status: int, error: str, message: str) -> None:
+            response = _error(status, error, message=message)
+            response.headers["x-request-id"] = request_id
+            await response(scope, receive, send)
+
+        if scope["path"] not in OPEN_PATHS:
+            try:
+                auth.check(headers.get("authorization"))
+            except auth.NotConfigured as exc:
+                return await refuse(503, "not_configured", str(exc))
+            except auth.AuthError as exc:
+                return await refuse(401, "unauthorised", str(exc))
+        if headers.get("content-encoding", "identity").strip().lower() not in ("", "identity"):
+            return await refuse(415, "encoded", "send the body without a Content-Encoding")
+        declared = headers.get("content-length", "")
+        if declared.isdigit() and int(declared) > MAX_BODY_BYTES:
+            return await refuse(413, "too_large", "request body over the limit")
+        body = bytearray()
+        deadline = time.monotonic() + BODY_TIMEOUT
+        while True:
+            try:
+                message = await asyncio.wait_for(receive(), max(0.0, deadline - time.monotonic()))
+            except TimeoutError:
+                return await refuse(408, "timeout", "the request body took too long")
+            if message["type"] == "http.disconnect":
+                return None
+            body += message.get("body", b"")
+            if len(body) > MAX_BODY_BYTES:
+                return await refuse(413, "too_large", "request body over the limit")
+            if not message.get("more_body", False):
+                break
+        sent = False
+
+        async def replay():
+            nonlocal sent
+            if not sent:
+                sent = True
+                return {"type": "http.request", "body": bytes(body), "more_body": False}
+            return await receive()
+
+        return await self.inner(scope, replay, send)
+
+
+app.add_middleware(Guard)
+
+
 @app.middleware("http")
 async def request_context(request: Request, call_next):
-    """A request id on every response and log line; a body-size cap before
-    anything is parsed. Bodies, URLs and tokens are never logged."""
+    """A request id on every response and log line. Bodies, URLs and tokens
+    are never logged. Authentication and the body cap are Guard's."""
     token = rid.set(request.headers.get("x-request-id", "")[:64] or uuid.uuid4().hex[:12])
     t0 = time.perf_counter()
     try:
-        declared = request.headers.get("content-length")
-        if declared and declared.isdigit() and int(declared) > MAX_BODY_BYTES:
-            response = _error(413, "too_large", message="request body over the limit")
-        else:
-            response = await call_next(request)
+        response = await call_next(request)
         response.headers["x-request-id"] = rid.get()
         if request.url.path != "/health":
             log.info("%s %s %d %d ms", request.method, request.url.path, response.status_code,
@@ -149,8 +223,13 @@ def link(req: m.LinkRequest) -> m.LinkResponse:
 
 
 @app.get("/health")
-def health() -> dict:
-    """Liveness and capabilities, without loading any model."""
+def health(authorization: str | None = Header(default=None)) -> dict:
+    """Liveness for anyone; capabilities (version, rungs, translation) only for
+    a caller with a valid token. Never loads a model."""
+    try:
+        auth.check(authorization)
+    except (auth.AuthError, auth.NotConfigured):
+        return {"status": "ok"}
     from dueproof_engine.ocr import paddle, tesseract
     try:
         paddle.model_dir()

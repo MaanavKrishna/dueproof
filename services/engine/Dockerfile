@@ -67,4 +67,6 @@ USER engine
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s \
   CMD python -c "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/health', timeout=4)"
-CMD ["uvicorn", "dueproof_engine.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2", "--no-server-header"]
+# Idle keep-alive connections close after 5 s and one header block is capped at 16 kB; the
+# body's size and total time are capped in the app (Guard). uvicorn has no header-read timeout.
+CMD ["uvicorn", "dueproof_engine.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2", "--no-server-header", "--timeout-keep-alive", "5", "--h11-max-incomplete-event-size", "16384"]

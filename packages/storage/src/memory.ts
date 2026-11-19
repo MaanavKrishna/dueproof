@@ -26,6 +26,19 @@ export class MemoryStorage implements StoragePort {
     const o = this.objects.get(key);
     return o ? { size: o.body.byteLength, contentType: o.contentType } : null;
   }
+  async getStream(key: string): Promise<AsyncIterable<Uint8Array> | null> {
+    const body = await this.get(key);
+    if (!body) return null;
+    return (async function* () {
+      yield body;
+    })();
+  }
+  async copy(from: string, to: string): Promise<void> {
+    assertKey(to);
+    const o = this.objects.get(from);
+    if (!o) throw new Error("no such object");
+    this.objects.set(to, { body: new Uint8Array(o.body), contentType: o.contentType });
+  }
   async delete(key: string): Promise<void> {
     this.objects.delete(key);
   }
