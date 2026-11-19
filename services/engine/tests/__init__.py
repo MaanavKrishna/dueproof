@@ -11,3 +11,7 @@ os.environ["ENGINE_SHARED_SECRET"] = "test-secret-" + "s" * 32
 os.environ.pop("ENGINE_AUTH", None)
 os.environ.pop("DUEPROOF_ALLOWED_HOSTS", None)
 os.environ.setdefault("DUEPROOF_LOG_LEVEL", "CRITICAL")
+# No wall-clock limit on Tesseract here: on a busy shared runner a page can
+# take minutes, and a timed-out page reads as empty. tests/test_ocr_timeout.py
+# checks the limit itself.
+os.environ.setdefault("DUEPROOF_TESSERACT_TIMEOUT", "0")
