@@ -392,7 +392,7 @@ function EventChip({
       onClick={() => onSelect?.(event)}
     >
       <KIcon size={12} strokeWidth={2} className={styles.chipIcon} />
-      {event.time ? <span className={styles.chipTime}>{event.time}</span> : null}
+      {event.time ? <span className={styles.chipTime}>{event.time} </span> : null}
       <span className={styles.chipTitle}>{event.title}</span>
       {event.note && !detailed ? (
         <HelpIcon size={12} strokeWidth={2} className={styles.chipIcon} />
