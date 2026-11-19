@@ -18,7 +18,7 @@ from PIL import Image
 from dueproof_engine import config
 from dueproof_engine.api import models as m
 from dueproof_engine.api import storage
-from dueproof_engine.pipeline import pdf, read as reader
+from dueproof_engine.pipeline import read as reader
 from dueproof_engine.pipeline.analyzers import analyzer
 from dueproof_engine.pipeline.link import build_index, link_quote
 
@@ -38,43 +38,31 @@ def inspect(req: m.InspectRequest) -> m.InspectResponse:
                                                     "textLayerPages": [], "reason": reason, **kw})
     if kind is None:
         return no("unsupported")
-    if kind != "application/pdf":
-        try:
-            frames = reader.image_frames(data)
-        except reader.ReadError as exc:
-            return no(exc.reason)
-        return m.InspectResponse(ok=True, pageCount=len(frames), encrypted=False, textLayerPages=[])
     try:
-        doc = pdf.open_pdf(data, req.password)
+        # PDFium runs in a sandboxed child; images are counted from their headers.
+        got = reader.inspect_document(data, req.password)
     except reader.ReadError as exc:
         return no(exc.reason, encrypted=exc.reason == "encrypted")
-    try:
-        with pdf.LOCK:
-            n, encrypted = len(doc), pdf.is_encrypted(doc)
-        if n == 0:
-            return no("malformed", encrypted=encrypted)
-        if n > config.MAX_PAGES:
-            return no("too_many_pages", pageCount=n, encrypted=encrypted)
-        layer_pages = []
-        for pno in range(n):
-            with pdf.LOCK:
-                page = doc[pno]
-                try:
-                    if len(pdf.words(page)) >= reader.NATIVE_WORD_FLOOR:
-                        layer_pages.append(pno + 1)
-                finally:
-                    page.close()
-        return m.InspectResponse(ok=True, pageCount=n, encrypted=encrypted, textLayerPages=layer_pages)
-    finally:
-        with pdf.LOCK:
-            doc.close()
+    if got["pages"] > config.MAX_PAGES:
+        return no("too_many_pages", pageCount=got["pages"], encrypted=got["encrypted"])
+    return m.InspectResponse(ok=True, pageCount=got["pages"], encrypted=got["encrypted"],
+                             textLayerPages=got["text_layer_pages"])
 
 
 # read
+WEBP_MAX_SIDE = 16383      # the format's limit
+
+
 def webp(bgr: np.ndarray) -> bytes:
+    """The display image as WebP, scaled down to fit the format if a page is
+    taller or wider than it allows (the page's words are in points, so the
+    image's scale does not move them)."""
+    img = Image.fromarray(np.ascontiguousarray(bgr[:, :, ::-1]))
+    if max(img.size) > WEBP_MAX_SIDE:
+        f = WEBP_MAX_SIDE / max(img.size)
+        img = img.resize((max(1, int(img.width * f)), max(1, int(img.height * f))), Image.LANCZOS)
     out = io.BytesIO()
-    Image.fromarray(np.ascontiguousarray(bgr[:, :, ::-1])).save(
-        out, format="WEBP", quality=config.DISPLAY_QUALITY, method=4)
+    img.save(out, format="WEBP", quality=config.DISPLAY_QUALITY, method=4)
     return out.getvalue()
 
 
