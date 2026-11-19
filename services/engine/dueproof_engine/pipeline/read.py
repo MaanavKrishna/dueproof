@@ -16,22 +16,25 @@ does", for the script repair and the block reflow.
 """
 from __future__ import annotations
 
+import contextlib
 import io
 import math
 import re
+import struct
+import threading
 import warnings
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Iterator
 
 import numpy as np
-from PIL import Image, ImageOps, ImageSequence
+from PIL import Image, ImageOps
 
 from dueproof_engine import config
 from dueproof_engine.config import (DISPLAY_DPI, LOCALS, MAX_IMAGE_PIXELS, MAX_PAGE_PIXELS,
                                     MAX_PAGES, OCR_CONFIDENCE_BAR, OCR_DPI, PADDLE_DPI)
 from dueproof_engine.languages import LANGUAGES, enabled
 from dueproof_engine.ocr import rung_index
-from dueproof_engine.pipeline import pdf
+from dueproof_engine.pipeline import pdf, sandbox
 from dueproof_engine.pipeline.scripts import clean, is_split_word, merge_orphans
 
 LATIN = re.compile(r"[A-Za-z]")
@@ -42,6 +45,11 @@ BLANK_STD = 8.0             # a page image this flat has nothing on it to read
 Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS     # Pillow's decompression-bomb guard
 
 ReadError = pdf.ReadError
+
+# Heavy work at once in this process (config.READ_SLOTS, INSPECT_SLOTS).
+_READ_SLOTS = threading.BoundedSemaphore(config.READ_SLOTS)
+_INSPECT_SLOTS = threading.BoundedSemaphore(config.INSPECT_SLOTS)
+SURROGATES = re.compile("[\ud800-\udfff]")      # half a character: never valid in a response
 
 
 # What a file is, from its first bytes — the name and the declared type prove nothing.
@@ -158,7 +166,7 @@ def _page(pno: int, size: tuple[float, float], rotation: int, display: np.ndarra
             words, conf, engine = layer, 1.0, "text_layer"
     words = merge_orphans(words)
     for wd in words:
-        wd["page_num"], wd["text"] = pno, clean(wd["text"])
+        wd["page_num"], wd["text"] = pno, SURROGATES.sub("", clean(wd["text"]))
     text = page_text(words)
     return {"page": pno, "width": round(size[0], 2), "height": round(size[1], 2),
             "rotation": rotation, "words": words, "text": text, "engine": engine,
@@ -183,68 +191,158 @@ def _result(pages: list[dict]) -> dict:
             "needs_escalation": [p["page"] for p in pages if p["escalate"]]}
 
 
-# PDFs
+# PDFs. Every PDFium call runs in a sandboxed child process (sandbox.py).
+A4 = (595.28, 841.89)
+
+def _broken_page(pno: int, size: tuple[float, float]) -> dict:
+    """A page PDFium would not load: kept in its place with no words, and
+    flagged for a person (escalated) rather than dropped. Its size is the
+    page before it (A4 for a first page): there is no image and no box on it."""
+    return {"page": pno, "width": round(size[0], 2), "height": round(size[1], 2), "rotation": 0,
+            "words": [], "text": "", "engine": "none", "confidence": 0.0, "languages": ["en"],
+            "escalate": True}
+
+def _source(source: Path | str | bytes):
+    return source if isinstance(source, (bytes, bytearray)) else str(source)
+
 def read_pdf(source: Path | str | bytes, *, password: str | None = None, max_rung: str = "tesseract",
              languages: list[str] | None = None, on_image=None, progress=None) -> dict:
     """Render every page, harvest words, reconstruct text. `on_image(page,
-    bgr)` receives each page's display image (DISPLAY_DPI)."""
-    doc = pdf.open_pdf(source, password)
-    try:
-        with pdf.LOCK:
-            n = len(doc)
+    bgr)` receives each page's display image (DISPLAY_DPI). A page PDFium
+    cannot load is kept empty and escalated; a PDF none of whose pages load
+    is malformed."""
+    with sandbox.Sandbox() as sb:
+        n = sb.call("open", _source(source), password)["pages"]
         if n == 0:
             raise ReadError("malformed", "This PDF has no pages")
         if n > MAX_PAGES:
             raise ReadError("too_many_pages", f"This PDF has {n} pages; the limit is {MAX_PAGES}")
-        pages = []
+        pages, broken, size = [], 0, A4
         for pno in range(n):
-            with pdf.LOCK:                          # PDFium work only; OCR runs unlocked
-                page = doc[pno]
-                size, rotation = pdf.page_size(page), page.get_rotation()
-                image, layer = pdf.render(page, DISPLAY_DPI), pdf.words(page)
             try:
-                pages.append(_page(pno + 1, size, rotation, image, layer,
-                                   lambda dpi: pdf.render(page, dpi), max_rung, languages, on_image))
-            finally:
-                with pdf.LOCK:
-                    page.close()
+                got = sb.call("page", pno, DISPLAY_DPI)
+                size = got["size"]
+                pages.append(_page(pno + 1, size, got["rotation"], got["image"], got["words"],
+                                   lambda dpi, pno=pno: sb.call("render", pno, dpi),
+                                   max_rung, languages, on_image))
+            except sandbox.PageError:
+                broken += 1
+                pages.append(_broken_page(pno + 1, size))
             if progress:
                 progress(pno + 1, n)
-    finally:
-        with pdf.LOCK:
-            doc.close()
+    if broken == n:
+        raise ReadError("malformed", "No page of this PDF could be read")
     return _result(pages)
+
+def inspect_pdf(source: Path | str | bytes, password: str | None = None) -> dict:
+    """Page count, encryption and the pages with a usable text layer, with
+    nothing rendered. Raises ReadError as read_pdf does; a PDF over the page
+    limit is counted, not read."""
+    with sandbox.Sandbox() as sb:
+        info = sb.call("open", _source(source), password)
+        n = info["pages"]
+        out = {"pages": n, "encrypted": info["encrypted"], "text_layer_pages": []}
+        if n == 0:
+            raise ReadError("malformed", "This PDF has no pages")
+        if n > MAX_PAGES:
+            return out
+        broken = 0
+        for pno in range(n):
+            try:
+                if len(sb.call("page", pno, None)["words"]) >= NATIVE_WORD_FLOOR:
+                    out["text_layer_pages"].append(pno + 1)
+            except sandbox.PageError:
+                broken += 1
+        if broken == n:
+            raise ReadError("malformed", "No page of this PDF could be read")
+        return out
 
 
 # Photographs and scans that arrive as images rather than PDFs: a phone photo
 # of a notice is the most common way paper reaches anyone in India.
-def image_frames(source: Path | str | bytes) -> list[np.ndarray]:
-    """Every frame of an image file (multi-page TIFFs included), upright per
-    its EXIF orientation, as BGR arrays. Pixel counts are checked from the
-    header before anything is decoded."""
-    data = source if isinstance(source, bytes) else Path(source).read_bytes()
+@contextlib.contextmanager
+def _image_errors():
+    """Pillow's many ways of failing, as the contract's reasons."""
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("error", Image.DecompressionBombWarning)
-            im = Image.open(io.BytesIO(data))
-            frames = []
-            for n, frame in enumerate(ImageSequence.Iterator(im)):
-                if n >= MAX_PAGES:
-                    raise ReadError("too_many_pages", f"This image has more than {MAX_PAGES} pages")
-                w, h = frame.size
-                if w * h > MAX_IMAGE_PIXELS:
-                    raise ReadError("too_large", f"An image page of {w}x{h} pixels is over the limit")
-                rgb = (ImageOps.exif_transpose(frame) if n == 0 else frame).convert("RGB")
-                frames.append(np.ascontiguousarray(np.asarray(rgb)[:, :, ::-1]))
+            yield
     except ReadError:
         raise
-    except (Image.DecompressionBombError, Image.DecompressionBombWarning) as exc:
+    except (Image.DecompressionBombError, Image.DecompressionBombWarning, MemoryError) as exc:
         raise ReadError("too_large", "This image has too many pixels") from exc
-    except (OSError, ValueError, SyntaxError, EOFError) as exc:
+    except (OSError, ValueError, SyntaxError, EOFError, TypeError, KeyError, IndexError,
+            ZeroDivisionError, struct.error) as exc:
         raise ReadError("malformed", "This file could not be read as an image") from exc
-    if not frames:
-        raise ReadError("malformed", "This file could not be read as an image")
-    return frames
+
+def _open_image(data: bytes) -> tuple[Image.Image, list[tuple[int, int]]]:
+    """The image, and every frame's size from the headers alone: nothing is
+    decoded. Refuses too many frames, a frame too large or too long, and a
+    file whose frames together are over MAX_DOCUMENT_PIXELS."""
+    im = Image.open(io.BytesIO(data))
+    n = getattr(im, "n_frames", 1)
+    if n > MAX_PAGES:
+        raise ReadError("too_many_pages", f"This image has more than {MAX_PAGES} pages")
+    if im.format == "PNG":
+        sizes = [im.size] * n           # an APNG's frames share the canvas, and seeking decodes
+    else:
+        sizes = []
+        for i in range(n):              # a TIFF's IFDs (or an MPO's index): headers only
+            im.seek(i)
+            sizes.append(im.size)
+        im.seek(0)
+    total = 0
+    for w, h in sizes:
+        if w < 1 or h < 1:
+            raise ReadError("malformed", "This file could not be read as an image")
+        if w * h > MAX_IMAGE_PIXELS or max(w, h) > config.MAX_IMAGE_SIDE:
+            raise ReadError("too_large", f"An image page of {w}x{h} pixels is over the limit")
+        total += w * h
+    if total > config.MAX_DOCUMENT_PIXELS:
+        raise ReadError("too_large", f"This image's {n} pages hold {total} pixels; "
+                                     f"the limit is {config.MAX_DOCUMENT_PIXELS}")
+    return im, sizes
+
+def image_info(source: Path | str | bytes) -> list[tuple[int, int]]:
+    """Every frame's size, from the headers, with every cap applied: what
+    /inspect needs, without decoding a pixel. Raises ReadError."""
+    data = source if isinstance(source, bytes) else Path(source).read_bytes()
+    with _image_errors():
+        return _open_image(data)[1]
+
+def _to_rgb(frame: Image.Image) -> Image.Image:
+    """Any mode as 8-bit RGB. 16-bit and floating-point scans are stretched
+    to 0-255 (convert() would clip them to white, and the page would read as
+    blank); transparency is laid on white paper."""
+    mode = frame.mode
+    if mode in ("I", "F") or mode.startswith("I;16"):
+        arr = np.asarray(frame, np.float32)
+        lo, hi = float(arr.min()), float(arr.max())
+        if lo < 0 or hi > 255:
+            arr = (arr - lo) * (255.0 / max(hi - lo, 1.0))
+        return Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8)).convert("RGB")
+    if mode in ("RGBA", "LA", "PA", "La", "RGBa") or (mode == "P" and "transparency" in frame.info):
+        rgba = frame.convert("RGBA")
+        paper = Image.new("RGBA", rgba.size, (255, 255, 255, 255))
+        paper.alpha_composite(rgba)
+        return paper.convert("RGB")
+    return frame.convert("RGB")
+
+def image_frames(source: Path | str | bytes) -> Iterator[np.ndarray]:
+    """Every frame of an image file (multi-page TIFFs included), upright per
+    its EXIF orientation, as BGR arrays, decoded one at a time: a 300-page
+    fax never sits in memory whole. Every cap is checked from the headers
+    before the first frame is decoded."""
+    data = source if isinstance(source, bytes) else Path(source).read_bytes()
+    with _image_errors():
+        im, sizes = _open_image(data)
+    for n in range(len(sizes)):
+        with _image_errors():
+            im.seek(n)
+            rgb = _to_rgb(ImageOps.exif_transpose(im) if n == 0 else im)
+            bgr = np.ascontiguousarray(np.asarray(rgb)[:, :, ::-1])
+            del rgb
+        yield bgr
 
 def _scale(img: np.ndarray, factor: float) -> np.ndarray:
     h, w = img.shape[:2]
@@ -253,11 +351,13 @@ def _scale(img: np.ndarray, factor: float) -> np.ndarray:
 
 def read_image(source: Path | str | bytes, *, max_rung: str = "tesseract",
                languages: list[str] | None = None, on_image=None, progress=None) -> dict:
-    """Every frame of an image file, through OCR. A page's width and height
-    are its pixel size (an image has no points)."""
-    frames = image_frames(source)
+    """Every frame of an image file, through OCR, one frame in memory at a
+    time. A page's width and height are its pixel size (an image has no
+    points)."""
+    data = source if isinstance(source, bytes) else Path(source).read_bytes()
+    count = len(image_info(data))
     pages = []
-    for pno, img in enumerate(frames, 1):
+    for pno, img in enumerate(image_frames(data), 1):
         h, w = img.shape[:2]
         size = (float(w), float(h))
         if h * w > MAX_PAGE_PIXELS:
@@ -267,17 +367,32 @@ def read_image(source: Path | str | bytes, *, max_rung: str = "tesseract",
         display = img if f == 1.0 else _scale(img, f)
         pages.append(_page(pno, size, 0, display, None, lambda dpi, img=img: img,
                            max_rung, languages, on_image))
+        del img, display
         if progress:
-            progress(pno, len(frames))
+            progress(pno, count)
     return _result(pages)
 
 def read_document(data: bytes, *, password: str | None = None, max_rung: str = "tesseract",
                   languages: list[str] | None = None, on_image=None) -> dict:
-    """Read a PDF or an image, by what its bytes are."""
+    """Read a PDF or an image, by what its bytes are. At most READ_SLOTS
+    documents are read at once in this process; the rest wait their turn."""
     kind = sniff(data[:1024])
     if kind is None:
         raise ReadError("unsupported", "This file is not a PDF, JPEG, PNG or TIFF")
-    if kind == "application/pdf":
-        return read_pdf(data, password=password, max_rung=max_rung, languages=languages,
-                        on_image=on_image)
-    return read_image(data, max_rung=max_rung, languages=languages, on_image=on_image)
+    with _READ_SLOTS:
+        if kind == "application/pdf":
+            return read_pdf(data, password=password, max_rung=max_rung, languages=languages,
+                            on_image=on_image)
+        return read_image(data, max_rung=max_rung, languages=languages, on_image=on_image)
+
+def inspect_document(data: bytes, password: str | None = None) -> dict:
+    """What /inspect reports: {"pages", "encrypted", "text_layer_pages"}.
+    Images are counted from their headers. INSPECT_SLOTS at once, apart from
+    reads, so a long read never holds up a page count. Raises ReadError."""
+    kind = sniff(data[:1024])
+    if kind is None:
+        raise ReadError("unsupported", "This file is not a PDF, JPEG, PNG or TIFF")
+    with _INSPECT_SLOTS:
+        if kind == "application/pdf":
+            return inspect_pdf(data, password)
+        return {"pages": len(image_info(data)), "encrypted": False, "text_layer_pages": []}

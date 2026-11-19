@@ -34,8 +34,51 @@ MAX_PAGE_PIXELS = _int("DUEPROOF_MAX_PAGE_PIXELS", 40_000_000)   # renders at a 
 # An image whose header claims more pixels than this is refused before it is
 # decoded (Pillow's decompression-bomb guard is set to the same number).
 MAX_IMAGE_PIXELS = _int("DUEPROOF_MAX_IMAGE_PIXELS", 120_000_000)
+MAX_IMAGE_SIDE = _int("DUEPROOF_MAX_IMAGE_SIDE", 30_000)          # a 1 x 100,000,000 strip is no page
+# All the frames of one image file together (a 300-page A4 fax at 200 DPI is
+# 1.2 billion), checked from the headers before any frame is decoded.
+MAX_DOCUMENT_PIXELS = _int("DUEPROOF_MAX_DOCUMENT_PIXELS", 2_000_000_000)
+# A text layer this dense is a bomb, not a notice: a full A4 page of 8-point
+# type is about 12,000 characters.
+MAX_PAGE_CHARS = _int("DUEPROOF_MAX_PAGE_CHARS", 100_000)
+MAX_DOCUMENT_CHARS = _int("DUEPROOF_MAX_DOCUMENT_CHARS", 3_000_000)
 FETCH_TIMEOUT = _float("DUEPROOF_FETCH_TIMEOUT", 30.0)            # seconds, per request
 PUT_TIMEOUT = _float("DUEPROOF_PUT_TIMEOUT", 30.0)
+
+# --- The PDFium sandbox (pipeline/sandbox.py) ------------------------------
+# PDFium cannot be told to stop: a 600-byte PDF can make it allocate until the
+# process aborts. Every PDFium call for /inspect and /read runs in a child
+# process with these limits; a child that runs out is a "too_large" refusal.
+# "off" runs PDFium in-process with no limits (for debugging only).
+SANDBOX = os.environ.get("DUEPROOF_SANDBOX") or "on"
+SANDBOX_MEMORY = _int("DUEPROOF_SANDBOX_MEMORY_MB", 1024) * 1024 * 1024  # address space it may add
+SANDBOX_CPU_SECONDS = _int("DUEPROOF_SANDBOX_CPU_SECONDS", 240)          # per document
+SANDBOX_CALL_SECONDS = _float("DUEPROOF_SANDBOX_CALL_SECONDS", 60.0)     # per page, wall clock
+
+def memory_bytes() -> int:
+    """The memory this engine may use: the function's size on AWS Lambda
+    (Vercel), else the cgroup's limit (Docker), else the machine's."""
+    if mb := os.environ.get("AWS_LAMBDA_FUNCTION_MEMORY_SIZE", "").strip():
+        if mb.isdigit():
+            return int(mb) * 1024 * 1024
+    for path in ("/sys/fs/cgroup/memory.max", "/sys/fs/cgroup/memory/memory.limit_in_bytes"):
+        try:
+            value = Path(path).read_text().strip()
+        except OSError:
+            continue
+        if value.isdigit() and int(value) < 1 << 50:
+            return int(value)
+    try:
+        return os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
+    except (ValueError, OSError, AttributeError):
+        return 2 << 30
+
+# Reads at once in one process. A read holds its PDFium child (up to
+# SANDBOX_MEMORY) and its OCR (about 1 GB at peak), so on a 2 GiB function
+# this is 1; others wait their turn. /inspect has its own, smaller pool, so a
+# heavy read never holds up a page count.
+READ_SLOTS = _int("DUEPROOF_READ_SLOTS", max(1, min(4, (memory_bytes() - (512 << 20)) // (1536 << 20))))
+INSPECT_SLOTS = _int("DUEPROOF_INSPECT_SLOTS", 2)
 
 # --- Languages -------------------------------------------------------------
 # English is always read. DUEPROOF_LANGUAGES (or the profile's LANGUAGES) adds
@@ -74,6 +117,11 @@ def tesseract_langs(hints: list[str] | None = None) -> str:
     codes = hints if hints is not None else [lang["code"] for lang in LOCALS]
     packs = [LANGUAGES[c]["ocr"] for c in codes if c in LANGUAGES and LANGUAGES[c]["ocr"]]
     return "+".join([p for p in dict.fromkeys(packs) if p in installed_packs()] + ["eng"])
+
+# Seconds Tesseract may spend on one page before it is stopped and the page
+# escalated (a dense A4 page takes a few seconds on an idle core; a
+# pathological image, many minutes). 0 means no limit.
+TESSERACT_TIMEOUT = _float("DUEPROOF_TESSERACT_TIMEOUT", 120.0)
 
 OCR_DPI = 300        # what Tesseract sees
 PADDLE_DPI = 200     # what PaddleOCR sees: its detector is trained near this scale

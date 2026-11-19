@@ -60,9 +60,17 @@ def read(bgr: np.ndarray, langs: str | None = None) -> tuple[list[dict], float]:
     gray, inv = _deskew(cv2.bilateralFilter(cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY), 5, 45, 45))
     binimg = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
                                    cv2.THRESH_BINARY, 31, 15)
-    data = pytesseract.image_to_data(binimg, lang=langs or config.tesseract_langs(),
-                                     output_type=pytesseract.Output.DICT,
-                                     config="--oem 1 --psm 6 -c preserve_interword_spaces=1")
+    try:
+        data = pytesseract.image_to_data(binimg, lang=langs or config.tesseract_langs(),
+                                         output_type=pytesseract.Output.DICT,
+                                         config="--oem 1 --psm 6 -c preserve_interword_spaces=1",
+                                         timeout=config.TESSERACT_TIMEOUT)
+    except RuntimeError as exc:
+        # pytesseract kills the process and says so; the page is then read
+        # by no rung, and so escalated, rather than holding a worker.
+        if "timeout" not in str(exc).lower():
+            raise
+        return [], 0.0
     words, confs, line_ids = [], [], {}
     for i, raw in enumerate(data["text"]):
         text, conf = (raw or "").strip(), float(data["conf"][i])
