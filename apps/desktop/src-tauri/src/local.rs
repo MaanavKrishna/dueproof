@@ -206,6 +206,8 @@ impl Sidecars {
             ])
             .current_dir(rt.join("engine"))
             .env("ENGINE_SHARED_SECRET", &launch_secret)
+            // The engine refuses every storage host unless told which: the app, on loopback.
+            .env("DUEPROOF_ALLOWED_HOSTS", "127.0.0.1")
             .stdin(Stdio::null());
             let child = cmd.spawn().map_err(|e| format!("engine: {e}"))?;
             (Some(child), Some(port))
