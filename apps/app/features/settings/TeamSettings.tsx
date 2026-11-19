@@ -42,7 +42,6 @@ import {
   setMemberClientAccess,
 } from "@/app/actions/team";
 import { ROLE_LABELS, ROLE_OPTIONS } from "@/lib/form-options";
-import { inviteLink } from "@/lib/invite-link";
 import { type SettingsChrome, SettingsFrame } from "./SettingsFrame";
 import { type SsoData, SsoSection } from "./SsoSection";
 import styles from "./settings.module.css";
@@ -61,7 +60,8 @@ export interface TeamMemberData {
 
 export interface TeamData {
   members: TeamMemberData[];
-  invitations: Array<{ id: string; email: string; role: string; expiresAt: string }>;
+  /** `link` is the tokenised sign-up link, made on the server. */
+  invitations: Array<{ id: string; email: string; role: string; expiresAt: string; link: string }>;
   clients: Array<{ id: string; name: string }>;
   canManage: boolean;
   viewerRole: string;
@@ -262,7 +262,7 @@ export function TeamSettings({ chrome, data }: { chrome: SettingsChrome; data: T
                 </thead>
                 <tbody>
                   {data.invitations.map((inv) => {
-                    const link = inviteLink(data.appUrl, inv.email);
+                    const link = inv.link;
                     return (
                       <tr key={inv.id}>
                         <td>{inv.email}</td>

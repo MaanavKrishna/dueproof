@@ -1,8 +1,10 @@
 "use client";
 /**
- * Sign up. Three cases from the server: the first person on a new install
+ * Sign up. The cases from the server: the first person on a new install
  * (creates the organisation as owner, then the setup wizard), someone with
- * an invitation (joins with the invited role), or open sign-up (hosted).
+ * an invitation link (joins with the invited role; the link's token goes
+ * with the sign-up, H1), open sign-up (hosted), sign-up by invitation only,
+ * or an invitation link that no longer works.
  */
 import { authClient } from "@dueproof/auth/client";
 import { Banner, Button, Link, TextField } from "@dueproof/ui";
@@ -12,9 +14,10 @@ import { AuthCard, authMessage, authStyles as styles } from "./AuthCard";
 
 export type SignUpMode =
   | { kind: "first" }
-  | { kind: "invite"; email: string; orgName: string; role: string }
+  | { kind: "invite"; email: string; orgName: string; role: string; token: string }
   | { kind: "open" }
-  | { kind: "closed" };
+  | { kind: "closed" }
+  | { kind: "expired" };
 
 const MIN_PASSWORD = 10;
 
@@ -27,11 +30,29 @@ export function SignUpForm({ mode }: { mode: SignUpMode }) {
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
 
+  if (mode.kind === "expired") {
+    return (
+      <AuthCard
+        title="This invitation link doesn't work"
+        lede="It has expired, was cancelled or was already used. Ask an administrator of your firm to send you a new one."
+        foot={
+          <>
+            Already have an account? <Link href="/sign-in">Sign in</Link>
+          </>
+        }
+      >
+        <Button variant="secondary" fullWidth onClick={() => router.push("/sign-in")}>
+          Back to sign in
+        </Button>
+      </AuthCard>
+    );
+  }
+
   if (mode.kind === "closed") {
     return (
       <AuthCard
         title="Sign-up is by invitation"
-        lede="To join, ask an administrator of your firm for an invite link. It opens this page with your email filled in."
+        lede="To join, ask an administrator of your firm for an invitation link. It opens this page with your email filled in."
         foot={
           <>
             Already have an account? <Link href="/sign-in">Sign in</Link>
@@ -61,11 +82,15 @@ export function SignUpForm({ mode }: { mode: SignUpMode }) {
     setError(null);
     if (!name.trim() || password.length < MIN_PASSWORD || !email.includes("@")) return;
     setBusy(true);
-    const res = await authClient.signUp.email({
+    // The invitation link's token goes with the sign-up (H1); Better Auth
+    // passes unknown body fields through to the server's sign-up checks.
+    const body = {
       name: name.trim(),
       email: email.trim(),
       password,
-    });
+      ...(mode.kind === "invite" ? { inviteToken: mode.token } : {}),
+    };
+    const res = await authClient.signUp.email(body);
     if (res.error) {
       setBusy(false);
       setError(authMessage(res.error));

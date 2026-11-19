@@ -9,7 +9,7 @@ import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createAuth } from "@dueproof/auth";
+import { createAuth, inviteToken } from "@dueproof/auth";
 import {
   and,
   createDatabase,
@@ -74,9 +74,17 @@ let ctxB: AuthContext;
 let documentId: string;
 let caseId: string;
 
-async function signUp(email: string, name: string): Promise<Headers> {
+async function signUp(email: string, name: string, invitationId?: string): Promise<Headers> {
   const res = await container.auth.api.signUpEmail({
-    body: { email, name, password: "a-long-test-password" },
+    body: {
+      email,
+      name,
+      password: "a-long-test-password",
+      // An invitation's link carries its token (H1).
+      ...(invitationId
+        ? { inviteToken: inviteToken(container.env.AUTH_SECRET, invitationId) }
+        : {}),
+    },
     returnHeaders: true,
   });
   const cookie = (res.headers.get("set-cookie") ?? "").split(";")[0] ?? "";
@@ -129,8 +137,9 @@ beforeAll(async () => {
 
   // A viewer joins firm A by invitation.
   const raw = unsafeRawDb(database);
+  const invitationId = uuidv7();
   await raw.insert(invitation).values({
-    id: uuidv7(),
+    id: invitationId,
     organizationId: ctxA.orgId,
     email: "vik@firm-a.test",
     role: "viewer",
@@ -138,7 +147,7 @@ beforeAll(async () => {
     expiresAt: new Date(Date.now() + 86_400_000),
     inviterId: ctxA.userId,
   });
-  viewer = await signUp("vik@firm-a.test", "Vik Viewer");
+  viewer = await signUp("vik@firm-a.test", "Vik Viewer", invitationId);
   expect((await raw.select().from(organization)).length).toBe(2);
 
   // Upload and read the ASMT-10 notice in firm A.

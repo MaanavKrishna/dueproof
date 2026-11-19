@@ -177,7 +177,7 @@ export function businessAuth(env: Env, database: Database) {
   return {
     plugins: sso.authPlugins({
       appUrl: env.APP_URL,
-      isLicensed: () => hasFeature(database, "sso"),
+      isLicensed: () => hasFeature({ database, env }, "sso"),
       onJoin: (e) =>
         withOrg(database, e.orgId, (tx, ctx) =>
           audit.write(tx, ctx, {
@@ -189,8 +189,11 @@ export function businessAuth(env: Env, database: Database) {
           }),
         ).then(() => undefined),
     }) as NonNullable<Parameters<typeof createAuth>[0]["plugins"]>,
-    externalSignUp: (email: string, path: string | undefined) =>
-      sso.allowsSignUp(database, email, path),
+    externalSignUp: (
+      email: string,
+      path: string | undefined,
+      params?: Record<string, string | undefined>,
+    ) => sso.allowsSignUp(database, email, path, params),
   };
 }
 

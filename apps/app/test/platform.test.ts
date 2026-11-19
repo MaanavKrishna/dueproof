@@ -9,7 +9,7 @@ import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createAuth } from "@dueproof/auth";
+import { createAuth, inviteToken } from "@dueproof/auth";
 import {
   clients,
   createDatabase,
@@ -59,10 +59,18 @@ let container: Container;
 let pdf: Uint8Array;
 let sha: string;
 
-async function signUp(email: string, name: string): Promise<Headers> {
+async function signUp(email: string, name: string, invitationId?: string): Promise<Headers> {
   // Use the session sign-up itself creates, as a browser would.
   const res = await container.auth.api.signUpEmail({
-    body: { email, name, password: "a-long-test-password" },
+    body: {
+      email,
+      name,
+      password: "a-long-test-password",
+      // An invitation's link carries its token (H1).
+      ...(invitationId
+        ? { inviteToken: inviteToken(container.env.AUTH_SECRET, invitationId) }
+        : {}),
+    },
     returnHeaders: true,
   });
   const cookie = (res.headers.get("set-cookie") ?? "").split(";")[0] ?? "";
@@ -381,8 +389,9 @@ describe("sign-up, upload and processing", () => {
 
   it("a viewer may read but not upload", async () => {
     const raw = unsafeRawDb(database);
+    const invitationId = uuidv7();
     await raw.insert(invitation).values({
-      id: uuidv7(),
+      id: invitationId,
       organizationId: owner.orgId,
       email: "viewer@harbour.test",
       role: "viewer",
@@ -390,7 +399,7 @@ describe("sign-up, upload and processing", () => {
       expiresAt: new Date(Date.now() + 86_400_000),
       inviterId: owner.userId,
     });
-    const headers = await signUp("viewer@harbour.test", "Vik");
+    const headers = await signUp("viewer@harbour.test", "Vik", invitationId);
     const viewer = await authorize("case.view", { headers });
     expect(viewer.orgId).toBe(owner.orgId);
     expect((await getDocumentDetail(viewer, documentId)).findings).toHaveLength(7);

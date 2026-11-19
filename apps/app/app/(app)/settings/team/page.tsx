@@ -34,6 +34,7 @@ export default async function TeamSettingsPage() {
           email: i.email,
           role: i.role,
           expiresAt: i.expiresAt.toISOString(),
+          link: i.link,
         })),
         clients: team.clients,
         canManage,

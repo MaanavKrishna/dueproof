@@ -67,28 +67,85 @@ describe("the Settings form", () => {
 
   it("fetches a metadata URL over https only", async () => {
     const fake = (async () => new Response(idpMetadata(), { status: 200 })) as typeof fetch;
+    // idp.test stands for a public IdP.
+    const lookup = async () => ["8.8.8.8"];
     const c = await parseSsoConfig(
       { metadataUrl: "https://idp.test/metadata", domains: "firm.test" },
-      { fetch: fake },
+      { fetch: fake, lookup },
     );
     expect(c.defaultRole).toBe("member");
     await expect(
       parseSsoConfig(
         { metadataUrl: "http://idp.test/metadata", domains: "firm.test" },
-        { fetch: fake },
+        { fetch: fake, lookup },
       ),
     ).rejects.toThrow(/https/);
+    // S2: a refusal says the same whatever happened, so it can't probe hosts.
     const notFound = (async () => new Response("", { status: 404 })) as typeof fetch;
+    const down = (async () => {
+      throw new TypeError("fetch failed");
+    }) as typeof fetch;
+    const answers: string[] = [];
+    for (const f of [notFound, down]) {
+      const e = await parseSsoConfig(
+        { metadataUrl: "https://idp.test/x", domains: "firm.test" },
+        { fetch: f, lookup },
+      ).catch((err: Error) => err);
+      answers.push((e as Error).message);
+    }
+    expect(answers[0]).toBe(answers[1]);
+    expect(answers[0]).not.toMatch(/404/);
+    // A body larger than the cap is cut off, with or without a length header.
+    const huge = (async () => new Response("x".repeat(200_000))) as typeof fetch;
     await expect(
       parseSsoConfig(
         { metadataUrl: "https://idp.test/x", domains: "firm.test" },
-        { fetch: notFound },
+        { fetch: huge, lookup },
       ),
-    ).rejects.toThrow(/404/);
-    const huge = (async () => new Response("x".repeat(200_000))) as typeof fetch;
-    await expect(
-      parseSsoConfig({ metadataUrl: "https://idp.test/x", domains: "firm.test" }, { fetch: huge }),
     ).rejects.toThrow(/100 KB/);
+    const streamed = (async () =>
+      new Response(
+        new ReadableStream({
+          start(c) {
+            for (let i = 0; i < 20; i++) c.enqueue(new Uint8Array(10_000));
+            c.close();
+          },
+        }),
+      )) as typeof fetch;
+    await expect(
+      parseSsoConfig(
+        { metadataUrl: "https://idp.test/x", domains: "firm.test" },
+        { fetch: streamed, lookup },
+      ),
+    ).rejects.toThrow(/100 KB/);
+  });
+
+  it("never fetches from a private or internal address (S2)", async () => {
+    let fetched = 0;
+    const fake = (async () => {
+      fetched++;
+      return new Response(idpMetadata(), { status: 200 });
+    }) as typeof fetch;
+    const internal = async (host: string) => (host === "idp.internal.test" ? ["10.0.0.7"] : []);
+    const messages = new Set<string>();
+    for (const url of [
+      "https://127.0.0.1/metadata",
+      "https://169.254.169.254/latest/meta-data",
+      "https://[::1]/metadata",
+      "https://[::ffff:192.168.1.1]/metadata",
+      "https://localhost/metadata",
+      "https://idp.internal.test/metadata",
+      "https://unresolvable.test/metadata",
+    ]) {
+      const e = await parseSsoConfig(
+        { metadataUrl: url, domains: "firm.test" },
+        { fetch: fake, lookup: internal },
+      ).catch((err: Error) => err);
+      expect(e, url).toBeInstanceOf(Error);
+      messages.add((e as Error).message);
+    }
+    expect(fetched).toBe(0);
+    expect(messages.size).toBe(1);
   });
 
   it("needs metadata, and refuses owner as a default role", async () => {

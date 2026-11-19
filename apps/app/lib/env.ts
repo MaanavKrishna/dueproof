@@ -97,6 +97,21 @@ const Env = z
       .optional(),
     ANTHROPIC_API_KEY: z.string().optional(),
     AI_GATEWAY_API_KEY: z.string().optional(),
+    /**
+     * Hosted: the organisations (ids, comma separated) the operator lets use
+     * the AI plan on Dueproof's own key (M4). Empty by default, so a new
+     * organisation can't spend it; tenants can't change this.
+     */
+    AI_PLAN_ORGS: z.string().optional(),
+    /** Hosted: the most an organisation's plan budget may be, in US cents a month. */
+    AI_PLAN_MONTHLY_CAP_MINOR: z.coerce.number().int().min(0).default(5_000),
+
+    /**
+     * Hosted: the Business licence file's contents (M5). On hosted only the
+     * operator sets the licence, here; tenant owners can't install or remove
+     * one. Self-hosted and desktop installs keep it in Settings → System.
+     */
+    DUEPROOF_LICENCE: z.string().optional(),
 
     /** Bearer token for GET /api/metrics from outside the machine. Unset: local requests only. */
     METRICS_TOKEN: secret.optional(),

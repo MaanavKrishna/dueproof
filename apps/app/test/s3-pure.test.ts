@@ -14,7 +14,13 @@ import {
   validateImport,
 } from "../features/clients/csv-import";
 import { applyFilters, groupByWeek, mondayOf, weekRange } from "../features/deadlines/group";
-import { renderIcs, signFeedToken, verifyFeedToken } from "../features/deadlines/ical";
+import {
+  esc,
+  FEED_TOKEN_MAX_AGE_MS,
+  renderIcs,
+  signFeedToken,
+  verifyFeedToken,
+} from "../features/deadlines/ical";
 import { validSubscription } from "../features/push/validate";
 import { renderDigest } from "../features/reminders/digest";
 import { csvCell, rupees, toCsv } from "../lib/csv";
@@ -176,20 +182,40 @@ describe("calendar feed", () => {
       scope: "me",
       issuedAt: 1_700_000_000_000,
     });
-    expect(verifyFeedToken(secret, t)).toEqual({
+    // Checked as of a minute after issue: tokens now expire (I2).
+    const at = 1_700_000_060_000;
+    expect(verifyFeedToken(secret, t, at)).toEqual({
       orgId: "org_1",
       userId: "u_1",
       scope: "me",
       issuedAt: 1_700_000_000_000,
     });
-    expect(verifyFeedToken("x".repeat(40), t)).toBeNull();
+    expect(verifyFeedToken("x".repeat(40), t, at)).toBeNull();
     const [payload, mac] = t.split(".") as [string, string];
     const forged = Buffer.from(
       Buffer.from(payload, "base64url").toString().replace("u_1", "u_2"),
     ).toString("base64url");
-    expect(verifyFeedToken(secret, `${forged}.${mac}`)).toBeNull();
-    expect(verifyFeedToken(secret, "garbage")).toBeNull();
-    expect(verifyFeedToken(secret, `${t}.extra`)).toBeNull();
+    expect(verifyFeedToken(secret, `${forged}.${mac}`, at)).toBeNull();
+    expect(verifyFeedToken(secret, "garbage", at)).toBeNull();
+    expect(verifyFeedToken(secret, `${t}.extra`, at)).toBeNull();
+  });
+
+  it("expires a token a year after issue, and refuses one from the future (I2)", () => {
+    const issuedAt = 1_700_000_000_000;
+    const t = signFeedToken(secret, { orgId: "o", userId: "u", scope: "org", issuedAt });
+    expect(verifyFeedToken(secret, t, issuedAt + FEED_TOKEN_MAX_AGE_MS)).not.toBeNull();
+    expect(verifyFeedToken(secret, t, issuedAt + FEED_TOKEN_MAX_AGE_MS + 1)).toBeNull();
+    expect(verifyFeedToken(secret, t, issuedAt - 60 * 60 * 1000)).toBeNull();
+  });
+
+  it("escapes every line break, a lone CR included, and drops control characters (I2)", () => {
+    expect(esc("a\rb")).toBe("a\\nb");
+    expect(esc("a\r\nb\nc")).toBe("a\\nb\\nc");
+    expect(esc("x\u0000y\u0007z\u007f")).toBe("xyz");
+    const ics = renderIcs("F", [{ id: "d", title: "Pay\rEND:VEVENT", date: "2026-11-20" }]);
+    expect(ics).toContain("SUMMARY:Pay\\nEND:VEVENT\r\n");
+    expect(ics.split("\r\n").filter((l) => l === "END:VEVENT")).toHaveLength(1);
+    expect(ics.replace(/\r\n/g, "")).not.toMatch(/[\r\n]/);
   });
 
   it("renders all-day events with escaping and folded lines", () => {

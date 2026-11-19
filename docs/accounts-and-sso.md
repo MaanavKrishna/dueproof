@@ -10,11 +10,12 @@ single sign-on on the Business edition.
 
 | `AUTH_SIGNUP` | Default for | What happens |
 |---|---|---|
-| `first-user` | self-hosted, desktop | The first person to sign up creates the organisation and becomes its **owner**, then goes to the setup wizard. After that, only addresses with a pending invitation can sign up |
-| `open` | hosted | Anyone can sign up. Someone with a pending invitation joins that organisation; anyone else gets a new organisation as its owner |
+| `first-user` | self-hosted, desktop | The first person to sign up creates the organisation and becomes its **owner**, then goes to the setup wizard. After that, only someone with an invitation link can sign up |
+| `open` | hosted | Anyone can sign up. Someone who signs up through an invitation link joins that organisation; anyone else gets a new organisation as its owner |
 
-Someone without an invitation on a `first-user` install sees **Sign-up is by
-invitation**, which tells them to ask an administrator for an invite link.
+Someone without an invitation link on a `first-user` install sees
+**Sign-up is by invitation**, which tells them to ask an administrator for
+one.
 
 ## Inviting people
 
@@ -24,17 +25,31 @@ role.
 
 Each person gets an invitation email through the install's mail settings
 (`MAIL_DRIVER`, see [Configuration](configuration.md#reminders-and-email)).
-It carries their sign-up link, `/sign-up?email=<their address>`. The page
-names your organisation and the role, with the address filled in.
+It carries their sign-up link, `/sign-up?invite=<token>`. The token is a
+secret made for that one invitation (signed with `AUTH_SECRET`). The page
+names your organisation and the role, with the invited address filled in.
+
+The link is what lets the person in, not their address:
+
+- Signing up needs the link's token, and the address must be the one you
+  invited. Knowing that someone was invited is not enough to take their
+  place.
+- The link works once. Joining uses the invitation up.
+- It stops working when the invitation expires (after 14 days), when you
+  cancel it, or when you invite the same address again (the new invitation
+  replaces the old one, with a new link).
+- Without a valid token the sign-up page shows nothing about the
+  invitation, so it can't be used to find out who was invited.
 
 The same link is shown in the setup wizard after you invite, and under
 **Invitations** in **Team & access** (the copy button beside each address).
 Use it when the install has no mail server (`MAIL_DRIVER=log` sends
-nothing) or an email went astray: copy it and send it yourself.
+nothing) or an email went astray: copy it and send it yourself, to that
+person only.
 
-Plain `/sign-up` without an invited address shows **Sign-up is by
-invitation** and asks the person to get an invite link from an
-administrator. Invitations last 14 days; cancel one from the same list.
+Plain `/sign-up` without an invitation link shows **Sign-up is by
+invitation** and asks the person to get one from an administrator. A link
+that no longer works says so. Cancel an invitation from the same list.
 
 ## Roles
 
@@ -57,11 +72,19 @@ always see every client.
 Removing someone takes their access away at once. Their work, comments and
 audit entries stay.
 
+People, roles and invitations change only through **Team & access** (and
+the setup wizard), which check your role and record every change in the
+audit trail. Nobody can give a role above their own, and only owners make
+owners. Better Auth's own organisation endpoints (`/api/auth/organization/*`)
+are closed: `/api/auth` serves only signing in and out, the session,
+password reset, passkeys and two-step verification.
+
 ## Passwords
 
 At least 10 characters (at most 256), stored as Argon2id hashes. Sign-in is
-limited to 20 attempts per 15 minutes from one address, and sign-up to 3 an
-hour.
+limited to 20 attempts per 15 minutes from one address, and to 5 failed
+attempts per account from one address. Failures from elsewhere never lock
+you out. Sign-up is limited to 3 an hour.
 
 **Forgot your password?** emails a reset link through the install's mail
 settings. The page gives the same answer whether or not the account exists.
@@ -110,16 +133,24 @@ Then, in **Settings → Team & access → Single sign-on**:
 1. Give your identity provider the **ACS (reply) URL** and the **Entity ID
    (audience)** shown there, and have it send the email address as the
    NameID.
-2. Enter the **IdP metadata URL**, or paste the **IdP metadata XML**.
+2. Enter the **IdP metadata URL**, or paste the **IdP metadata XML**. The
+   URL is fetched once, from the server, over https, and only from a
+   public address; if it can't be fetched, paste the XML instead.
 3. Enter your **Email domains**.
+4. On the hosted service (or any install with open sign-up), prove you own
+   each domain: saving tells you a DNS TXT record to add, named
+   `_dueproof-sso.<your domain>`, with a value tied to your organisation.
+   Add it, then save again. A self-hosted or desktop install with one
+   organisation doesn't need this.
 
 It is written for SAML providers such as Microsoft Entra ID, Google
 Workspace and Okta.
 
 - One identity provider per organisation.
 - Someone signing in through it for the first time gets an account only if
-  their address is on one of those domains. They join with the provider's
-  default role.
+  their address is on one of *its* domains: another organisation's
+  identity provider can't create accounts on your domain. They join with
+  the provider's default role.
 - People who already have a password account keep using it: v0.1 doesn't
   link an identity provider to an existing account.
 - **Owners keep their password**, so turning SSO off, or a lapsed licence,

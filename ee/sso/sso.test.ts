@@ -10,11 +10,12 @@ import { unsafeRawDb } from "@dueproof/db/internal";
 import type { SsoRole } from "@dueproof/plugins";
 import * as samlify from "samlify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { parseSsoConfig, providerIdFor } from "./config";
+import { domainProofRecord, parseSsoConfig, providerIdFor } from "./config";
 import {
   allowsSignUp,
   anyConfigured,
   listProviders,
+  type ResolveTxt,
   removeProvider,
   saveProvider,
   ssoAuthPlugins,
@@ -52,7 +53,7 @@ beforeAll(async () => {
         joins.push(e);
       },
     }),
-    externalSignUp: (email, path) => allowsSignUp(database, email, path),
+    externalSignUp: (email, path, params) => allowsSignUp(database, email, path, params),
   });
   await auth.api.signUpEmail({
     body: { email: "owner@firm.test", password: "correct horse battery", name: "Owner" },
@@ -75,18 +76,55 @@ afterAll(async () => {
 const config = () =>
   parseSsoConfig({ metadataXml: idpMetadata(), domains: "firm.test", defaultRole: "viewer" });
 
+/** DNS as it would answer once the firm has published its proof record for firm.test. */
+const proved: ResolveTxt = async (name) => {
+  const r = domainProofRecord(orgId, "firm.test");
+  if (name === r.name) return [[r.value]];
+  throw Object.assign(new Error("ENODATA"), { code: "ENODATA" });
+};
+const opts = () => ({ resolveTxt: proved });
+
 describe("SSO set-up", () => {
   it("refuses to register a provider without a licence", async () => {
     licensed = false;
     await expect(
-      saveProvider(auth, database, ownerHeaders, orgId, await config(), BASE),
+      saveProvider(auth, database, ownerHeaders, orgId, await config(), BASE, opts()),
     ).rejects.toThrow(/Business licence/);
     expect(await anyConfigured(database)).toBe(false);
     licensed = true;
   });
 
+  it("needs proof of the domain before an identity provider may use it (S1)", async () => {
+    const nothing: ResolveTxt = async () => {
+      throw new Error("ENOTFOUND");
+    };
+    const record = domainProofRecord(orgId, "firm.test");
+    await expect(
+      saveProvider(auth, database, ownerHeaders, orgId, await config(), BASE, {
+        resolveTxt: nothing,
+      }),
+    ).rejects.toThrow(record.value);
+    // Proof for another organisation doesn't count.
+    const other = domainProofRecord("another-org", "firm.test");
+    await expect(
+      saveProvider(auth, database, ownerHeaders, orgId, await config(), BASE, {
+        resolveTxt: async () => [[other.value]],
+      }),
+    ).rejects.toThrow(/Prove you own firm\.test/);
+    expect(await anyConfigured(database)).toBe(false);
+    expect(record.name).toBe("_dueproof-sso.firm.test");
+  });
+
   it("registers the organisation's provider from the server", async () => {
-    const saved = await saveProvider(auth, database, ownerHeaders, orgId, await config(), BASE);
+    const saved = await saveProvider(
+      auth,
+      database,
+      ownerHeaders,
+      orgId,
+      await config(),
+      BASE,
+      opts(),
+    );
     expect(saved).toMatchObject({
       providerId: providerIdFor(orgId),
       issuer: TEST_IDP.entityId,
@@ -96,7 +134,7 @@ describe("SSO set-up", () => {
     });
     expect(await anyConfigured(database)).toBe(true);
     // Saving again replaces it: one provider per organisation.
-    await saveProvider(auth, database, ownerHeaders, orgId, await config(), BASE);
+    await saveProvider(auth, database, ownerHeaders, orgId, await config(), BASE, opts());
     expect(await listProviders(database, orgId, BASE)).toHaveLength(1);
   });
 
@@ -120,14 +158,18 @@ describe("SSO set-up", () => {
     expect(list.status).toBe(403);
   });
 
-  it("lets only an SSO endpoint, for a configured domain, sign someone up", async () => {
-    expect(await allowsSignUp(database, "new@firm.test", "/sso/saml2/sp/acs/:providerId")).toBe(
-      true,
-    );
-    expect(await allowsSignUp(database, "new@firm.test", "/sign-up/email")).toBe(false);
-    expect(await allowsSignUp(database, "new@other.test", "/sso/saml2/sp/acs/:providerId")).toBe(
+  it("lets only an SSO endpoint, for the asserting provider's domain, sign someone up", async () => {
+    const acs = "/sso/saml2/sp/acs/:providerId";
+    const ours = { providerId: providerIdFor(orgId) };
+    expect(await allowsSignUp(database, "new@firm.test", acs, ours)).toBe(true);
+    expect(await allowsSignUp(database, "new@firm.test", "/sign-up/email", ours)).toBe(false);
+    expect(await allowsSignUp(database, "new@other.test", acs, ours)).toBe(false);
+    // S1: another organisation's provider can't create accounts on firm.test,
+    // and an assertion that names no provider creates none.
+    expect(await allowsSignUp(database, "new@firm.test", acs, { providerId: "saml-other" })).toBe(
       false,
     );
+    expect(await allowsSignUp(database, "new@firm.test", acs)).toBe(false);
   });
 });
 

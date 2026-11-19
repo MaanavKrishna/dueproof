@@ -7,7 +7,7 @@ import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createAuth } from "@dueproof/auth";
+import { createAuth, inviteToken } from "@dueproof/auth";
 import { gstinCheckCharacter } from "@dueproof/core";
 import {
   cases,
@@ -90,9 +90,17 @@ let ownerCookie: string;
 let memberId: string;
 let memberCookie: string;
 
-async function signUp(email: string, name: string): Promise<string> {
+async function signUp(email: string, name: string, invitationId?: string): Promise<string> {
   const res = await container.auth.api.signUpEmail({
-    body: { email, name, password: "a-long-test-password" },
+    body: {
+      email,
+      name,
+      password: "a-long-test-password",
+      // An invitation's link carries its token (H1).
+      ...(invitationId
+        ? { inviteToken: inviteToken(container.env.AUTH_SECRET, invitationId) }
+        : {}),
+    },
     returnHeaders: true,
   });
   return (res.headers.get("set-cookie") ?? "").split(";")[0] ?? "";
@@ -142,10 +150,11 @@ beforeAll(async () => {
   setContainer(container);
   ownerCookie = await signUp("asha@harbour.test", "Asha Rao");
   owner = await authorize("case.view", { headers: new Headers({ cookie: ownerCookie }) });
+  const invitationId = uuidv7();
   await unsafeRawDb(database)
     .insert(invitation)
     .values({
-      id: uuidv7(),
+      id: invitationId,
       organizationId: owner.orgId,
       email: "ravi@harbour.test",
       role: "member",
@@ -153,7 +162,7 @@ beforeAll(async () => {
       expiresAt: new Date(Date.now() + 86_400_000),
       inviterId: owner.userId,
     });
-  memberCookie = await signUp("ravi@harbour.test", "Ravi Iyer");
+  memberCookie = await signUp("ravi@harbour.test", "Ravi Iyer", invitationId);
   memberId = (await authorize("case.view", { headers: new Headers({ cookie: memberCookie }) }))
     .userId;
 });

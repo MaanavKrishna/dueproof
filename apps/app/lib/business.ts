@@ -20,7 +20,7 @@ import {
 import type { AuthContext } from "./authorize";
 import { loadEe } from "./ee";
 import { badRequest, forbidden } from "./errors";
-import { licenceStatus } from "./licence";
+import { type LicenceEnv, licenceStatus } from "./licence";
 import { writeAudit } from "./settings";
 
 // ------------------------------------------------------------------ SSO
@@ -39,7 +39,7 @@ export async function ssoSettingsFor(ctx: AuthContext): Promise<SsoSettingsView>
   const sso = loadEe()?.sso;
   if (!sso) return { available: false, licensed: false, providers: [], serviceProvider: null };
   const { database, env } = ctx.container;
-  const licensed = featureActive(await licenceStatus(database), "sso");
+  const licensed = featureActive(await licenceStatus({ database, env }), "sso");
   const providers = licensed ? await sso.list(database, ctx.orgId, env.APP_URL) : [];
   const { acsUrl, spEntityId } = sso.serviceProvider(env.APP_URL, ctx.orgId);
   return { available: true, licensed, providers, serviceProvider: { acsUrl, spEntityId } };
@@ -47,7 +47,7 @@ export async function ssoSettingsFor(ctx: AuthContext): Promise<SsoSettingsView>
 
 async function requireSso(ctx: AuthContext) {
   const sso = loadEe()?.sso;
-  if (!sso || !featureActive(await licenceStatus(ctx.container.database), "sso"))
+  if (!sso || !featureActive(await licenceStatus(ctx.container), "sso"))
     throw forbidden("Single sign-on needs a Dueproof Business licence.");
   return sso;
 }
@@ -68,7 +68,13 @@ export async function saveSsoFor(
   const { auth, database, env } = ctx.container;
   try {
     const config = await sso.parseConfig(input);
-    const saved = await sso.save(auth, database, headers, ctx.orgId, config, env.APP_URL);
+    // S1: on an install shared by organisations (hosted, or open sign-up),
+    // each domain must publish the organisation's TXT proof. A
+    // single-organisation install has nobody to take a domain from.
+    const shared = env.DUEPROOF_EDITION === "hosted" || env.AUTH_SIGNUP === "open";
+    const saved = await sso.save(auth, database, headers, ctx.orgId, config, env.APP_URL, {
+      requireDomainProof: shared,
+    });
     await writeAudit(
       ctx,
       "sso.configure",
@@ -94,11 +100,17 @@ export async function removeSsoFor(ctx: AuthContext, providerId: string): Promis
 }
 
 /** The sign-in page shows "Continue with SSO" only when this is true. */
-export async function ssoSignInAvailable(database: Database): Promise<boolean> {
+export async function ssoSignInAvailable(container: {
+  database: Database;
+  env: LicenceEnv;
+}): Promise<boolean> {
   const sso = loadEe()?.sso;
   if (!sso) return false;
   try {
-    return featureActive(await licenceStatus(database), "sso") && (await sso.configured(database));
+    return (
+      featureActive(await licenceStatus(container), "sso") &&
+      (await sso.configured(container.database))
+    );
   } catch {
     return false;
   }
@@ -140,7 +152,7 @@ export async function exportAuditFor(
   now = new Date(),
 ): Promise<AuditExportResult> {
   const exporter = loadEe()?.auditExport;
-  if (!exporter || !featureActive(await licenceStatus(ctx.container.database), "audit-export"))
+  if (!exporter || !featureActive(await licenceStatus(ctx.container), "audit-export"))
     throw forbidden("Audit export needs a Dueproof Business licence.");
   const from = req.from ? new Date(`${req.from}T00:00:00.000Z`) : null;
   const to = req.to ? new Date(`${req.to}T23:59:59.999Z`) : null;

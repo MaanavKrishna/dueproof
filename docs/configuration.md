@@ -112,9 +112,17 @@ provider) and **Dueproof AI plan** (Claude; hosted only).
 | `AI_KEY_MASTER` | | 32 random bytes, base64 (`openssl rand -base64 32`). Encrypts each organisation's own key. Unset: **Your own key** can't save a key. Keep it out of database backups |
 | `ANTHROPIC_API_KEY` | | Hosted only: the key the Dueproof AI plan uses to call the Claude API |
 | `AI_GATEWAY_API_KEY` | | Hosted only, optional: the plan through Vercel AI Gateway instead, used when `ANTHROPIC_API_KEY` is unset |
+| `AI_PLAN_ORGS` | | Hosted only: the organisations (ids, comma separated) allowed to use the AI plan, which spends Dueproof's own key. Empty: none. Owners can't change it |
+| `AI_PLAN_MONTHLY_CAP_MINOR` | `5000` | Hosted only: the largest monthly budget an organisation may set for the AI plan, in US cents. The plan always needs a budget |
 
 On the self-hosted Compose setup, put `AI_KEY_MASTER` in `.env`. Without it
 only **Off** and **Local model** work.
+
+A provider address for **Your own key** must use https and be a public
+internet address; private and internal addresses are refused. Only
+**Local model** (self-hosted and desktop) may name a machine on your own
+network, over http or https. Changing the provider or its address forgets
+the stored key: enter it again.
 
 ### Reminders and email
 
@@ -141,9 +149,10 @@ See [Workflow and reminders](workflow-and-reminders.md).
 | `BACKUP_STATUS_FILE` | | Self-hosted: the backup container's `last.json`, mounted read-only, so **Settings → System** can show the last backup |
 | `REPORT_WHITE_LABEL` | `0` | Reports without "Prepared with Dueproof". For development; the Business licence's white-label feature normally does this |
 | `DUEPROOF_EE` | | Build time: `off` builds the free edition even when `ee/` is present |
+| `DUEPROOF_LICENCE` | | Hosted only: the Business licence file's contents. On hosted the licence is the operator's alone: owners can't install or remove one in **Settings → System**, and a licence row in the database is ignored. Self-hosted and desktop installs keep the licence in **Settings → System** |
 
 Rate limits that can be overridden, and their defaults: `auth.ip` 20 per
-15 minutes, `auth.account` 5 per 15 minutes, `signup.ip` 3 per hour (20 on
+15 minutes, `auth.account` 5 failed sign-ins per account from one address per 15 minutes, `signup.ip` 3 per hour (20 on
 self-hosted and desktop), `upload.ip` 300, `upload.user` 200 and
 `upload.org` 500 per hour, `search.user` 30 per minute, `export.user` 10 per
 hour, `ai.org` 60 per minute, `api.token` 600 per minute.

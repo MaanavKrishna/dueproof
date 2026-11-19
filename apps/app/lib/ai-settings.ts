@@ -7,15 +7,25 @@
  * app/actions/ai-settings.ts. Every change is audited. The provider key is
  * encrypted with the org's data key under AI_KEY_MASTER and is never
  * returned, logged or audited; only its last four characters are kept.
+ *
+ * - The AI plan spends Dueproof's own key (M4): only organisations the
+ *   operator lists in AI_PLAN_ORGS may choose it, always with a monthly
+ *   budget, at most AI_PLAN_MONTHLY_CAP_MINOR.
+ * - A provider address (L3) must be https and public. Only the Local model
+ *   mode, on self-hosted and desktop, may name a machine on the local
+ *   network (Ollama and the like): choosing that mode is the explicit
+ *   setting. Changing the provider or its address forgets the stored key,
+ *   so a key can't be sent somewhere new without being entered again.
  */
 import "server-only";
 import { encryptApiKey } from "@dueproof/ai";
 import { AiMode } from "@dueproof/contracts";
 import { aiSettings, and, audit, clients, eq, inArray, withOrg } from "@dueproof/db";
 import { z } from "zod";
-import { loadAiSettings, masterKey, monthlyAiUsage } from "./ai";
+import { loadAiSettings, masterKey, monthlyAiUsage, planEntitled } from "./ai";
 import type { AuthContext } from "./authorize";
-import { badRequest } from "./errors";
+import { badRequest, forbidden } from "./errors";
+import { isPublicHost, type Lookup } from "./net";
 
 export interface AiSettingsView {
   mode: AiMode;
@@ -33,6 +43,8 @@ export interface AiSettingsView {
   canStoreKey: boolean;
   /** This calendar month (UTC). */
   usage: { calls: number; opusCalls: number; costMicroUsd: number };
+  /** Hosted: whether the operator lets this organisation use the AI plan. */
+  planAvailable: boolean;
 }
 
 const ModelId = z.string().trim().min(1).max(120);
@@ -86,35 +98,74 @@ export async function getAiSettingsView(ctx: AuthContext): Promise<AiSettingsVie
       opusCalls: usage.opusCallsThisMonth,
       costMicroUsd: usage.spentMicroUsdThisMonth,
     },
+    planAvailable: planEntitled(env, ctx.orgId),
   };
 }
 
-function checkModeForEdition(
-  mode: AiMode,
-  baseUrl: string | null,
-  edition: AuthContext["container"]["env"]["DUEPROOF_EDITION"],
-) {
+async function checkModeForEdition(
+  ctx: AuthContext,
+  input: z.output<typeof AiSettingsInput>,
+  lookup?: Lookup,
+): Promise<void> {
+  const { mode, baseUrl, monthlyBudgetMinor } = input;
+  const env = ctx.container.env;
+  const edition = env.DUEPROOF_EDITION;
   // The plan uses Dueproof's own Claude API key (hosted only in v0.1, D-biz-3).
   if (mode === "plan" && edition !== "hosted")
     throw badRequest("The Dueproof AI plan is available on the hosted edition only.", "ai_mode");
+  if (mode === "plan") {
+    // M4: an entitlement the operator sets, never the tenant.
+    if (!planEntitled(env, ctx.orgId))
+      throw forbidden("The Dueproof AI plan isn't turned on for your organisation yet.");
+    if (monthlyBudgetMinor === null || monthlyBudgetMinor <= 0)
+      throw badRequest("Set a monthly budget for the AI plan.", "ai_budget");
+    if (monthlyBudgetMinor > env.AI_PLAN_MONTHLY_CAP_MINOR)
+      throw badRequest(
+        `The AI plan's budget can be at most $${(env.AI_PLAN_MONTHLY_CAP_MINOR / 100).toFixed(2)} a month.`,
+        "ai_budget",
+      );
+  }
   // A model server on the customer's own network: never from our hosted servers.
   if (mode === "local" && edition === "hosted")
     throw badRequest("Local models are for self-hosted and desktop installs.", "ai_mode");
   if (baseUrl) {
     const url = new URL(baseUrl);
-    if (url.protocol !== "https:" && !(mode === "local" && url.protocol === "http:"))
-      throw badRequest("The provider address must use https.", "ai_base_url");
     if (url.username || url.password)
       throw badRequest("Put the key in the key field, not in the address.", "ai_base_url");
+    // Local model mode (self-hosted, desktop) is the explicit choice of a
+    // machine on your own network: http and private addresses are allowed.
+    if (mode === "local") {
+      if (url.protocol !== "https:" && url.protocol !== "http:")
+        throw badRequest("The provider address must use http or https.", "ai_base_url");
+      return;
+    }
+    if (url.protocol !== "https:")
+      throw badRequest("The provider address must use https.", "ai_base_url");
+    if (!(await isPublicHost(url.hostname, lookup)))
+      throw badRequest(
+        "The provider address must be a public internet address. For a model on your own network, choose Local model.",
+        "ai_base_url",
+      );
   }
+}
+
+/** For tests: resolve provider host names without DNS. */
+let lookupForTests: Lookup | undefined;
+export function setProviderLookupForTests(lookup: Lookup | undefined): void {
+  lookupForTests = lookup;
 }
 
 export async function saveAiSettingsFor(ctx: AuthContext, raw: unknown): Promise<AiSettingsView> {
   const parsed = AiSettingsInput.safeParse(raw);
   if (!parsed.success) throw badRequest("Check the AI settings and try again.", "invalid_settings");
   const input = parsed.data;
-  checkModeForEdition(input.mode, input.baseUrl, ctx.container.env.DUEPROOF_EDITION);
+  await checkModeForEdition(ctx, input, lookupForTests);
   const excluded = [...new Set(input.excludedClientIds)];
+  const before = await loadAiSettings(ctx.container.database, ctx.orgId);
+  // L3: the stored key goes only to the provider and address it was entered for.
+  const forgetKey =
+    Boolean(before.encryptedKey) &&
+    ((before.provider ?? null) !== input.provider || (before.baseUrl ?? null) !== input.baseUrl);
 
   await withOrg(ctx.container.database, ctx.orgId, async (tx, scope) => {
     if (excluded.length) {
@@ -135,10 +186,20 @@ export async function saveAiSettingsFor(ctx: AuthContext, raw: unknown): Promise
       redactPii: input.redactPii,
       excludedClientIds: excluded,
     };
+    const set = forgetKey ? { ...values, encryptedKey: null, keyLast4: null } : values;
     await tx
       .insert(aiSettings)
-      .values({ orgId: ctx.orgId, ...values })
-      .onConflictDoUpdate({ target: aiSettings.orgId, set: values });
+      .values({ orgId: ctx.orgId, ...set })
+      .onConflictDoUpdate({ target: aiSettings.orgId, set });
+    if (forgetKey)
+      await audit.write(tx, scope, {
+        actor: ctx.userId,
+        action: "ai.key_cleared",
+        targetType: "org",
+        targetId: ctx.orgId,
+        requestId: ctx.requestId,
+        detail: { reason: "provider_changed" },
+      });
     await audit.write(tx, scope, {
       actor: ctx.userId,
       action: "ai.settings_changed",

@@ -37,10 +37,46 @@ export function signInUrl(next: string): string {
   return next && next !== "/" ? `/sign-in?next=${encodeURIComponent(next)}` : "/sign-in";
 }
 
-/** Only same-site paths are followed after sign-in. */
+// Control characters (C0, DEL, C1), any whitespace (URL parsers strip tabs
+// and newlines) and backslashes (browsers read "\\" as "/").
+function hasUnsafeChar(p: string): boolean {
+  for (const ch of p) {
+    const code = ch.codePointAt(0) ?? 0;
+    if (code <= 0x20 || (code >= 0x7f && code <= 0xa0) || ch === "\\" || /\s/u.test(ch))
+      return true;
+  }
+  return false;
+}
+const PROBE_ORIGIN = "https://dueproof.invalid";
+
+function plainPath(p: string): boolean {
+  return p.startsWith("/") && !p.startsWith("//") && !hasUnsafeChar(p);
+}
+
+/**
+ * Only same-site paths are followed after sign-in (L1). The path must start
+ * with one slash and hold no control characters, whitespace or backslashes,
+ * before and after percent-decoding; it must then resolve to this origin.
+ * Returns the resolved path, query and hash.
+ */
 export function safeNext(next: string | null | undefined, fallback = "/today"): string {
-  if (!next?.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) return fallback;
-  return next;
+  if (typeof next !== "string" || next.length > 2048 || !plainPath(next)) return fallback;
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(next);
+  } catch {
+    return fallback;
+  }
+  if (!plainPath(decoded)) return fallback;
+  let url: URL;
+  try {
+    url = new URL(next, PROBE_ORIGIN);
+  } catch {
+    return fallback;
+  }
+  if (url.origin !== PROBE_ORIGIN) return fallback;
+  const path = `${url.pathname}${url.search}${url.hash}`;
+  return plainPath(path) ? path : fallback;
 }
 
 export async function getViewer(): Promise<Viewer | null> {

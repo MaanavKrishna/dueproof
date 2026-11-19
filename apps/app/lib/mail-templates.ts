@@ -53,7 +53,8 @@ export function renderInviteEmail(input: InviteEmailInput): MailMessage {
   const lead = input.inviterName
     ? `${input.inviterName} has invited you to join ${input.orgName} on Dueproof as ${article(input.role)} ${input.role}.`
     : `You've been invited to join ${input.orgName} on Dueproof as ${article(input.role)} ${input.role}.`;
-  const steps = "Open the link, choose your name and a password, and you're in.";
+  const steps =
+    "Open the link, choose your name and a password, and you're in. The link is just for you and works once: don't forward it.";
   const expiry = `The invitation lasts ${input.days} days. If you weren't expecting it, you can ignore this email.`;
   return {
     to: input.to,

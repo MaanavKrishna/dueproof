@@ -42,9 +42,14 @@ export interface TeamMember extends MemberRecord {
   isYou: boolean;
 }
 
+export interface TeamInvitation extends InvitationRecord {
+  /** The sign-up link with the invitation's token (the same one the email carries). */
+  link: string;
+}
+
 export interface TeamView {
   members: TeamMember[];
-  invitations: InvitationRecord[];
+  invitations: TeamInvitation[];
   clients: Array<{ id: string; name: string }>;
   /** What the person looking may do here. */
   canManage: boolean;
@@ -79,11 +84,26 @@ export async function getTeamFor(ctx: AuthContext, canManage: boolean): Promise<
       clientIds: m.role === "owner" || m.role === "admin" ? null : (access[m.userId] ?? null),
       isYou: m.userId === ctx.userId,
     })),
-    invitations,
+    invitations: invitations.map((i) => ({
+      ...i,
+      link: inviteLink(ctx.container.env.APP_URL, ctx.container.env.AUTH_SECRET, i.id),
+    })),
     clients: clientList,
     canManage,
     viewerRole: ctx.role,
   };
+}
+
+/** Owner > admin > manager > member > viewer. */
+const ROLE_RANK: Record<Role, number> = { owner: 4, admin: 3, manager: 2, member: 1, viewer: 0 };
+
+/**
+ * Whether someone with `actor`'s role may give `role` to another person
+ * (H2): never a role above their own, and only owners make owners.
+ */
+export function mayGrant(actor: Role, role: Role): boolean {
+  if (role === "owner") return actor === "owner";
+  return ROLE_RANK[role] <= ROLE_RANK[actor];
 }
 
 const Email = z.string().trim().toLowerCase().email("Enter a valid email address.").max(254);
@@ -94,7 +114,7 @@ export const InviteInput = z.object({
 });
 
 export interface InvitedPerson extends InvitationRecord {
-  /** The sign-up link with the address filled in (the same one the email carries). */
+  /** The sign-up link with the invitation's token (the same one the email carries). */
   link: string;
   /** Whether the invitation email went out (false without a mail server, or if it failed). */
   emailed: boolean;
@@ -111,6 +131,7 @@ export async function inviteFor(ctx: AuthContext, raw: unknown): Promise<InviteR
   if (!parsed.success) throw badRequest(parsed.error.issues[0]?.message ?? "Check the addresses.");
   const { emails, role } = parsed.data;
   if (role === "owner" && ctx.role !== "owner") throw forbidden("Only an owner can invite owners.");
+  if (!mayGrant(ctx.role, role)) throw forbidden("You can't invite someone above your own role.");
   const { database, env } = ctx.container;
   const [org, inviter] = await Promise.all([
     getOrg(database, ctx.orgId),
@@ -125,7 +146,7 @@ export async function inviteFor(ctx: AuthContext, raw: unknown): Promise<InviteR
       continue;
     }
     const inv = await createInvitation(database, ctx.orgId, { email, role, inviterId: ctx.userId });
-    const link = inviteLink(env.APP_URL, email);
+    const link = inviteLink(env.APP_URL, env.AUTH_SECRET, inv.id);
     let emailed = false;
     try {
       const sent = await mailer.send(
@@ -186,6 +207,8 @@ export async function changeRoleFor(
     throw forbidden("You can't change your own role. Ask another admin.");
   if ((role.data === "owner" || target.role === "owner") && ctx.role !== "owner")
     throw forbidden("Only an owner can make or change owners.");
+  if (!mayGrant(ctx.role, role.data) || !mayGrant(ctx.role, target.role))
+    throw forbidden("You can't change a role above your own.");
   if (target.role === "owner" && role.data !== "owner" && (await ownerCount(ctx)) <= 1)
     throw badRequest("The organisation needs at least one owner.");
   if (target.role === role.data) return target;

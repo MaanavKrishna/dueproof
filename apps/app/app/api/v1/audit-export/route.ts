@@ -8,12 +8,14 @@
 import { authorizeRequest } from "@/lib/authorize";
 import { exportAuditFor, parseAuditExportQuery } from "@/lib/business";
 import { errorResponse } from "@/lib/errors";
+import { limitRequest } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request): Promise<Response> {
   try {
     const ctx = await authorizeRequest(request, "audit.view");
+    await limitRequest(request, "export", ctx);
     const req = parseAuditExportQuery(new URL(request.url).searchParams);
     const result = await exportAuditFor(ctx, req);
     const headers = { "cache-control": "no-store", "x-content-type-options": "nosniff" };

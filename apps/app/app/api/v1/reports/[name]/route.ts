@@ -2,7 +2,8 @@
  * GET /api/v1/reports/{name}.csv — CSV export of each report and table view:
  * deadlines (with the Deadlines filters), clients, workload, exposure,
  * statement (?client=) and evidence (?case=|client=|range=). Each starts
- * with authorizeRequest for the report's permission.
+ * with authorizeRequest for the report's permission, then the export.user
+ * rate limit (L5).
  */
 import { listClients } from "@/features/clients/queries";
 import { applyFilters } from "@/features/deadlines/group";
@@ -13,9 +14,16 @@ import {
   loadExposureReport,
   loadWorkload,
 } from "@/features/reports/queries";
-import { authorizeRequest } from "@/lib/authorize";
+import { type Action, authorizeRequest } from "@/lib/authorize";
 import { csvResponse, rupees, toCsv } from "@/lib/csv";
 import { badRequest, errorResponse, notFound } from "@/lib/errors";
+import { limitRequest } from "@/lib/rate-limit";
+
+async function authorizeExport(request: Request, action: Action) {
+  const ctx = await authorizeRequest(request, action);
+  await limitRequest(request, "export", ctx);
+  return ctx;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +37,7 @@ export async function GET(
     const q = (k: string) => url.searchParams.get(k) ?? undefined;
     switch (name) {
       case "deadlines.csv": {
-        const ctx = await authorizeRequest(request, "case.view");
+        const ctx = await authorizeExport(request, "case.view");
         const data = await loadDeadlinesPage(ctx);
         const filters: Record<string, string[]> = {};
         for (const k of ["client", "person", "type", "status", "source"]) {
@@ -69,7 +77,7 @@ export async function GET(
         );
       }
       case "clients.csv": {
-        const ctx = await authorizeRequest(request, "client.view");
+        const ctx = await authorizeExport(request, "client.view");
         const { rows } = await listClients(ctx);
         return csvResponse(
           "clients.csv",
@@ -104,7 +112,7 @@ export async function GET(
         );
       }
       case "workload.csv": {
-        const ctx = await authorizeRequest(request, "report.view");
+        const ctx = await authorizeExport(request, "report.view");
         const w = await loadWorkload(ctx);
         return csvResponse(
           "workload.csv",
@@ -115,7 +123,7 @@ export async function GET(
         );
       }
       case "exposure.csv": {
-        const ctx = await authorizeRequest(request, "exposure.view");
+        const ctx = await authorizeExport(request, "exposure.view");
         const { view } = await loadExposureReport(ctx, q("client"));
         return csvResponse(
           "exposure.csv",
@@ -148,7 +156,7 @@ export async function GET(
         );
       }
       case "statement.csv": {
-        const ctx = await authorizeRequest(request, "report.view");
+        const ctx = await authorizeExport(request, "report.view");
         const client = q("client");
         if (!client) throw badRequest("Choose a client.");
         const s = await loadClientStatement(ctx, client);
@@ -161,7 +169,7 @@ export async function GET(
         );
       }
       case "evidence.csv": {
-        const ctx = await authorizeRequest(request, "report.view");
+        const ctx = await authorizeExport(request, "report.view");
         const scope = {
           ...(q("case") ? { caseId: q("case") as string } : {}),
           ...(q("client") ? { clientId: q("client") as string } : {}),
