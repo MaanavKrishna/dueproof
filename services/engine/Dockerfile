@@ -20,7 +20,7 @@
 # INSTALL_TESSERACT=0 also leaves out rung 3 (the binary, its packs and OpenCV):
 # text layer + PaddleOCR only, the engine-fast shape, for small servers.
 
-FROM python:3.13-slim@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90 AS build
+FROM python:3.15-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928 AS build
 ARG INSTALL_TRANSLATION=1
 ARG INSTALL_TESSERACT=1
 # Keep equal to pyproject.toml and uv.lock (see the comment below).
@@ -46,7 +46,7 @@ COPY dueproof_engine ./dueproof_engine
 COPY scripts/fetch_ocr_models.py ./scripts/
 RUN /opt/engine/bin/python scripts/fetch_ocr_models.py --dest /opt/models/ppocr
 
-FROM python:3.13-slim@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90
+FROM python:3.15-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928
 ARG INSTALL_TESSERACT=1
 ARG OCR_PACKS="tesseract-ocr-hin tesseract-ocr-mal tesseract-ocr-tam"
 RUN if [ "$INSTALL_TESSERACT" = "1" ]; then \
