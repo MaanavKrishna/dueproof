@@ -38,15 +38,15 @@
     "@fontsource/noto-sans-tamil": "5.3.0",
     "@fontsource/noto-sans-telugu": "5.3.0",
     "@vercel/sandbox": "4.0.0",
-    "@workflow/world-postgres": "5.2.0",
+    "@workflow/world-postgres": "5.4.0",
     "next": "16.4.6",
-    "nodemailer": "10.6.0",
+    "nodemailer": "10.6.1",
     "qrcode": "1.5.4",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "server-only": "0.0.1",
     "web-push": "3.6.7",
-    "workflow": "5.5.0",
+    "workflow": "5.7.0",
     "zod": "4.6.7"
   },
   "devDependencies": {
