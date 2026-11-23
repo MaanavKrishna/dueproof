@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@dueproof/contracts": "workspace:*",
-    "@electric-sql/pglite": "0.5.16",
+    "@electric-sql/pglite": "0.5.17",
     "@neondatabase/serverless": "1.2.1",
     "drizzle-orm": "0.45.4",
     "postgres": "4.1.1"

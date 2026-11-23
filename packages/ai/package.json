@@ -13,10 +13,10 @@
     "eval": "tsx ../../evals/run.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "1.8.0",
+    "@anthropic-ai/sdk": "1.11.0",
     "@dueproof/contracts": "workspace:*",
     "@dueproof/core": "workspace:*",
-    "openai": "7.57.0",
+    "openai": "7.62.0",
     "zod": "4.6.7"
   },
   "devDependencies": {

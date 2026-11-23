@@ -13,16 +13,16 @@
     "licence": "tsx scripts/issue-licence.ts"
   },
   "dependencies": {
-    "@better-auth/sso": "1.7.25",
+    "@better-auth/sso": "1.7.26",
     "@dueproof/db": "workspace:*",
     "@dueproof/plugins": "workspace:*",
-    "better-auth": "1.7.25",
+    "better-auth": "1.7.26",
     "fast-xml-parser": "5.12.1",
     "zod": "4.6.7"
   },
   "devDependencies": {
     "@dueproof/auth": "workspace:*",
-    "@electric-sql/pglite": "0.5.16",
+    "@electric-sql/pglite": "0.5.17",
     "@types/node": "26.6.5",
     "samlify": "2.15.1",
     "tsx": "4.23.15",
