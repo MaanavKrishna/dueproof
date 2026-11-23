@@ -4,7 +4,7 @@
   "type": "module",
   "description": "The Workflow DevKit Postgres World for the self-hosted app image (apps/app/Dockerfile), installed with `npm ci --ignore-scripts` from the package-lock.json beside this file. Keep the version in step with apps/app/package.json, and the overrides with the root package.json; after a change, run `npm install --package-lock-only --ignore-scripts` here and commit the lockfile.",
   "dependencies": {
-    "@workflow/world-postgres": "5.2.0",
+    "@workflow/world-postgres": "5.4.0",
     "pg": "8.23.1"
   },
   "overrides": {
